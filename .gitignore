@@ -1,0 +1,50 @@
+build/
+
+# Compiled object files
+*.o
+*.obj
+*.lo
+*.slo
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Debug files
+*.dSYM/
+*.stackdump
+
+# Fortran module files
+*.mod
+*.smod
+
+# Fortran preprocessed files
+*.i
+*.ii
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+CMakeLists.txt.user
+
+# Qt Creator generated files
+*.pro.user
+*.qmake.stash
+*.qmake.cache
+

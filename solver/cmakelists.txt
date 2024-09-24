@@ -1,0 +1,14 @@
+
+
+qt_add_executable(solverApp
+    main.cpp
+    example.f90
+)
+
+target_link_libraries(solverApp PRIVATE Qt6::Core Qt6::Widgets)
+
+include_directories(${CMAKE_Fortran_INCLUDE_DIRECTORIES})
+
+if (WIN32)
+    set_target_properties(solverApp PROPERTIES WIN32_EXECUTABLE OFF)
+endif()
