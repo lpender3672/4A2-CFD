@@ -45,7 +45,7 @@
 
 !     Write the average and maximum changes in the primary variables to unit 3
 !     for convergenge plotting
-      write(3,'(i13,8e13.6)') av%nstep, dro_avg, droe_avg, drovx_avg, &
+      write(3,'(i13,8e15.6)') av%nstep, dro_avg, droe_avg, drovx_avg, &
           drovy_avg, dro_max, droe_max, drovx_max, drovy_max
 
 !     Write a short human readable output summary to the screen.

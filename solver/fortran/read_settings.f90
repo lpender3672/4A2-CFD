@@ -26,7 +26,7 @@
 
 !     You should read in the following variables sequentially and store them in
 !     the dervived "av" datatype with the % syntax:
-!         rgas, gam
+!         gam, rgas
 !         cfl, sfac, d_max
 !         nsteps
 !         ni, nj

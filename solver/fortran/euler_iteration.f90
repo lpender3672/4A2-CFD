@@ -6,8 +6,8 @@
 
 !     Explicitly declare the required variables
       use types
-      use stencils
-      use debug
+      use flux_stencil
+      use smooth_stencil
       use io_module
       implicit none
       type(t_appvars), intent(in) :: av

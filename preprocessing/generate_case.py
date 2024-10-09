@@ -67,6 +67,9 @@ def gen_bump(casename):
     th = np.pi * (2 * (geom['x_a'][q] - x[1]) / dx - 1) 
     geom['y_a'][q] = 0.5 * dy * (1 + np.cos(th)) + y[0]
 
+    # Copy lower bump to upper wall for symmetric shock case
+    #geom['x_b'] = geom['x_a']; geom['y_b'] = -geom['y_a'] + y[2];
+
     return(av,geom)
 
 ################################################################################
@@ -78,9 +81,9 @@ def gen_tunnel(casename):
 
     # Settings and boundary conditions
     av = default_settings(casename)
-    av['pstag'] = 200e3; av['p'] = 100e3;
-    av['ni'] = 201; av['nj'] = 81; 
-    av['sfac'] = 0.1; av['nsteps'] = 12000;
+    av['pstag'] = 200e3; av['p'] = 190e3;
+    av['ni'] = 401; av['nj'] = 81; 
+    av['sfac'] = 0.15; av['nsteps'] = 12000;
 
     # Initialise the dictionary to store the curves
     geom = {}
@@ -101,7 +104,7 @@ def gen_tunnel(casename):
         2.863,2.892,2.918,2.939,2.958,2.972,2.983,2.992,2.996,3.000])
 
     # Add on inlet contraction
-    dx_inlet = np.array([-0.8,-0.12]); dy_inlet = 0.4;
+    dx_inlet = np.array([-0.8,-0.12]); dy_inlet = 0.15;
     x = np.concatenate([dx_inlet + x[0],x])
     y = np.concatenate([np.array([1,1]) * dy_inlet + y[0],y])
     x_curv = [x[0],x[-1]]
