@@ -1,5 +1,5 @@
 
-      program solver
+      subroutine solver() bind(C, name="solver")
 
 !     The main body of the CFD solver, calls all subroutines to march towards a
 !     flow solution
@@ -24,6 +24,8 @@
       real :: d_max = 1, d_avg = 1
       integer :: nstep, nconv = 5, ncheck = 5
 
+      write(6,*) 'Solver preprocessing started'
+
 !     Read in the data on the run settings
       call read_settings(av,bcs)
 
@@ -31,6 +33,7 @@
 !     it directly from a binary file written in Python
       if(av%ni /= -1) then
 
+          write(6,*) 'Generating Mesh'
 !         Now the size of the grid is known, the space in memory can be 
 !         allocated within the grid type
           call allocate_arrays(av,g,bcs)
@@ -42,7 +45,7 @@
           call generate_mesh(geom,g)
 
       else 
-
+          write(6,*) 'Reading Mesh from file'
 !         Read the mesh coordinates directly from file - used for extension
           call read_mesh(av,g,bcs,p)
 
@@ -85,6 +88,8 @@
       open(unit=11,file='stopit')
       write(11,*) 0; close(11);
 
+
+      write(6,*) 'Calculation started'
 !     Start the time stepping do loop for "nsteps". This is now the heart of the
 !     program, you should aim to program anything inside this loop to operate as
 !     efficiently as you can.
@@ -129,6 +134,6 @@
 !     Close open convergence history file
       close(3)
 
-      end program solver
+      end subroutine solver
 
 

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <QApplication>
+#include <QThread>
 #include <QPushButton>
 #include <QMessageBox>
 #include <QTextEdit>
@@ -8,8 +9,6 @@
 #include <QDebug>
 
 extern "C" {
-    void fortran_hello();
-    void add_numbers(int* a, int* b, int* result);
     
     struct t_grid_c {
         float cfl;
@@ -23,7 +22,7 @@ extern "C" {
         float* phi;
     };
 
-    void advection(t_grid_c* grid_in, t_grid_c* grid_out);
+    void solver();
 }
 
 class ConsoleWidget : public QTextEdit
@@ -38,46 +37,87 @@ public:
     }
 };
 
+class SolveWorker : public QObject {
+    Q_OBJECT
+
+public slots:
+    void runSolver() {
+        emit solverStarted();
+        solver();  // Call the solver function
+        emit solverFinished();
+    }
+
+signals:
+    void solverStarted();
+    void solverFinished();
+};
+
+
+class MainWindow : public QWidget {
+    Q_OBJECT
+public:
+    MainWindow() {
+
+    QVBoxLayout *layout = new QVBoxLayout(this);
+
+    console = new ConsoleWidget(this);
+    button = new QPushButton("Run Solver");
+
+    layout->addWidget(console);
+    layout->addWidget(button);
+
+    worker = new SolveWorker;
+    workerThread = new QThread(this);
+    worker->moveToThread(workerThread);
+    connect(worker, &SolveWorker::solverStarted, this, &MainWindow::onSolverStarted, Qt::QueuedConnection);
+    connect(worker, &SolveWorker::solverFinished, this, &MainWindow::onSolverFinished, Qt::QueuedConnection);
+
+    connect(workerThread, &QThread::started, worker, &SolveWorker::runSolver);
+    connect(button, &QPushButton::clicked, this, &MainWindow::startSolver);
+
+    setLayout(layout);
+
+    console->outputMessage("Program started");
+
+    }
+    ~MainWindow() {
+        if (workerThread->isRunning()) {
+            workerThread->quit();
+            workerThread->wait();
+        }
+    }
+
+public slots:
+    void startSolver() {
+        if (!workerThread->isRunning()) {
+            workerThread->start();  // Start the thread
+        }
+    }
+
+    void onSolverStarted() {
+        console->outputMessage("Solver has started...");
+    }
+
+    void onSolverFinished() {
+        console->outputMessage("Solver has finished.");
+    }
+
+private:
+    SolveWorker *worker;
+    QThread *workerThread;
+    ConsoleWidget *console;
+    QPushButton *button;
+};
+
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-    QWidget window;
-    QVBoxLayout layout(&window);
-
-    ConsoleWidget *console = new ConsoleWidget;
-    QPushButton *helloButton = new QPushButton("Hello, World!");
-
-    layout.addWidget(console);
-    layout.addWidget(helloButton);
-
-    QObject::connect(helloButton, &QPushButton::clicked, [console]() {
-        console->outputMessage("Button clicked! Calling Fortran...");
-        fortran_hello();
-
-        int x = 9;
-        int y = 10;
-        int sum = 21;
-
-        t_grid_c grid_in;
-        grid_in.cfl = 0.4;
-        grid_in.ni = 51;
-        grid_in.a = 1;
-        grid_in.phi_inlet = 1;
-        grid_in.phi_start = 0;
-
-        t_grid_c grid_out; 
-        // allocate memory for x and phi
-        grid_in.x = new float[grid_in.ni];
-        grid_in.phi = new float[grid_in.ni];
-
-        advection(&grid_in, &grid_out);
-
-        std::cout << "Size returned from Advection" << grid_out.x[1] << std::endl;
-    });
-
-    console->outputMessage("Program started");
-
+    MainWindow window;
     window.show();
+
     return app.exec();
 }
+
+#include "main.moc"

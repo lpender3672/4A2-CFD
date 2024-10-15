@@ -34,7 +34,7 @@
             type :: t_grid
                   real(C_FLOAT) :: cfl, dt_total, a, phi_inlet, phi_start
                   integer(C_INT) :: ni
-                  real(C_FLOAT), pointer :: x(:), phi(:)
+                  real(C_FLOAT), dimension(:), pointer :: x, phi
             end type t_grid
 
             type, bind(C) :: t_grid_c
@@ -52,7 +52,7 @@
             implicit none
         
             type(t_grid_c), intent(in) :: grid_c  ! Incoming C-compatible struct
-            type(t_grid) :: grid     ! Fortran-specific struct
+            type(t_grid), intent(out) :: grid     ! Fortran-specific struct
         
             ! Assign scalar components directly
             grid%cfl = grid_c%cfl
@@ -62,14 +62,8 @@
             grid%phi_start = grid_c%phi_start
             grid%ni = grid_c%ni
         
-            ! Allocate arrays after ensuring grid%ni is set
-            ! if (allocated(grid%x)) deallocate(grid%x)
-            ! if (allocated(grid%phi)) deallocate(grid%phi)
-        
             allocate(grid%x(grid%ni), grid%phi(grid%ni))
-        
-            ! Transfer any initial values if needed here (e.g., from C arrays if they exist)
-        
+                
       end subroutine grid_from_c
 
       subroutine grid_to_c(grid, grid_c)
