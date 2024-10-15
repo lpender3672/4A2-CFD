@@ -21,142 +21,198 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       module types
+            use iso_c_binding, only: C_INT, C_FLOAT, C_PTR
+            
+            implicit none
 
-!     In Fortran you can define user derived data types. These are similar to
-!     Python dictionaries or Matlab structures and can be used to store any mix
-!     of variables you wish. They must be defined in a module that is included
-!     within every main program and subroutine that they are used.
-!     
-!     This single type stores everything useful for this program.
-      type t_grid
+      !     In Fortran you can define user derived data types. These are similar to
+      !     Python dictionaries or Matlab structures and can be used to store any mix
+      !     of variables you wish. They must be defined in a module that is included
+      !     within every main program and subroutine that they are used.
+      !     
+      !     This single type stores everything useful for this program.
+            type :: t_grid
+                  real(C_FLOAT) :: cfl, dt_total, a, phi_inlet, phi_start
+                  integer(C_INT) :: ni
+                  real(C_FLOAT), pointer :: x(:), phi(:)
+            end type t_grid
 
-!         Multiple variables can be declared simultaneously as long as they are
-!         of the same type. These are all 32-bit floating point single numbers.
-          real :: cfl, dt_total, a, phi_inlet, phi_start
-
-!         An integer is declared to define the size of the mesh and index it 
-!         later, these is a 32-bit integer
-          integer :: ni
-
-!         Mesh coordinate data in 1D vectors, by making it allocatable the size
-!         of the array in the memory can be set later in the program once it is 
-!         known
-          real, dimension(:), allocatable :: x, phi
-
-      end type t_grid
+            type, bind(C) :: t_grid_c
+                  real(C_FLOAT) :: cfl, dt_total, a, phi_inlet, phi_start
+                  integer(C_INT) :: ni
+                  type(C_PTR) :: x, phi
+            end type t_grid_c
 
       end module types
+
+      subroutine grid_from_c(grid_c, grid)
+            use iso_c_binding, only: C_INT, C_FLOAT
+            use types
+        
+            implicit none
+        
+            type(t_grid_c), intent(in) :: grid_c  ! Incoming C-compatible struct
+            type(t_grid) :: grid     ! Fortran-specific struct
+        
+            ! Assign scalar components directly
+            grid%cfl = grid_c%cfl
+            grid%dt_total = grid_c%dt_total
+            grid%a = grid_c%a
+            grid%phi_inlet = grid_c%phi_inlet
+            grid%phi_start = grid_c%phi_start
+            grid%ni = grid_c%ni
+        
+            ! Allocate arrays after ensuring grid%ni is set
+            ! if (allocated(grid%x)) deallocate(grid%x)
+            ! if (allocated(grid%phi)) deallocate(grid%phi)
+        
+            allocate(grid%x(grid%ni), grid%phi(grid%ni))
+        
+            ! Transfer any initial values if needed here (e.g., from C arrays if they exist)
+        
+      end subroutine grid_from_c
+
+      subroutine grid_to_c(grid, grid_c)
+            use iso_c_binding, only: C_INT, C_FLOAT, c_loc, c_f_pointer
+            use types
+        
+            implicit none
+        
+            type(t_grid), intent(in) :: grid     ! Fortran-specific struct
+            type(t_grid_c), intent(out) :: grid_c  ! Outgoing C-compatible struct
+        
+            ! Assign scalar components directly
+            grid_c%cfl = grid%cfl
+            grid_c%dt_total = grid%dt_total
+            grid_c%a = grid%a
+            grid_c%phi_inlet = grid%phi_inlet
+            grid_c%phi_start = grid%phi_start
+            grid_c%ni = grid%ni
+
+            grid_c%x = c_loc(grid%x)
+            grid_c%phi = c_loc(grid%phi)
+            
+        
+      end subroutine grid_to_c
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !     The main program begins
 
-      program advection
+      subroutine advection(grid_in, grid_out) bind(C, name="advection")
+            use iso_c_binding, only: C_INT, C_FLOAT
 
-!     Use the derived data type by using the module that contains the definition
-      use types
+      !     Use the derived data type by using the module that contains the definition
+            use types
 
-!     Use a library of predefined useful subroutines for this course
-      use routines
+      !     Use a library of predefined useful subroutines for this course
+            use routines
 
-!     Never use historical implicit variable naming
-      implicit none
+      !     Never use historical implicit variable naming
+            implicit none
 
-!     Explicitly declare the required variables, including the grid type named
-!     "g". You can also assign values to a variable at the same time as
-!     declaring them if you wanted to with "=".
-      type(t_grid) :: g
-      integer :: ni, n, nsteps
-      real :: x_min, x_max, dt_total, dt, dx
+      !     Explicitly declare the required variables, including the grid type named
+      !     "g". You can also assign values to a variable at the same time as
+      !     declaring them if you wanted to with "=".
+            type(t_grid_c), intent(in) :: grid_in
+            type(t_grid_c), intent(out) :: grid_out
+            type(t_grid) :: g
 
-!     You can print to "standard out" with this command, unless you specify a
-!     file in the command you execute your program with it will just print text 
-!     in the terminal.
-      write(6,*) 'Started the advection example program'
 
-!     Choose the grid resolution and coordinate limits and assign them into
-!     local variables. You can write multiple statements on one line if they 
-!     are separated by a semicolon.
-      x_min = 0; x_max = 1; ni = 51;
+            integer :: ni, n, nsteps
+            real :: x_min, x_max, dt_total, dt, dx
 
-!     Set the total time to run the simulation for
-      dt_total = 0.4
+      !     You can print to "standard out" with this command, unless you specify a
+      !     file in the command you execute your program with it will just print text 
+      !     in the terminal.
 
-!     Fill in the run settings in the grid data type, you can access the
-!     different fields with "%". 
-      g%cfl = 0.4; g%ni = ni; g%a = 1; 
-      g%phi_inlet = 1; g%phi_start = 0;
+            call grid_from_c(grid_in, g)
 
-!     Allocate the size of the grid and the scalar variable phi in the memory of
-!     the program now that you know their size
-      allocate(g%x(ni),g%phi(ni))
+            write(6,*) 'Started the advection example program '
 
-!     Create the grid with linearly spaced coordinates between two limits, here
-!     a separate file with useful subroutines is used called "routines.f90". One
-!     of these is linspace, which is similar to what you are used to with Numpy.
-!     The subroutine must be called with the inputs and outputs on the same
-!     line. In this case "x_min" and "x_max" are inputs, and "g%x" is both input
-!     and output, the size of the array is taken into the subroutine, the values
-!     are calculated and then returned into the same variable "g%x".
-      call linspace(x_min,x_max,g%x)
+      !     Choose the grid resolution and coordinate limits and assign them into
+      !     local variables. You can write multiple statements on one line if they 
+      !     are separated by a semicolon.
+            x_min = 0; x_max = 1; ni = 51;
 
-!     Calculate the grid spacing to be used for spatial derivatives
-      dx = g%x(2) - g%x(1)
-      write(6,*) '  Grid spacing =', dx
+      !     Set the total time to run the simulation for
+            dt_total = 0.4
 
-!     Calculate the timestep from the CFL number "g%cfl", the convection speed
-!     "g%a" and the grid spacing "dx"
-      dt = g%cfl * dx / g%a
-      write(6,*) '  Timestep =', dt
+      !     Fill in the run settings in the grid data type, you can access the
+      !     different fields with "%". 
+      !      g%cfl = 0.4; g%ni = ni; g%a = 1;  ! These are now set in the C struct
+      !      g%phi_inlet = 1; g%phi_start = 0;
 
-!     Calculate the number of timesteps required to cover the time period by
-!     rounding up using the Fortran intrinsic function "ceiling". If you need to
-!     continue your code on to another line place an "&" before the end.
-      nsteps = ceiling(dt_total / dt)
-      write(6,*) '  Total number of timesteps required =', nsteps, &
-          ' for runtime of dt_total =', dt_total
+      !     Allocate the size of the grid and the scalar variable phi in the memory of
+      !     the program now that you know their size
+            ! allocate(g%x(ni),g%phi(ni))
 
-!     Set the initial value of "phi" everywhere, although "phi" is an array you 
-!     can set every element in it to the scalar value very easily
-      g%phi = g%phi_start
+      !     Create the grid with linearly spaced coordinates between two limits, here
+      !     a separate file with useful subroutines is used called "routines.f90". One
+      !     of these is linspace, which is similar to what you are used to with Numpy.
+      !     The subroutine must be called with the inputs and outputs on the same
+      !     line. In this case "x_min" and "x_max" are inputs, and "g%x" is both input
+      !     and output, the size of the array is taken into the subroutine, the values
+      !     are calculated and then returned into the same variable "g%x".
+            call linspace(x_min,x_max,g%x)
 
-!     Start the time stepping do loop for "nsteps". This is the heart of the
-!     program at marches through time modifying the value of "phi"
-      do n = 0, nsteps
+      !     Calculate the grid spacing to be used for spatial derivatives
+            dx = g%x(2) - g%x(1)
+            write(6,*) '  Grid spacing =', dx
 
-!         Apply the boundary condition by setting the first value to "phi_inlet"
-          g%phi(1) = g%phi_inlet
+      !     Calculate the timestep from the CFL number "g%cfl", the convection speed
+      !     "g%a" and the grid spacing "dx"
+            dt = g%cfl * dx / g%a
+            write(6,*) '  Timestep =', dt
 
-!         Complete an iteration by marching forward in time with a first order
-!         upwind scheme
-          call upwind(g%phi,dt,dx,g%a,ni)
+      !     Calculate the number of timesteps required to cover the time period by
+      !     rounding up using the Fortran intrinsic function "ceiling". If you need to
+      !     continue your code on to another line place an "&" before the end.
+            nsteps = ceiling(dt_total / dt)
+            write(6,*) '  Total number of timesteps required =', nsteps, &
+            ' for runtime of dt_total =', dt_total
 
-!         Print the progress of the solution every 10 steps by using an if 
-!         statement and the mod command to check the remainder from a division.
-!         Formatting is used in the write command to help visualise the data.
-          if(mod(n,10) == 0) then
-              write(6,'(A,I4)') '  Step', n
-              write(6,'(*(F4.2,1X))') g%phi
-          end if
+      !     Set the initial value of "phi" everywhere, although "phi" is an array you 
+      !     can set every element in it to the scalar value very easily
+            g%phi = g%phi_start
 
-      end do
+      !     Start the time stepping do loop for "nsteps". This is the heart of the
+      !     program at marches through time modifying the value of "phi"
+            do n = 0, nsteps
 
-!     At the end of the program the result can be written to file. The first
-!     step is to open a "unit". Some have special significance, like 5 & 6 which
-!     are the standard in and out files. In this case we want a new file so
-!     select unit 1. Without any further options this will give us an easy to
-!     read ASCII text file
-      open(unit=1,file='advection_output.txt')
+      !         Apply the boundary condition by setting the first value to "phi_inlet"
+            g%phi(1) = g%phi_inlet
 
-!     Write both the coordinate and scalar data to the file, each "write" 
-!     operation prints a single line in the file where each element of the array 
-!     is separated by whitespace 
-      write(1,*) g%x; write(1,*) g%phi;
+      !         Complete an iteration by marching forward in time with a first order
+      !         upwind scheme
+            call upwind(g%phi,dt,dx,g%a,ni)
 
-!     Close the unit when writing is completed
-      close(1)
+      !         Print the progress of the solution every 10 steps by using an if 
+      !         statement and the mod command to check the remainder from a division.
+      !         Formatting is used in the write command to help visualise the data.
+            if(mod(n,10) == 0) then
+                  write(6,'(A,I4)') '  Step', n
+                  write(6,'(*(F4.2,1X))') g%phi
+            end if
 
-      end program advection
+            end do
+
+      !     At the end of the program the result can be written to file. The first
+      !     step is to open a "unit". Some have special significance, like 5 & 6 which
+      !     are the standard in and out files. In this case we want a new file so
+      !     select unit 1. Without any further options this will give us an easy to
+      !     read ASCII text file
+            open(unit=1,file='advection_output.txt')
+
+      !     Write both the coordinate and scalar data to the file, each "write" 
+      !     operation prints a single line in the file where each element of the array 
+      !     is separated by whitespace 
+            write(1,*) g%x; write(1,*) g%phi;
+
+            call grid_to_c(g, grid_out)
+
+      end subroutine advection
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

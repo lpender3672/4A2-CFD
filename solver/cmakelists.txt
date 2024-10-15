@@ -3,6 +3,8 @@
 qt_add_executable(solverApp
     main.cpp
     example.f90
+    Code/advection.f90
+    Code/routines.f90
 )
 
 target_link_libraries(solverApp PRIVATE Qt6::Core Qt6::Widgets)

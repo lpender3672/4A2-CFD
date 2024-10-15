@@ -10,6 +10,20 @@
 extern "C" {
     void fortran_hello();
     void add_numbers(int* a, int* b, int* result);
+    
+    struct t_grid_c {
+        float cfl;
+        float dt_total;
+        float a;
+        float phi_inlet;
+        float phi_start;
+        int32_t ni;
+
+        float* x;
+        float* phi;
+    };
+
+    void advection(t_grid_c* grid_in, t_grid_c* grid_out);
 }
 
 class ConsoleWidget : public QTextEdit
@@ -45,9 +59,21 @@ int main(int argc, char *argv[])
         int y = 10;
         int sum = 21;
 
-        add_numbers(&x, &y, &sum);
+        t_grid_c grid_in;
+        grid_in.cfl = 0.4;
+        grid_in.ni = 51;
+        grid_in.a = 1;
+        grid_in.phi_inlet = 1;
+        grid_in.phi_start = 0;
 
-        std::cout << "Sum returned from Fortran: " << sum << std::endl;
+        t_grid_c grid_out; 
+        // allocate memory for x and phi
+        grid_in.x = new float[grid_in.ni];
+        grid_in.phi = new float[grid_in.ni];
+
+        advection(&grid_in, &grid_out);
+
+        std::cout << "Size returned from Advection" << grid_out.x[1] << std::endl;
     });
 
     console->outputMessage("Program started");
