@@ -54,6 +54,8 @@
 !     Calculate cell areas and facet lengths
       call calc_areas(g)
 
+      write(6,*) 'Minimum mesh size found to be ', g%l_min
+
 !     Optional output call to inspect the mesh you have generated
       call write_output(av,g,1)
 
@@ -80,7 +82,7 @@
 
 !     Open file to store the convergence history. This is human readable during
 !     a long run by using "tail -f conv_example.csv" in a terminal window
-      open(unit=3,file='conv_' // av%casename // '.csv')
+      open(unit=3,file='output/conv_' // av%casename // '.csv')
 
 !     Initialise the "stopit" file, during long runs you can request an output
 !     is written by setting the value to 1, or to terminate the calculation if

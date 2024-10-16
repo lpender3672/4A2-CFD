@@ -12,6 +12,7 @@
       character(len=80) :: tempname
 
 !     Read the case name and trim to the required length
+      open(unit=5, file='cases/input_bend.txt', status='old')
       read(5,*) tempname
       av%casename = trim(tempname)
 

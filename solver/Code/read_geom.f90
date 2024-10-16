@@ -13,7 +13,7 @@
       integer :: i
 
 !     Open the file and assign to unit 1
-      open(1,file='geom_' // av%casename // '.txt')
+      open(1,file='cases/geom_' // av%casename // '.txt')
 
 !     Read the length of the first curve and allocate the length of the arrays
 !     required to store its geometry within memory in the "geom" variable
