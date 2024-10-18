@@ -18,8 +18,8 @@
       real :: t_out, v_out, ro_out, lx, ly, l
 
 !     Variables required for the improved guess, you will need to add to these
-      real :: l_temp(g%nj), l_i(g%ni), v_guess(g%ni), ro_guess(g%ni)
-      real :: mdot_exit
+      real :: l_temp(g%nj), l_i(g%ni), v_guess(g%ni), ro_guess(g%ni), t_guess(g%ni)
+      real :: mdot_exit, mach_lim, t_lim
       
 !     Get the size of the mesh and store locally for convenience
       ni = g%ni; nj = g%nj;
@@ -85,10 +85,14 @@
 !             5. Calculate the density throughout "ro_guess(i)"
 !             6. Update the estimate of the velocity "v_guess(i)" 
           ro_guess(ni) = ro_out
-          do i = ni, 1, -1
-              ro_guess(i) = ro_guess(i + 1)
-              v_guess(i) = mdot_exit / (ro_guess(i) * l_i(i))
-              
+          v_guess(ni) = v_out
+          do i = ni, 2, -1 ! looping backwards from exit to inlet
+              v_guess(i-1) = mdot_exit / (ro_out * l_i(i-1))
+              t_guess(i-1) = max(t_lim, bcs%tstag - 0.5 * v_guess(i-1)**2 / av%cp)
+
+              ro_guess(i-1) = ( bcs % pstag * (t_guess(i-1) / bcs % tstag)**(1 / av%fgam) ) / (av%rgas * t_guess(i-1))
+              ! update the velocity guess
+              v_guess(i-1) = mdot_exit / (ro_guess(i-1) * l_i(i-1))
           end do
 
 !         Direct the calculated velocity to be parallel to the "j = const"
@@ -96,13 +100,35 @@
 !         similar calculation to the "j = nj/2" one that was performed in the 
 !         crude guess. Then set all of ro, roe, rovx and rovy, note that roe 
 !         includes the kinetic energy component of the internal energy.
-!         INSERT 
+
+          ! direction of flow is now taken at each point j instead of just the middle
+          ! This is then also updated at every point
+          do j = 1, nj
+            g%ro(:,j) = ro_guess
+            do i = 1,ni-1
+                  lx = g%lx_j(i,j); ly = g%ly_j(i,j); 
+                  l = hypot(lx,ly)
+                  g%rovx(i, j) = g%ro(i, j) * v_out * ly / l
+                  g%rovy(i, j) = -g%ro(i, j) * v_out * lx / l
+
+                  g%roe(i, j) = g%ro(i, j) * (t_guess(i) + 0.5 * v_guess(i)**2)
+              end do
+          end do
               
 !         Make sure the guess has been copied for the "i = ni" values too
-!         INSERT
+          g%ro(ni,:) = g%ro(ni-1,:)
+
+          g%rovx(ni,:) = g%rovx(ni-1,:)
+          g%rovy(ni,:) = g%rovy(ni-1,:)
+
+          g%roe(ni,:) = g%roe(ni-1,:)
+
 
 !         Print the first elements of the guess like for the crude guess
-!         INSERT
+          write(6,*) 'Flow guess calaculated using improved method'
+          write(6,*) 'At g(1,1): ro =', g%ro(1,1), 'roe =', g%roe(1,1), 'rovx =', g%rovx(1,1), 'rovy =', g%rovy(1,1)
+          write(6,*) 'At g(ni,1): ro =', g%ro(ni,1), 'roe =', g%roe(ni,1), 'rovx =', g%rovx(ni,1), 'rovy =', g%rovy(ni,1)
+          write(6,*)
 
       end if
 
