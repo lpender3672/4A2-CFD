@@ -14,7 +14,7 @@
       integer :: n, ni, nj, m
 
 !     Open the file and assign to unit 2
-      open(2,file='mesh_' // av%casename // '.bin',form='unformatted', &
+      open(2,file='cases/mesh_' // av%casename // '.bin',form='unformatted', &
           access='stream')
 
 !     Read the number of blocks and allocate the size of "g" 

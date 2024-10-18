@@ -43,6 +43,7 @@
 
 !     Close the unit now everything has been read
 !     INSERT
+      close(1)
 
       end subroutine read_geom
 
