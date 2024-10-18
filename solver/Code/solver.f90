@@ -22,7 +22,7 @@
       type(t_geometry) :: geom
       type(t_grid) :: g
       real :: d_max = 1, d_avg = 1
-      integer :: nstep, nconv = 5, ncheck = 5
+      integer :: nstep, nconv = 100, ncheck = 100
 
       write(6,*) 'Solver preprocessing started'
 

@@ -18,9 +18,9 @@
       real :: t_out, v_out, ro_out, lx, ly, l
 
 !     Variables required for the improved guess, you will need to add to these
-      real :: l_temp(g%nj), l_i(g%ni)
-!     INSERT
-
+      real :: l_temp(g%nj), l_i(g%ni), v_guess(g%ni), ro_guess(g%ni)
+      real :: mdot_exit
+      
 !     Get the size of the mesh and store locally for convenience
       ni = g%ni; nj = g%nj;
 
@@ -64,16 +64,17 @@
 !         "l_i". You could calculate the length along each i-facet from the x 
 !         and y projected lengths with "hypot" and then sum them up in the
 !         second dimension with "sum". 
-!         INSERT
+          l_i = sum(hypot(g%lx_i,g%ly_i),2)
 
 !         Use the exit temperature, density and velocity calculated for the 
 !         crude guess with "l_i" to estimate the mass flow rate at the exit
-!         INSERT
+          mdot_exit = ro_out * v_out * l_i(ni)
 
 !         Set a limit to the maximum allowable mach number in the initial
 !         guess, call this "mach_lim", calculate the corresponding temperature,
 !         called "t_lim"
-!         INSERT
+          mach_lim = 0.9
+          t_lim = bcs%tstag / (1 + 0.5 * (av%gam - 1) * mach_lim ** 2)
 
 !         Now estimate the velocity and density at every "i = const" line, call 
 !         the velocity "v_guess(i)" and the density "ro_guess(i)":
@@ -83,7 +84,12 @@
 !             4. Limit the static temperature, lookup intrinsic "max"
 !             5. Calculate the density throughout "ro_guess(i)"
 !             6. Update the estimate of the velocity "v_guess(i)" 
-!         INSERT
+          ro_guess(ni) = ro_out
+          do i = ni, 1, -1
+              ro_guess(i) = ro_guess(i + 1)
+              v_guess(i) = mdot_exit / (ro_guess(i) * l_i(i))
+              
+          end do
 
 !         Direct the calculated velocity to be parallel to the "j = const"
 !         gridlines for all values of i and j. This can be achieved with a 

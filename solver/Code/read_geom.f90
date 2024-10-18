@@ -22,14 +22,12 @@
 
 !     Read the x and y coordinates of the curve from the file, create a do loop
 !     that iterates from 1 to "geom%ni_a", the length of the first domain curve
-!     INSERT
       do i = 1, geom%ni_a
          read(1,*) geom%x_a(i), geom%y_a(i)
       end do
 
 !     Repeat the process for the second curve, read its length, allocate the
 !     memory, then read the coordinates line by line from the file
-!     INSERT
       read(1,*) geom%ni_b
       allocate(geom%x_b(geom%ni_b),geom%y_b(geom%ni_b))
       do i = 1, geom%ni_b
@@ -42,7 +40,6 @@
       write(6,*)
 
 !     Close the unit now everything has been read
-!     INSERT
       close(1)
 
       end subroutine read_geom

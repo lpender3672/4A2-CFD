@@ -23,13 +23,27 @@
 !     "minval" function or with nested do loops. Print the output to the screen
 !     and flag negative numbers as an error with an if statement to "stop" the
 !     program
-!     INSERT
+      area_min = minval(g%area)
+      if (area_min < tol) then
+          write(6,*) 'Negative cell area found: ', area_min, ' at i,j = ', &
+              merge(ni, ni-1, area_min == g%area(ni,nj)), &
+              merge(nj, nj-1, area_min == g%area(ni,nj))
+          stop
+      end if
 
 !     Next check that the sum of the edge vectors around every quadrilateral is 
 !     very nearly zero in both the x and y-coordinate directions. You can
 !     complete this with some elementwise addition of the arrays and use of the
 !     "maxval" and "abs" intrinsic functions.
-!     INSERT
+
+!      g%area(ni-1,nj-1) g%lx_i(ni,nj-1) g%ly_i(ni,nj-1) g%lx_j(ni-1,nj) g%ly_j(ni-1,nj))
+
+      dx_error = maxval(g%lx_i(:-1,:) - g%lx_i(2:, :) + g%lx_j(:,:-1) - g%lx_j(:, 2:))
+      dy_error = maxval(g%ly_i(:-1,:) - g%ly_i(2:, :) + g%ly_j(:,:-1) - g%ly_j(:, 2:))
+      if (dx_error > tol .or. dy_error > tol) then
+          write(6,*) 'Edge vector sum error: ', dx_error, dy_error
+          stop
+      end if
 
 !     It may be worthwhile to complete some other checks, the prevous call to
 !     the "write_output" subroutine has written a file that you can read and
@@ -37,7 +51,8 @@
 !     access to all of the mesh parameters used within the solver that you could
 !     inspect graphically.
 
-!     Print a blank line
+!     Print a blank 
+      write(6,*) 'Mesh check passed'
       write(6,*)
 
       end subroutine check_mesh

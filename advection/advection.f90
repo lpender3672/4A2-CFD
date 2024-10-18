@@ -135,8 +135,8 @@
 
       !     Fill in the run settings in the grid data type, you can access the
       !     different fields with "%". 
-      !      g%cfl = 0.4; g%ni = ni; g%a = 1;  ! These are now set in the C struct
-      !      g%phi_inlet = 1; g%phi_start = 0;
+            g%cfl = 0.4; g%ni = ni; g%a = 1;  ! These are now set in the C struct
+            g%phi_inlet = 1; g%phi_start = 0;
 
       !     Allocate the size of the grid and the scalar variable phi in the memory of
       !     the program now that you know their size
@@ -197,7 +197,7 @@
       !     are the standard in and out files. In this case we want a new file so
       !     select unit 1. Without any further options this will give us an easy to
       !     read ASCII text file
-            open(unit=1,file='advection_output.txt')
+            open(unit=1,file='output/advection_output.txt', status='old')
 
       !     Write both the coordinate and scalar data to the file, each "write" 
       !     operation prints a single line in the file where each element of the array 
@@ -205,6 +205,8 @@
             write(1,*) g%x; write(1,*) g%phi;
 
             call grid_to_c(g, grid_out)
+
+            close(1)
 
       end subroutine advection
 

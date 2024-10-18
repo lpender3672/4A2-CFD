@@ -15,7 +15,7 @@
 
 !     Declare integers or any extra variables you need here
       real :: sj(g%nj) ! Non-dimensional curve length in j-direction
-      integer :: i ! Loop counter
+      integer :: i, j ! Loop counter
 
 !     Get the size of the mesh and store locally for convenience
       ni = g%ni; nj = g%nj;
@@ -40,8 +40,20 @@
 !     intermediate coordinates from a weighted sum of the two boundaries
       call linspace(0.0, 1.0, sj)
       do i = 1, ni
-            g%x(i, :) = (1 - sj) * g%x(i, 1) + sj * g%x(i, nj)
-            g%y(i, :) = (1 - sj) * g%y(i, 1) + sj * g%y(i, nj)
+            ! this code just doesnt work
+            ! g%x(i, 2:-1) = (1 - sj(2:-1)) * g%x(i, 1) + sj(2:-1) * g%x(i, nj)
+            ! g%y(i, 2:-1) = (1 - sj(2:-1)) * g%y(i, 1) + sj(2:-1) * g%y(i, nj)
+            ! but this does ??? make it make sense
+            g%x(i, 2:nj-1) = (1 - sj(2:nj-1)) * g%x(i, 1) + sj(2:nj-1) * g%x(i, nj)
+            g%y(i, 2:nj-1) = (1 - sj(2:nj-1)) * g%y(i, 1) + sj(2:nj-1) * g%y(i, nj)
+
+            !do j = 2, nj-1
+            !      g%x(i, j) = (1 - sj(j)) * g%x(i, 1) + sj(j) * g%x(i, nj)
+            !      g%y(i, j) = (1 - sj(j)) * g%y(i, 1) + sj(j) * g%y(i, nj)
+            !      write(6,*) 'i, j', i, j, g%x(i, j), g%y(i, j)
+            !
+            !end do
+ 
       end do
 
 
