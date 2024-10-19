@@ -2,6 +2,7 @@
 #include <QApplication>
 #include <QThread>
 #include <QPushButton>
+#include <QFileDialog>
 #include <QMessageBox>
 #include <QTextEdit>
 #include <QVBoxLayout>
@@ -22,7 +23,7 @@ extern "C" {
         float* phi;
     };
 
-    void solver();
+    void solver(const char* path);
 }
 
 class ConsoleWidget : public QTextEdit
@@ -40,16 +41,37 @@ public:
 class SolveWorker : public QObject {
     Q_OBJECT
 
+public:
+    SolveWorker() {
+    }
+
+    ~SolveWorker() {
+    }
+
+    void setPath(const QString &newPath) {
+        path = newPath;
+    }
 public slots:
     void runSolver() {
+
+        if (path.isEmpty()) {
+            return;
+        }
+        char fixedPath[256] = {0};
+        QByteArray pathArray = path.toUtf8();
+        std::strncpy(fixedPath, pathArray.constData(), sizeof(fixedPath) - 1);
+
         emit solverStarted();
-        solver();  // Call the solver function
+        solver(fixedPath);  // Call the solver function
         emit solverFinished();
     }
 
 signals:
     void solverStarted();
     void solverFinished();
+
+private:
+    QString path;
 };
 
 
@@ -61,10 +83,12 @@ public:
     QVBoxLayout *layout = new QVBoxLayout(this);
 
     console = new ConsoleWidget(this);
-    button = new QPushButton("Run Solver");
+    runButton = new QPushButton("Run Solver");
+    choosePathButton = new QPushButton("Choose Path");
 
     layout->addWidget(console);
-    layout->addWidget(button);
+    layout->addWidget(runButton);
+    layout->addWidget(choosePathButton);
 
     worker = new SolveWorker;
     workerThread = new QThread(this);
@@ -73,11 +97,15 @@ public:
     connect(worker, &SolveWorker::solverFinished, this, &MainWindow::onSolverFinished, Qt::QueuedConnection);
 
     connect(workerThread, &QThread::started, worker, &SolveWorker::runSolver);
-    connect(button, &QPushButton::clicked, this, &MainWindow::startSolver);
+    connect(runButton, &QPushButton::clicked, this, &MainWindow::startSolver);
+    connect(choosePathButton, &QPushButton::clicked, this, &MainWindow::choosePath);
 
     setLayout(layout);
 
     console->outputMessage("Program started");
+
+    path = "cases/bump/input_bump.txt";
+    console->outputMessage("Selected path: " + path);
 
     }
     ~MainWindow() {
@@ -89,9 +117,15 @@ public:
 
 public slots:
     void startSolver() {
-        if (!workerThread->isRunning()) {
-            workerThread->start();  // Start the thread
+        if (workerThread->isRunning()) {
+            console->outputMessage("Solver is already running.");
+            return;
+        } else if (path.isEmpty()) {
+            console->outputMessage("No path selected.");
+            return;
         }
+        worker->setPath(path);
+        workerThread->start();  // Start the thread
     }
 
     void onSolverStarted() {
@@ -100,13 +134,28 @@ public slots:
 
     void onSolverFinished() {
         console->outputMessage("Solver has finished.");
+
+        workerThread->quit();
+    }
+
+    void choosePath() {
+        QString directory = QFileDialog::getOpenFileName(this, "Choose File", "", "All Files (*.*)");
+        if (!directory.isEmpty()) {
+            path = directory;
+            console->outputMessage("Selected path: " + directory);
+        } else {
+            console->outputMessage("No input file selected.");
+        }
     }
 
 private:
     SolveWorker *worker;
     QThread *workerThread;
     ConsoleWidget *console;
-    QPushButton *button;
+    QPushButton *runButton;
+    QPushButton *choosePathButton;
+
+    QString path;
 };
 
 

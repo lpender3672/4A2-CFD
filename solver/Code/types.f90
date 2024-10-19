@@ -12,6 +12,7 @@
 
 !         Case name
           character(len=:), allocatable :: casename
+          character(len=:), allocatable :: casefolder
 
 !         Gas Properties
           real :: rgas, gam, cp, cv, fgam

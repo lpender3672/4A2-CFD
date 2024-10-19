@@ -1,5 +1,5 @@
 
-      subroutine solver() bind(C, name="solver")
+      subroutine solver(path) bind(C, name="solver")
 
 !     The main body of the CFD solver, calls all subroutines to march towards a
 !     flow solution
@@ -10,12 +10,17 @@
 !     run in the background
 
 !     Use derived data types defined in a separate module
+      use iso_c_binding, only: c_char
       use types
 
 !     Don't use historical implicit variable naming
       implicit none
 
 !     Explicitly declare the required variables
+      character(kind=c_char), dimension(*), intent(in) :: path
+      integer :: i, len_path
+      character(len=:), allocatable :: fpath
+      
       type(t_appvars) :: av
       type(t_bconds) :: bcs
       type(t_match) :: p
@@ -24,10 +29,21 @@
       real :: d_max = 1, d_avg = 1
       integer :: nstep, nconv = 100, ncheck = 100
 
+      len_path = 0
+      do i = 1, 256
+            if (path(i) == achar(0)) exit
+            len_path = len_path + 1
+      end do
+      allocate(character(len=len_path) :: fpath)
+      do i = 1, len_path
+            fpath(i:i) = path(i)
+      end do
+
+      write(6,*) 'Received path: ', fpath
       write(6,*) 'Solver preprocessing started'
 
 !     Read in the data on the run settings
-      call read_settings(av,bcs)
+      call read_settings(fpath,av,bcs)
 
 !     Determine whether to generate the mesh within this Fortran program or read
 !     it directly from a binary file written in Python
@@ -82,7 +98,7 @@
 
 !     Open file to store the convergence history. This is human readable during
 !     a long run by using "tail -f conv_example.csv" in a terminal window
-      open(unit=3,file='output/conv_' // av%casename // '.csv')
+      open(unit=3,file= av%casefolder // '/conv_' // av%casename // '.csv')
 
 !     Initialise the "stopit" file, during long runs you can request an output
 !     is written by setting the value to 1, or to terminate the calculation if
