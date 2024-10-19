@@ -83,12 +83,6 @@ ConsoleWidget* consoleWidget = nullptr;
 
 void qt_console_write(const char* text, int length) {
 
-    std::cout << "Received string (raw bytes): ";
-    for (int i = 0; i < length; ++i) {
-        std::cout << std::hex << (int)text[i] << " ";
-    }
-    std::cout << std::endl;
-
     if (consoleWidget && length > 0) {
         QString message = QString::fromUtf8(text, length);
         emit consoleWidget->newMessage(message);
