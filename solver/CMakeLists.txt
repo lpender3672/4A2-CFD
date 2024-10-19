@@ -5,6 +5,7 @@ qt_add_executable(solverApp
     Code/types.f90
     Code/stencils.f90
     Code/routines.f90
+    Code/qtio.f90
 
     Code/solver.f90
     Code/read_settings.f90

@@ -12,6 +12,7 @@
 !     Use derived data types defined in a separate module
       use iso_c_binding, only: c_char
       use types
+      use io_module
 
 !     Don't use historical implicit variable naming
       implicit none
@@ -20,6 +21,7 @@
       character(kind=c_char), dimension(*), intent(in) :: path
       integer :: i, len_path
       character(len=:), allocatable :: fpath
+      character(len=256) :: msg_bfr
       
       type(t_appvars) :: av
       type(t_bconds) :: bcs
@@ -39,8 +41,9 @@
             fpath(i:i) = path(i)
       end do
 
-      write(6,*) 'Received path: ', fpath
-      write(6,*) 'Solver preprocessing started'
+      ! call write_to_qt('Hello World!')
+      write(msg_bfr,*) 'Solver preprocessing started'
+      call write_to_qt(msg_bfr)
 
 !     Read in the data on the run settings
       call read_settings(fpath,av,bcs)
@@ -49,7 +52,8 @@
 !     it directly from a binary file written in Python
       if(av%ni /= -1) then
 
-          write(6,*) 'Generating Mesh'
+          write(msg_bfr,*) 'Generating Mesh'
+          call write_to_qt(msg_bfr)
 !         Now the size of the grid is known, the space in memory can be 
 !         allocated within the grid type
           call allocate_arrays(av,g,bcs)
@@ -61,7 +65,8 @@
           call generate_mesh(geom,g)
 
       else 
-          write(6,*) 'Reading Mesh from file'
+          write(msg_bfr,*) 'Reading Mesh from file'
+          call write_to_qt(msg_bfr)
 !         Read the mesh coordinates directly from file - used for extension
           call read_mesh(av,g,bcs,p)
 
@@ -70,7 +75,8 @@
 !     Calculate cell areas and facet lengths
       call calc_areas(g)
 
-      write(6,*) 'Minimum mesh size found to be ', g%l_min
+      write(msg_bfr,*) 'Minimum mesh size found to be ', g%l_min
+      call write_to_qt(msg_bfr)
 
 !     Optional output call to inspect the mesh you have generated
       call write_output(av,g,1)
@@ -107,7 +113,8 @@
       write(11,*) 0; close(11);
 
 
-      write(6,*) 'Calculation started'
+      write(msg_bfr,*) 'Calculation started'
+      call write_to_qt(msg_bfr)
 !     Start the time stepping do loop for "nsteps". This is now the heart of the
 !     program, you should aim to program anything inside this loop to operate as
 !     efficiently as you can.
@@ -138,7 +145,8 @@
 
 !         Stop marching if converged to the desired tolerance "conlim"
           if(d_max < av%d_max .and. d_avg < av%d_avg) then
-              write(6,*) 'Calculation converged in', nstep,'iterations'
+              write(msg_bfr,*) 'Calculation converged in', nstep,'iterations'
+              call write_to_qt(msg_bfr)
               exit
           end if
 
@@ -146,7 +154,8 @@
 
 !     Calculation finished, call "write_output" to write the final, not 
 !     necessarily converged flowfield
-      write(6,*) 'Calculation completed after', av%nstep,'iterations'
+      write(msg_bfr,*) 'Calculation completed after', av%nstep,'iterations'
+      call write_to_qt(msg_bfr)
       call write_output(av,g,3)
 !
 !     Close open convergence history file

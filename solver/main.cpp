@@ -24,10 +24,12 @@ extern "C" {
     };
 
     void solver(const char* path);
+    void qt_console_write(const char* text, int length);
 }
 
 class ConsoleWidget : public QTextEdit
 {
+    Q_OBJECT
 public:
     ConsoleWidget(QWidget *parent = nullptr) : QTextEdit(parent) {
         setReadOnly(true);
@@ -36,6 +38,8 @@ public:
     void outputMessage(const QString &message) {
         this->append(message);
     }
+signals:
+    void newMessage(const QString &message);  // Signal to be emitted from the worker thread
 };
 
 class SolveWorker : public QObject {
@@ -75,6 +79,29 @@ private:
 };
 
 
+ConsoleWidget* consoleWidget = nullptr;
+
+void qt_console_write(const char* text, int length) {
+
+    std::cout << "Received string (raw bytes): ";
+    for (int i = 0; i < length; ++i) {
+        std::cout << std::hex << (int)text[i] << " ";
+    }
+    std::cout << std::endl;
+
+    if (consoleWidget && length > 0) {
+        QString message = QString::fromUtf8(text, length);
+        emit consoleWidget->newMessage(message);
+    }
+}
+
+void setConsoleWidget(ConsoleWidget* widget) {
+    consoleWidget = widget;
+
+    QObject::connect(consoleWidget, &ConsoleWidget::newMessage,
+                     consoleWidget, &ConsoleWidget::outputMessage);
+}
+
 class MainWindow : public QWidget {
     Q_OBJECT
 public:
@@ -83,6 +110,7 @@ public:
     QVBoxLayout *layout = new QVBoxLayout(this);
 
     console = new ConsoleWidget(this);
+    setConsoleWidget(console);
     runButton = new QPushButton("Run Solver");
     choosePathButton = new QPushButton("Choose Path");
 
