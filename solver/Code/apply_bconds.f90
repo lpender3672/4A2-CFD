@@ -38,18 +38,18 @@
 !     "ro(:)", "pstag", "tstag" and "alpha". Also set "vx(1,:)", "vy(1,:)" and 
 !     "hstag(1,:)"
 
-      Tstatic = bcs%tstag * (g%rho(1,:) / bcs%rostag)**(av%fgam - 1)
+      Tstatic = bcs%tstag * (g%ro(1,:) / bcs%rostag)**(av%fgam - 1)
       Vinlet = (2 * av%cp * (bcs%tstag - Tstatic))**0.5
 
-      rovx(1,:) = Vinlet * cos(bcs%alpha)
-      rovy(1,:) = Vinlet * sin(bcs%alpha)
-      p(1,:) = g%rho(1,:) * av%rgas * Tstatic
-      roe(1,:) = av%cv * Tstatic + 0.5 * Vinlet**2
+      g%rovx(1,:) = Vinlet * cos(bcs%alpha)
+      g%rovy(1,:) = Vinlet * sin(bcs%alpha)
+      g%p(1,:) = g%ro(1,:) * av%rgas * Tstatic
+      g%roe(1,:) = av%cv * Tstatic + 0.5 * Vinlet**2
       ! CHECK
 
 !     For the outlet boundary condition set the value of "p(ni,:)" to the
 !     specified value of static pressure "p_out" in "bcs"
-      g%p(ni,:) = bcs%p_out
+      g%p(g%ni,:) = bcs%p_out
 
       end subroutine apply_bconds
 
