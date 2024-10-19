@@ -13,7 +13,8 @@
       type(t_bconds), intent(inout) :: bcs
 
 !     Declare the other variables you need here
-!     INSERT
+      
+      real, dimension(:), allocatable :: Tstatic, Vinlet
 
 !     At the inlet boundary the change in density is driven towards "rostag",
 !     which is then used to obtain the other flow properties to match the
@@ -36,11 +37,19 @@
 !     Calculate "p(1,:)", "rovx(1,:)", "rovy(1,:)" and "roe(1,:)" from the inlet 
 !     "ro(:)", "pstag", "tstag" and "alpha". Also set "vx(1,:)", "vy(1,:)" and 
 !     "hstag(1,:)"
-!     INSERT
+
+      Tstatic = bcs%tstag * (g%rho(1,:) / bcs%rostag)**(av%fgam - 1)
+      Vinlet = (2 * av%cp * (bcs%tstag - Tstatic))**0.5
+
+      rovx(1,:) = Vinlet * cos(bcs%alpha)
+      rovy(1,:) = Vinlet * sin(bcs%alpha)
+      p(1,:) = g%rho(1,:) * av%rgas * Tstatic
+      roe(1,:) = av%cv * Tstatic + 0.5 * Vinlet**2
+      ! CHECK
 
 !     For the outlet boundary condition set the value of "p(ni,:)" to the
 !     specified value of static pressure "p_out" in "bcs"
-!     INSERT
+      g%p(ni,:) = bcs%p_out
 
       end subroutine apply_bconds
 
