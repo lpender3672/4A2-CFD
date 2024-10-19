@@ -29,7 +29,7 @@
       type(t_geometry) :: geom
       type(t_grid) :: g
       real :: d_max = 1, d_avg = 1
-      integer :: nstep, nconv = 100, ncheck = 100
+      integer :: nstep, nconv = 5, ncheck = 5
 
       len_path = 0
       do i = 1, 256
@@ -82,7 +82,7 @@
       call write_output(av,g,1)
 
 !     Check that the areas and projected lengths are correct
-      call check_mesh(g)
+      call check_mesh(g, av)
 
 !     Calculate the initial guess of the flowfield in the domain. There are two
 !     options that can be chosen with the input argument "guesstype":
@@ -141,6 +141,10 @@
 !         every "ncheck" steps
           if(mod(av%nstep,ncheck) == 0) then
               call check_stop(av,g)
+
+              if (av%crashed) then
+                  exit
+              end if
           end if
 
 !         Stop marching if converged to the desired tolerance "conlim"

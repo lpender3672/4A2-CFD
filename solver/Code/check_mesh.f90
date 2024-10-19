@@ -1,5 +1,5 @@
       
-      subroutine check_mesh(g)
+      subroutine check_mesh(g, av)
 
 !     Check the cell area and facet length calculations before attempting to
 !     solve the flow, make sure you do this for both the "bump" and "bend" test
@@ -9,6 +9,7 @@
       use types
       implicit none
       type(t_grid), intent(inout) :: g
+      type(t_appvars), intent(inout) :: av
       real :: area_min, dx_error, dy_error, tol
       integer :: ni, nj
 
@@ -28,7 +29,8 @@
           write(6,*) 'Negative cell area found: ', area_min, ' at i,j = ', &
               merge(ni, ni-1, area_min == g%area(ni,nj)), &
               merge(nj, nj-1, area_min == g%area(ni,nj))
-          stop
+          !stop
+          av%crashed = .true.
       end if
 
 !     Next check that the sum of the edge vectors around every quadrilateral is 
@@ -42,7 +44,8 @@
       dy_error = maxval(g%ly_i(:-1,:) - g%ly_i(2:, :) + g%ly_j(:,:-1) - g%ly_j(:, 2:))
       if (dx_error > tol .or. dy_error > tol) then
           write(6,*) 'Edge vector sum error: ', dx_error, dy_error
-          stop
+          !stop
+          av%crashed = .true.
       end if
 
 !     It may be worthwhile to complete some other checks, the prevous call to
