@@ -7,7 +7,7 @@
 #   with "python path_to_script/generate_case.py casename"
 
 # Import modules and functions
-from routines import *
+from postprocessing.routines import *
 
 def gen_bend(casename):
     # Create a 90 degree bend with extended straight sections

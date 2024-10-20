@@ -89,6 +89,8 @@
         "qthread": "cpp",
         "qmessagebox": "cpp",
         "*.moc": "cpp",
-        "qfiledialog": "cpp"
+        "qfiledialog": "cpp",
+        "qpushbutton": "cpp",
+        "qvboxlayout": "cpp"
     }
 }
