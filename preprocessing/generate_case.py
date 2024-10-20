@@ -258,7 +258,7 @@ def gen_turbine_c(casename):
     geom = {};
 
     # Read G9 turbine cascade from file, used in 4A3 wind tunnel experiment
-    arr = np.loadtxt('g9.raw',skiprows=1); nn = np.shape(arr)[0];
+    arr = np.loadtxt('cases/g9.raw',skiprows=1); nn = np.shape(arr)[0];
 
     # Extract upper and lower coordinates from the array
     geom['x_a'] = arr[:,0]; geom['x_b'] = arr[:,2];
@@ -321,7 +321,7 @@ def gen_turbine_h(casename):
         g[var] = []; 
 
     # Read G9 turbine cascade from file, used in 4A3 wind tunnel experiment
-    arr = np.loadtxt('g9.raw',skiprows=1); nn = np.shape(arr)[0];
+    arr = np.loadtxt('cases/g9.raw',skiprows=1); nn = np.shape(arr)[0];
 
     # Extract upper and lower coordinates from the array and offset by a pitch
     dy = 2.99
@@ -398,7 +398,7 @@ def gen_multi(casename):
     # plane potential flow past multi-element aerofoils" (1985). Note this paper
     # also has the exact inviscid static pressure coefficients that can be read
     # from the input file
-    arr = np.loadtxt('sudhoo.raw',skiprows=1); nn = np.shape(arr)[0];
+    arr = np.loadtxt('cases/sudhoo.raw',skiprows=1); nn = np.shape(arr)[0];
     x = arr[:,:4]; y = arr[:,4:8]; 
 
     # Initialise the dictionary to store the curves
