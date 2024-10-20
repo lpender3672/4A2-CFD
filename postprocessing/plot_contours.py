@@ -5,15 +5,15 @@
 #
 #   Change to the directory you want to execute the script within and execute 
 #   with "python path_to_script/plot_contours.py casename"
-
+import os
 # Import modules and functions
 from routines import *
 
 def main():
 
     # Construct full filenames to read the run data
-    inname = 'input_' + sys.argv[-1] + '.txt'
-    outname = 'out_final_' + sys.argv[-1] + '.bin'
+    inname = 'cases/' + sys.argv[-1] + '/input_' + sys.argv[-1] + '.txt'
+    outname = 'cases/' + sys.argv[-1] + '/out_final_' + sys.argv[-1] + '.bin'
 
     # Read the settings and the case from file
     av = read_settings(inname)
@@ -32,6 +32,10 @@ def main():
     # reference pressures at the inlet plane and therefore the static pressure
     # coefficient
     # INSERT
+    pstag_ref = mass_av(cut_i(g, 0), 'pstag')[0]
+    p_ref = area_av(cut_i(g, 0), 'p')[0]
+
+    g['cp'] = (g['p'] - p_ref) / (pstag_ref - p_ref)
 
     # Specify the parameters to plot
     fieldnames = ['cp', 'mach']; 

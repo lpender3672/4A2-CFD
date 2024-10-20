@@ -27,7 +27,7 @@ void emit_grid_signal(t_grid g) {
         for (int i = 0; i < g.ni; i++) {
             QString row = "";
             for (int j = 0; j < g.nj; j++) {
-                row += QString::number(g.x[i * g.ni + j]) + " ";
+                row += QString::number(g.y[i * g.ni + j]) + " ";
             }
             emit globalConsoleWidget->newMessage(row);
         }

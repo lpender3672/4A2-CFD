@@ -21,6 +21,21 @@ def calc_secondary(av,b):
     # your post-processing, save them into the block "b" dictionary alongside
     # mesh coordinates and primary flow variables.
     # INSERT
+    #g%vx = g%rovx / g%ro
+    #g%vy = g%rovy / g%ro
+    #g%p = g%roe - 0.5 * g%ro * (g%vx**2 + g%vy**2)
+    #g%hstag = g%roe / g%ro
+    b['vx'] = b['rovx'] / b['ro']
+    b['vy'] = b['rovy'] / b['ro']
+    b['p'] = b['roe'] - 0.5 * b['ro'] * (b['rovx']**2 + b['rovy']**2)
+    b['hstag'] = b['roe'] / b['ro']
+
+    # actually need pstag too
+    b['pstag'] = b['p'] + 0.5 * b['ro'] * (b['vx']**2 + b['vy']**2)
+    # now need mach
+
+    b['t'] = ( b['roe'] / b['ro'] - 0.5 * (b['vx']**2 + b['vy']**2) ) / av['cv']
+    b['mach'] = np.sqrt(b['vx']**2 + b['vy']**2) / np.sqrt( av['gam'] * av['rgas'] * b['t'] )
 
     return b
 
@@ -697,7 +712,7 @@ def write_settings(av):
     # Create an input file with settings and boundary conditions
 
     # Open the file to write
-    filename = 'input_' + av['casename'] + '.txt'
+    filename = 'cases/' + av['casename'] +  '/input_' + av['casename'] + '.txt'
     f = open(filename,'w')
 
     # Write the casename
@@ -732,7 +747,7 @@ def write_geom(av,geom):
     # Create an input file with settings and boundary conditions
 
     # Open the file to write
-    filename = 'geom_' + av['casename'] + '.txt'
+    filename = 'cases/' + av['casename'] + '/geom_' + av['casename'] + '.txt'
     f = open(filename,'w')
 
     # Write each curve in turn
@@ -760,7 +775,7 @@ def write_mesh(av,g):
     # Write grid coordinates and connectivity data to file directly
 
     # Open the file to write
-    filename = 'mesh_' + av['casename'] + '.bin'
+    filename = 'cases/' + av['casename'] +  '/mesh_' + av['casename'] + '.bin'
     f = open(filename,'w')
 
     # Write the number of blocks

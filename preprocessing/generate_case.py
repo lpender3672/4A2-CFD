@@ -5,6 +5,10 @@
 #
 #   Change to the directory you want to execute the script within and execute 
 #   with "python path_to_script/generate_case.py casename"
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import modules and functions
 from postprocessing.routines import *
