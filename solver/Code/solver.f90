@@ -97,6 +97,7 @@
 
 !     Optional output call to inspect the initial guess of the flowfield
       call write_output(av,g,2)
+      call grid_to_qt(g)
 
 !     Set the length of the timestep, initially this is a constant based on a 
 !     conservative guess of the mach number

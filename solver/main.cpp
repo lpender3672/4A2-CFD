@@ -9,22 +9,13 @@
 #include <QWidget>
 #include <QDebug>
 
-extern "C" {
-    
-    struct t_grid_c {
-        float cfl;
-        float dt_total;
-        float a;
-        float phi_inlet;
-        float phi_start;
-        int32_t ni;
+#include "types.h"
 
-        float* x;
-        float* phi;
-    };
+extern "C" {
 
     void solver(const char* path);
-    void qt_console_write(const char* text, int length);
+    void emit_console_signal(const char* text, int length);
+    void emit_grid_signal(t_grid g);
 }
 
 class ConsoleWidget : public QTextEdit
@@ -81,11 +72,26 @@ private:
 
 ConsoleWidget* consoleWidget = nullptr;
 
-void qt_console_write(const char* text, int length) {
+void emit_console_signal(const char* text, int length) {
 
     if (consoleWidget && length > 0) {
         QString message = QString::fromUtf8(text, length);
         emit consoleWidget->newMessage(message);
+    }
+}
+
+void emit_grid_signal(t_grid g) {
+    
+    if (consoleWidget) {
+        emit consoleWidget->newMessage("grid signal received");
+
+        for (int i = 0; i < g.ni; i++) {
+            QString row = "";
+            for (int j = 0; j < g.nj; j++) {
+                row += QString::number(g.x[i * g.ni + j]) + " ";
+            }
+            emit consoleWidget->newMessage(row);
+        }
     }
 }
 

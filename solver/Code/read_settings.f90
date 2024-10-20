@@ -6,12 +6,14 @@
 
 !     Explicitly declare the required variables
       use types
+      use io_module
       implicit none
       character(len=*), intent(in) :: fpath
       character(len=:), allocatable :: folderpath
       type(t_appvars), intent(out) :: av
       type(t_bconds), intent(out) :: bcs
       character(len=80) :: tempname
+      character(len=128) :: msg_bfr
       integer :: last_slash_index
 
 !     Read the case name and trim to the required length
@@ -73,16 +75,23 @@
 !     Print the settings to check they have been read, you can use this syntax
 !     anywhere else you want in the program to debug your code
       write(6,*)
-      write(6,*) 'Solver begins on ', av%casename, ' case in folder ', av%casefolder
+      write(msg_bfr,*) 'Solver begins on ', av%casename, ' case in folder ', av%casefolder
+      call write_to_qt(msg_bfr)
       write(6,*)
-      write(6,*) 'Read application variables from file'
-      write(6,*) '  rgas =', av%rgas, 'cp =', av%cp, 'cv =', av%cv
-      write(6,*) '  CFL =', av%cfl, 'sfac =', av%sfac
-      write(6,*) '  Convergence  d_max =', av%d_max
-      write(6,*) '  Mesh size  ni =', av%ni, 'nj =', av%nj
-      write(6,*) '  Inlet  pstag =', bcs%pstag, 'tstag =', bcs%tstag, &
-          'alpha = ', bcs%alpha
-      write(6,*) '  Outlet  p_out =', bcs%p_out
+      write(msg_bfr,*) 'Read application variables from file'
+      call write_to_qt(msg_bfr)
+      write(msg_bfr,*) '  rgas =', av%rgas, 'cp =', av%cp, 'cv =', av%cv
+      call write_to_qt(msg_bfr)
+      write(msg_bfr,*) '  CFL =', av%cfl, 'sfac =', av%sfac
+      call write_to_qt(msg_bfr)
+      write(msg_bfr,*) '  Convergence  d_max =', av%d_max
+      call write_to_qt(msg_bfr)
+      write(msg_bfr,*) '  Mesh size  ni =', av%ni, 'nj =', av%nj
+      call write_to_qt(msg_bfr)
+      write(msg_bfr,*) '  Inlet  pstag =', bcs%pstag, 'tstag =', bcs%tstag, 'alpha = ', bcs%alpha
+      call write_to_qt(msg_bfr)
+      write(msg_bfr,*) '  Outlet  p_out =', bcs%p_out
+      call write_to_qt(msg_bfr)
       write(6,*)
 
       end subroutine read_settings
