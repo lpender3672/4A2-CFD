@@ -1,4 +1,5 @@
 build/
+postprocessing/__pycache__/
 
 # Compiled object files
 *.o
