@@ -18,7 +18,7 @@ public:
     void setPath(const QString &newPath);
 
 signals:
-    void pathChosen();
+    void pathChanged(const QString &newPath);
     void runSolverRequested();
 
 private slots:

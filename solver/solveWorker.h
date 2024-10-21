@@ -11,9 +11,9 @@ class SolveWorker : public QObject {
 public:
     SolveWorker();
     ~SolveWorker();
-    void setPath(const QString &newPath);
 
 public slots:
+    void setPath(const QString &newPath);
     void runSolver();
 
 signals:

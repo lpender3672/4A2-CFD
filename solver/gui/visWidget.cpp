@@ -41,6 +41,10 @@ void VisWidget::createGraph(QChartView *chartView, QLineSeries *series, QString 
     chart->axisX()->setTitleText(xTitle);
     chart->axisY()->setTitleText(yTitle);
 
+    chart->setMargins(QMargins(0, 0, 0, 0));
+    chart->layout()->setContentsMargins(0, 0, 0, 0);
+    chart->setBackgroundRoundness(0);
+
     chartView->setChart(chart);
     chartView->setRenderHint(QPainter::Antialiasing);
 }

@@ -21,7 +21,7 @@
       character(kind=c_char), dimension(*), intent(in) :: path
       integer :: i, len_path
       character(len=:), allocatable :: fpath
-      character(len=1024) :: msg_bfr
+      character(len=128) :: msg_bfr
       
       type(t_appvars) :: av
       type(t_bconds) :: bcs

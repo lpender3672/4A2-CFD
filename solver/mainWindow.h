@@ -18,6 +18,8 @@ public slots:
     void onSolverStarted();
     void onSolverFinished();
 
+    void onPathChanged(const QString &newPath);
+
 private:
     SolveWorker *solveWorker;
     QThread *solveWorkerThread;

@@ -37,8 +37,6 @@ void InputWidget::choosePath() {
     QString chosenPath = QFileDialog::getOpenFileName(this, "Choose File", "", "All Files (*.*)");
     if (!chosenPath.isEmpty()) {
         setPath(chosenPath);
-        emit pathChosen();  // Emit a signal that the path has been chosen
-    } else {
-        qDebug() << "No path selected.";
+        emit pathChanged(chosenPath);  // Emit a signal that the path has been chosen
     }
 }

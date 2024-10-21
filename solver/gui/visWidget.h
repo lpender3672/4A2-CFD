@@ -6,6 +6,7 @@
 #include <QtCharts/QLineSeries>
 #include <QtCharts/QChart>
 #include <QVBoxLayout>
+#include <QGraphicsLayout>
 
 #include "../types.h"
 

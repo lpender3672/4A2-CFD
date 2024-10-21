@@ -15,15 +15,11 @@ MainWindow::MainWindow() {
     layout->addWidget(console);
     layout->addWidget(visWidget);
 
-    solveWorker = new SolveWorker;
-    solveWorkerThread = new QThread(this);
-    solveWorker->moveToThread(solveWorkerThread);
-    connect(solveWorker, &SolveWorker::solverStarted, this, &MainWindow::onSolverStarted, Qt::QueuedConnection);
-    connect(solveWorker, &SolveWorker::solverFinished, this, &MainWindow::onSolverFinished, Qt::QueuedConnection);
+    solveWorker = nullptr;
+    solveWorkerThread = nullptr;
 
+    connect(inputWidget, &InputWidget::pathChanged, this, &MainWindow::onPathChanged);
     connect(inputWidget, &InputWidget::runSolverRequested, this, &MainWindow::startSolver);
-    connect(solveWorkerThread, &QThread::started, solveWorker, &SolveWorker::runSolver);
-    connect(solveWorkerThread, &QThread::finished, solveWorker, &QObject::deleteLater);
 
     setLayout(layout);
     
@@ -35,26 +31,36 @@ MainWindow::MainWindow() {
     path = "cases/bump/input_bump.txt";
     inputWidget->setPath(path);
     console->outputMessage("Selected path: " + path);
+
 }
 
 MainWindow::~MainWindow() {
-    if (solveWorkerThread->isRunning()) {
+    if (solveWorkerThread && solveWorkerThread->isRunning()) {
         solveWorkerThread->quit();
         solveWorkerThread->wait();
     }
+
+    delete solveWorker;
+    delete solveWorkerThread;
 }
 
 void MainWindow::startSolver() {
-    if (solveWorkerThread->isRunning()) {
+    
+    if (solveWorkerThread && solveWorkerThread->isRunning()) {
         console->outputMessage("Solver is already running.");
         return;
     }
-    QString path = inputWidget->getPath();
-    if (path.isEmpty()) {
-        console->outputMessage("No path selected.");
-        return;
-    }
+    
+    solveWorker = new SolveWorker;
+    solveWorkerThread = new QThread(this);
+
+    connect(solveWorker, &SolveWorker::solverStarted, this, &MainWindow::onSolverStarted);
+    connect(solveWorker, &SolveWorker::solverFinished, this, &MainWindow::onSolverFinished);
+    connect(solveWorkerThread, &QThread::started, solveWorker, &SolveWorker::runSolver);
+    
     solveWorker->setPath(path);
+    solveWorker->moveToThread(solveWorkerThread);
+
     solveWorkerThread->start();  // Start the thread
 }
 
@@ -65,4 +71,12 @@ void MainWindow::onSolverStarted() {
 void MainWindow::onSolverFinished() {
     console->outputMessage("Solver has finished.");
     solveWorkerThread->quit();
+    solveWorkerThread->wait();
+
+}
+
+void MainWindow::onPathChanged(const QString &newPath) {
+    console->outputMessage("path changed to");
+    console->outputMessage(newPath);
+    path = newPath;
 }
