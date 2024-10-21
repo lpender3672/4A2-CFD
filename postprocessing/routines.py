@@ -28,7 +28,7 @@ def calc_secondary(av,b):
     b['vx'] = b['rovx'] / b['ro']
     b['vy'] = b['rovy'] / b['ro']
     b['p'] = b['roe'] - 0.5 * b['ro'] * (b['rovx']**2 + b['rovy']**2)
-    b['hstag'] = b['roe'] / b['ro']
+    b['hstag'] = (b['roe'] + b['p']) / b['ro']
 
     # actually need pstag too
     b['pstag'] = b['p'] + 0.5 * b['ro'] * (b['vx']**2 + b['vy']**2)

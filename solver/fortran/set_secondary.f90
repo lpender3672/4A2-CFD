@@ -28,7 +28,7 @@
       g%vy = g%rovy / g%ro
 
       g%p = g%roe - 0.5 * g%ro * (g%vx**2 + g%vy**2)
-      g%hstag = g%roe / g%ro
+      g%hstag = (g%roe + g%p) / g%ro
 
       end subroutine set_secondary
 
