@@ -138,6 +138,11 @@
 !         Apply inlet and outlet values at the boundaries of the domain
           call apply_bconds(av,g,bcs)
 
+          if(isnan(sum(g%rovx))) then
+            write(msg_bfr,*) 'SHIT THE BED'
+            call write_to_qt(msg_bfr)
+          end if
+
 !         Perform the timestep to update the primary flow variables
           call euler_iteration(av,g)
 

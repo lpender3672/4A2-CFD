@@ -7,10 +7,12 @@
 
 !     Explicitly declare the required variables
       use types
+      use io_module
       implicit none
       type(t_appvars), intent(in) :: av
       type(t_grid), intent(inout) :: g
       type(t_bconds), intent(inout) :: bcs
+      character(len=128) :: msg_bfr
 
 !     Declare the other variables you need here
       
@@ -27,6 +29,13 @@
 !     It is also worth checking if "ro" is greater than "rostag" and limiting 
 !     the values to be slightly less than "rostag". This can prevent the solver 
 !     crashing during severe transients.
+
+      if(isnan(sum(g%vx))) then
+            write(msg_bfr,*) 'vx contains NaNs before the dawn of time'
+            call write_to_qt(msg_bfr)
+      end if
+
+
       if(av%nstep == 1) then
           bcs%ro = g%ro(1,:)
       else
@@ -38,14 +47,26 @@
 !     "ro(:)", "pstag", "tstag" and "alpha". Also set "vx(1,:)", "vy(1,:)" and 
 !     "hstag(1,:)"
 
-      Tstatic = bcs%tstag * (g%ro(1,:) / bcs%rostag)**(av%fgam - 1)
+      Tstatic = bcs%tstag * (bcs%ro / bcs%rostag)**(av%fgam - 1)
       Vinlet = (2 * av%cp * (bcs%tstag - Tstatic))**0.5
 
-      g%rovx(1,:) = Vinlet * cos(bcs%alpha)
-      g%rovy(1,:) = Vinlet * sin(bcs%alpha)
-      g%p(1,:) = g%ro(1,:) * av%rgas * Tstatic
-      g%roe(1,:) = av%cv * Tstatic + 0.5 * Vinlet**2
-      ! CHECK
+      g%vx(1,:) = Vinlet * cos(bcs%alpha)
+      g%vy(1,:) = Vinlet * sin(bcs%alpha)
+      g%rovx(1,:) = bcs%ro * g%vx(1,:)
+      g%rovy(1,:) = bcs%ro * g%vy(1,:)
+      g%p(1,:) = bcs%ro * av%rgas * Tstatic
+      g%roe(1,:) = bcs%ro * ( av%cv * Tstatic + 0.5 * Vinlet**2 )
+      g%hstag(1,:) = (g%roe(1,:) + g%p(1,:)) / bcs%ro
+      ! CHECK AGAIN
+
+      if(isnan(sum(g%rovx))) then
+            write(msg_bfr,*) 'rovx contains NaNs'
+            call write_to_qt(msg_bfr)
+      end if
+      if(isnan(sum(Vinlet))) then
+            write(msg_bfr,*) 'Vinlet contains NaNs'
+            call write_to_qt(msg_bfr)
+      end if
 
 !     For the outlet boundary condition set the value of "p(ni,:)" to the
 !     specified value of static pressure "p_out" in "bcs"

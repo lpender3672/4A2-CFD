@@ -7,12 +7,14 @@
 !     Explicitly declare the required variables
       use types
       use routines
+      use io_module
       implicit none
       type(t_appvars), intent(inout) :: av
       type(t_grid), intent(inout) :: g
       type(t_bconds), intent(in) :: bcs
       integer, intent(in) :: guesstype
       integer :: i, j, ni, nj, j_mid
+      character(len=128) :: msg_bfr
       
 !     Variables required for the crude guess
       real :: t_out, v_out, ro_out, lx, ly, l
