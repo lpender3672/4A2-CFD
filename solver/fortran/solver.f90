@@ -93,7 +93,7 @@
 !            flow in the i-direction allows a calculation of a better
 !            approximation to the converged flowfield and so the time to
 !            solution will be reduced. You will need to complete this option.
-      call flow_guess(av,g,bcs,1)
+      call flow_guess(av,g,bcs,2)
 
 !     Optional output call to inspect the initial guess of the flowfield
       call write_output(av,g,2)
@@ -137,11 +137,6 @@
 
 !         Apply inlet and outlet values at the boundaries of the domain
           call apply_bconds(av,g,bcs)
-
-          if(isnan(sum(g%rovx))) then
-            write(msg_bfr,*) 'SHIT THE BED'
-            call write_to_qt(msg_bfr)
-          end if
 
 !         Perform the timestep to update the primary flow variables
           call euler_iteration(av,g)

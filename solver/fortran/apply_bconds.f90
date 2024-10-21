@@ -18,6 +18,9 @@
       
       real, dimension(:), allocatable :: Tstatic, Vinlet
 
+      allocate(Tstatic(g%nj))
+      allocate(Vinlet(g%nj))
+
 !     At the inlet boundary the change in density is driven towards "rostag",
 !     which is then used to obtain the other flow properties to match the
 !     specified stagnation pressure, temperature and flow angle. 
@@ -30,12 +33,6 @@
 !     the values to be slightly less than "rostag". This can prevent the solver 
 !     crashing during severe transients.
 
-      if(isnan(sum(g%vx))) then
-            write(msg_bfr,*) 'vx contains NaNs before the dawn of time'
-            call write_to_qt(msg_bfr)
-      end if
-
-
       if(av%nstep == 1) then
           bcs%ro = g%ro(1,:)
       else
@@ -47,8 +44,14 @@
 !     "ro(:)", "pstag", "tstag" and "alpha". Also set "vx(1,:)", "vy(1,:)" and 
 !     "hstag(1,:)"
 
-      Tstatic = bcs%tstag * (bcs%ro / bcs%rostag)**(av%fgam - 1)
+      Tstatic = bcs%tstag * (bcs%ro / bcs%rostag)**(av%gam - 1)
       Vinlet = (2 * av%cp * (bcs%tstag - Tstatic))**0.5
+
+      ! if there exists any Tstatic > Tstag, then this will sqrt a negative number and cause NaNs
+      if (any(Tstatic > bcs%tstag)) then
+            write(msg_bfr,*) 'CRITICAL: Tstatic > Tstag'
+            call write_to_qt(msg_bfr)
+      end if
 
       g%vx(1,:) = Vinlet * cos(bcs%alpha)
       g%vy(1,:) = Vinlet * sin(bcs%alpha)
@@ -59,12 +62,8 @@
       g%hstag(1,:) = (g%roe(1,:) + g%p(1,:)) / bcs%ro
       ! CHECK AGAIN
 
-      if(isnan(sum(g%rovx))) then
-            write(msg_bfr,*) 'rovx contains NaNs'
-            call write_to_qt(msg_bfr)
-      end if
-      if(isnan(sum(Vinlet))) then
-            write(msg_bfr,*) 'Vinlet contains NaNs'
+      if (isnan(sum(g%rovx))) then 
+            write(msg_bfr,*) 'CRITICAL: g%rovx contains NaNs'
             call write_to_qt(msg_bfr)
       end if
 
