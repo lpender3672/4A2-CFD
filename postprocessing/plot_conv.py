@@ -12,7 +12,7 @@ from routines import *
 def main():
 
     # Construct full filenames to read the guess data
-    filename = 'conv_' + sys.argv[-1] + '.csv'
+    filename = 'cases/' + sys.argv[-1] + '/conv_' + sys.argv[-1] + '.csv'
 
     # Read the history from file
     l = read_conv(filename)

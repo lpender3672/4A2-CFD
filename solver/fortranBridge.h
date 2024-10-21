@@ -9,3 +9,4 @@ extern "C" {
 }
 
 void setGlobalConsoleWidget(class ConsoleWidget* widget);
+void setGlobalVisWidget(class VisWidget* widget);

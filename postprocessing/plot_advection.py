@@ -21,7 +21,7 @@ def main():
 
     # Read the output from the advection solver, "loadtxt" will read everything
     # into a single 2D array in one line
-    arr = np.loadtxt('output/advection_output.txt')
+    arr = np.loadtxt('cases/advection_output.txt')
 
     # The data is arranged into the dictionary to make the code more readable
     # for anything else we might like to do. In Python you can also put multiple 

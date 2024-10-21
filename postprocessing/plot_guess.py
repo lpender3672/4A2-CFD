@@ -12,7 +12,7 @@ from routines import *
 def main():
 
     # Construct full filenames to read the guess data
-    filename = 'out_guess_' + sys.argv[-1] + '.bin'
+    filename = 'cases/' + sys.argv[-1] + '/out_guess_' + sys.argv[-1] + '.bin'
 
     # Read the case from file
     g = read_case(filename)

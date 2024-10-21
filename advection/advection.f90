@@ -197,7 +197,7 @@
       !     are the standard in and out files. In this case we want a new file so
       !     select unit 1. Without any further options this will give us an easy to
       !     read ASCII text file
-            open(unit=1,file='output/advection_output.txt', status='old')
+            open(unit=1,file='cases/advection_output.txt', status='old')
 
       !     Write both the coordinate and scalar data to the file, each "write" 
       !     operation prints a single line in the file where each element of the array 

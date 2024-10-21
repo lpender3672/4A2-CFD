@@ -8,14 +8,11 @@ MainWindow::MainWindow() {
     QHBoxLayout *layout = new QHBoxLayout(this);
 
     console = new ConsoleWidget(this);
-    runButton = new QPushButton("Run Solver");
-    choosePathButton = new QPushButton("Choose Path");
-
+    inputWidget = new InputWidget(this);
     visWidget = new VisWidget(this);
 
+    layout->addWidget(inputWidget);
     layout->addWidget(console);
-    layout->addWidget(runButton);
-    layout->addWidget(choosePathButton);
     layout->addWidget(visWidget);
 
     solveWorker = new SolveWorker;
@@ -24,17 +21,19 @@ MainWindow::MainWindow() {
     connect(solveWorker, &SolveWorker::solverStarted, this, &MainWindow::onSolverStarted, Qt::QueuedConnection);
     connect(solveWorker, &SolveWorker::solverFinished, this, &MainWindow::onSolverFinished, Qt::QueuedConnection);
 
+    connect(inputWidget, &InputWidget::runSolverRequested, this, &MainWindow::startSolver);
     connect(solveWorkerThread, &QThread::started, solveWorker, &SolveWorker::runSolver);
-    connect(runButton, &QPushButton::clicked, this, &MainWindow::startSolver);
-    connect(choosePathButton, &QPushButton::clicked, this, &MainWindow::choosePath);
+    connect(solveWorkerThread, &QThread::finished, solveWorker, &QObject::deleteLater);
 
     setLayout(layout);
     
     setGlobalConsoleWidget(console);
+    setGlobalVisWidget(visWidget);
 
     console->outputMessage("Program started");
 
     path = "cases/bump/input_bump.txt";
+    inputWidget->setPath(path);
     console->outputMessage("Selected path: " + path);
 }
 
@@ -49,7 +48,9 @@ void MainWindow::startSolver() {
     if (solveWorkerThread->isRunning()) {
         console->outputMessage("Solver is already running.");
         return;
-    } else if (path.isEmpty()) {
+    }
+    QString path = inputWidget->getPath();
+    if (path.isEmpty()) {
         console->outputMessage("No path selected.");
         return;
     }
@@ -64,14 +65,4 @@ void MainWindow::onSolverStarted() {
 void MainWindow::onSolverFinished() {
     console->outputMessage("Solver has finished.");
     solveWorkerThread->quit();
-}
-
-void MainWindow::choosePath() {
-    QString directory = QFileDialog::getOpenFileName(this, "Choose File", "", "All Files (*.*)");
-    if (!directory.isEmpty()) {
-        path = directory;
-        console->outputMessage("Selected path: " + directory);
-    } else {
-        console->outputMessage("No input file selected.");
-    }
 }

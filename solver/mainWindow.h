@@ -1,6 +1,7 @@
 #include <QWidget>
 #include "gui/consoleWidget.h"
 #include "gui/visWidget.h"
+#include "gui/inputWidget.h"
 #include "solveWorker.h"
 #include <QPushButton>
 #include <QThread>
@@ -16,15 +17,14 @@ public slots:
     void startSolver();
     void onSolverStarted();
     void onSolverFinished();
-    void choosePath();
 
 private:
     SolveWorker *solveWorker;
     QThread *solveWorkerThread;
     ConsoleWidget *console;
-    QPushButton *runButton;
-    QPushButton *choosePathButton;
-    QString path;
-
+    InputWidget *inputWidget;
     VisWidget *visWidget;
+
+    QString path;
+    
 };

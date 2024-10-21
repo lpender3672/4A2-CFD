@@ -12,7 +12,7 @@ from routines import *
 def main():
 
     # Construct full filename to read the grid data
-    filename = 'out_coord_' + sys.argv[-1] + '.bin'
+    filename = 'cases/'+ sys.argv[-1] + '/out_coord_' + sys.argv[-1] + '.bin'
 
     # Read the case from file
     g = read_case(filename)
