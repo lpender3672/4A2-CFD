@@ -91,6 +91,11 @@
         "*.moc": "cpp",
         "qfiledialog": "cpp",
         "qpushbutton": "cpp",
-        "qvboxlayout": "cpp"
+        "qvboxlayout": "cpp",
+        "qwidget": "cpp",
+        "qchart": "cpp",
+        "qlineseries": "cpp",
+        "qstring": "cpp",
+        "qhboxlayout": "cpp"
     }
 }

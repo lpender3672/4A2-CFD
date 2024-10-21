@@ -1,4 +1,6 @@
 
+#ifndef TYPES_H
+#define TYPES_H
 
 extern "C" {
     struct t_grid {
@@ -36,3 +38,5 @@ extern "C" {
         bool* wall;
     };
 }
+
+#endif // TYPES_H

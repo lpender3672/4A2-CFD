@@ -1,18 +1,22 @@
 #include "mainwindow.h"
 #include "fortranBridge.h"
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QFileDialog>
 
 MainWindow::MainWindow() {
-    QVBoxLayout *layout = new QVBoxLayout(this);
+    QHBoxLayout *layout = new QHBoxLayout(this);
 
     console = new ConsoleWidget(this);
     runButton = new QPushButton("Run Solver");
     choosePathButton = new QPushButton("Choose Path");
 
+    visWidget = new VisWidget(this);
+
     layout->addWidget(console);
     layout->addWidget(runButton);
     layout->addWidget(choosePathButton);
+    layout->addWidget(visWidget);
 
     solveWorker = new SolveWorker;
     solveWorkerThread = new QThread(this);

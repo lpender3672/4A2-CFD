@@ -1,5 +1,6 @@
 #include <QWidget>
 #include "gui/consoleWidget.h"
+#include "gui/visWidget.h"
 #include "solveWorker.h"
 #include <QPushButton>
 #include <QThread>
@@ -24,4 +25,6 @@ private:
     QPushButton *runButton;
     QPushButton *choosePathButton;
     QString path;
+
+    VisWidget *visWidget;
 };

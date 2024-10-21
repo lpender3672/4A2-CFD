@@ -1,4 +1,6 @@
 #include "types.h"
+#include "gui/consoleWidget.h"
+#include "gui/visWidget.h"
 #include <QString>
 
 extern "C" {

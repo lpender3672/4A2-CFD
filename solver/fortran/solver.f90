@@ -21,7 +21,7 @@
       character(kind=c_char), dimension(*), intent(in) :: path
       integer :: i, len_path
       character(len=:), allocatable :: fpath
-      character(len=256) :: msg_bfr
+      character(len=1024) :: msg_bfr
       
       type(t_appvars) :: av
       type(t_bconds) :: bcs
@@ -98,6 +98,14 @@
 !     Optional output call to inspect the initial guess of the flowfield
       call write_output(av,g,2)
       call grid_to_qt(g)
+
+      ! print grid y values here
+      !write(msg_bfr,*) 'Grid y values:'
+      !call write_to_qt(msg_bfr)
+      !do i = 1, g%ni
+      !    write(msg_bfr,*) g%y(i,:)
+      !    call write_to_qt(msg_bfr)
+      !end do
 
 !     Set the length of the timestep, initially this is a constant based on a 
 !     conservative guess of the mach number
