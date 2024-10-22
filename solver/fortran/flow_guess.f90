@@ -7,12 +7,14 @@
 !     Explicitly declare the required variables
       use types
       use routines
+      use io_module
       implicit none
       type(t_appvars), intent(inout) :: av
       type(t_grid), intent(inout) :: g
       type(t_bconds), intent(in) :: bcs
       integer, intent(in) :: guesstype
       integer :: i, j, ni, nj, j_mid
+      character(len=128) :: msg_bfr
       
 !     Variables required for the crude guess
       real :: t_out, v_out, ro_out, lx, ly, l
@@ -84,13 +86,15 @@
 !             4. Limit the static temperature, lookup intrinsic "max"
 !             5. Calculate the density throughout "ro_guess(i)"
 !             6. Update the estimate of the velocity "v_guess(i)" 
+          ! av%fgam = (av%gam - 1.0) / av%gam
           ro_guess(ni) = ro_out
           v_guess(ni) = v_out
           do i = ni, 2, -1 ! looping backwards from exit to inlet
               v_guess(i-1) = mdot_exit / (ro_out * l_i(i-1))
               t_guess(i-1) = max(t_lim, bcs%tstag - 0.5 * v_guess(i-1)**2 / av%cp)
 
-              ro_guess(i-1) = ( bcs % pstag * (t_guess(i-1) / bcs % tstag)**(1 / av%fgam) ) / (av%rgas * t_guess(i-1))
+              ! this is pstatic / (rgas * tstatic)
+              ro_guess(i-1) = ( bcs%pstag * (t_guess(i-1) / bcs%tstag)**(av%fgam) ) / (av%rgas * t_guess(i-1))
               ! update the velocity guess
               v_guess(i-1) = mdot_exit / (ro_guess(i-1) * l_i(i-1))
           end do

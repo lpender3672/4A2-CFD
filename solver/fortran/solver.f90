@@ -29,7 +29,7 @@
       type(t_geometry) :: geom
       type(t_grid) :: g
       real :: d_max = 1, d_avg = 1
-      integer :: nstep, nconv = 5, ncheck = 5
+      integer :: nstep, nconv = 1, ncheck = 1
 
       len_path = 0
       do i = 1, 256
@@ -150,16 +150,16 @@
 !         every "ncheck" steps
           if(mod(av%nstep,ncheck) == 0) then
               call check_stop(av,g)
-
-              if (av%crashed) then
-                  exit
-              end if
           end if
 
 !         Stop marching if converged to the desired tolerance "conlim"
           if(d_max < av%d_max .and. d_avg < av%d_avg) then
               write(msg_bfr,*) 'Calculation converged in', nstep,'iterations'
               call write_to_qt(msg_bfr)
+              exit
+          end if
+
+          if (av%crashed) then
               exit
           end if
 
