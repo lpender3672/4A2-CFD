@@ -20,8 +20,8 @@
 !     Setup the continuity equation by calculating the mass flow through
 !     the facets in both the i and j-directions. Store these values in
 !     "mass_i" and "mass_j"
-      mass_i = g%ro * (g%rovx * g%lx_i + g%rovy * g%ly_i)
-      mass_j = g%ro * (g%rovx * g%lx_j + g%rovy * g%ly_j)
+      mass_i = g%ro * (g%vx * g%lx_i + g%vy * g%ly_i)
+      mass_j = g%ro * (g%vx * g%lx_j + g%vy * g%ly_j)
      
 !     Apply the wall boundary condition by checking that two nodes at the
 !     end of a facet are both on a wall, if so then the appropriate mass
@@ -46,8 +46,8 @@
 
 !     Setup the x-momentum equation including momentum flux and pressure forces
 !     INSERT
-      mom_xi = mass_i * g%rovx**2 + g%p * g%lx_i
-      mom_xj = mass_j * g%rovx**2 + g%p * g%lx_j
+      mom_xi = mass_i * g%vx + g%p * g%lx_i
+      mom_xj = mass_j * g%vx + g%p * g%lx_j
 
 !     Update the x-momentum with momentum flux
 !     INSERT
@@ -55,8 +55,8 @@
 
 !     Setup the y-momentum equation including momentum flux and pressure forces
 !     INSERT
-      mom_yi = mass_i * g%rovx * g%rovy + g%p * g%ly_i
-      mom_yj = mass_j * g%rovx * g%rovy + g%p * g%ly_j
+      mom_yi = mass_i * g%vy + g%p * g%ly_i
+      mom_yj = mass_j * g%vy + g%p * g%ly_j
 
 !     Update the y-momentum with momentum flux
 !     INSERT
