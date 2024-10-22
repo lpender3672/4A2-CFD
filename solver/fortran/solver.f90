@@ -93,7 +93,7 @@
 !            flow in the i-direction allows a calculation of a better
 !            approximation to the converged flowfield and so the time to
 !            solution will be reduced. You will need to complete this option.
-      call flow_guess(av,g,bcs,2)
+      call flow_guess(av,g,bcs,1)
 
 !     Optional output call to inspect the initial guess of the flowfield
       call write_output(av,g,2)

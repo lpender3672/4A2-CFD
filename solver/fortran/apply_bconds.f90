@@ -16,10 +16,7 @@
 
 !     Declare the other variables you need here
       
-      real, dimension(:), allocatable :: Tstatic, Vinlet
-
-      allocate(Tstatic(g%nj))
-      allocate(Vinlet(g%nj))
+      real :: Tstatic(g%nj), Vinlet(g%nj)
 
 !     At the inlet boundary the change in density is driven towards "rostag",
 !     which is then used to obtain the other flow properties to match the
@@ -45,25 +42,19 @@
 !     "hstag(1,:)"
 
       Tstatic = bcs%tstag * (bcs%ro / bcs%rostag)**(av%gam - 1)
-      Vinlet = (2 * av%cp * (bcs%tstag - Tstatic))**0.5
-
-      ! if there exists any Tstatic > Tstag, then this will sqrt a negative number and cause NaNs
-      if (any(Tstatic > bcs%tstag)) then
-            write(msg_bfr,*) 'CRITICAL: Tstatic > Tstag'
-            call write_to_qt(msg_bfr)
-      end if
+      Vinlet = sqrt(2 * av%cp * (bcs%tstag - Tstatic))
 
       g%vx(1,:) = Vinlet * cos(bcs%alpha)
       g%vy(1,:) = Vinlet * sin(bcs%alpha)
       g%rovx(1,:) = bcs%ro * g%vx(1,:)
       g%rovy(1,:) = bcs%ro * g%vy(1,:)
-      g%p(1,:) = bcs%ro * av%rgas * Tstatic
+      g%p(1,:) = bcs%pstag * (bcs%ro / bcs%rostag ) ** av%gam
       g%roe(1,:) = bcs%ro * ( av%cv * Tstatic + 0.5 * Vinlet**2 )
       g%hstag(1,:) = (g%roe(1,:) + g%p(1,:)) / bcs%ro
       ! CHECK AGAIN
 
       if (isnan(sum(g%rovx))) then 
-            write(msg_bfr,*) 'CRITICAL: g%rovx contains NaNs'
+            write(msg_bfr,*) 'CRITICAL: g%rovx contains NaNs after bcs'
             call write_to_qt(msg_bfr)
       end if
 
