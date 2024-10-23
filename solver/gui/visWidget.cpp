@@ -4,13 +4,8 @@
 VisWidget::VisWidget(QWidget *parent)
     : QWidget(parent),
       chartView1(new QChartView(this)),
-      chartView2(new QChartView(this)),
         customPlot1(new QCustomPlot(this)),
-        customPlot2(new QCustomPlot(this)),
-        colorMap1(new QCPColorMap(customPlot1->xAxis, customPlot1->yAxis)),
-        colorMap2(new QCPColorMap(customPlot2->xAxis, customPlot2->yAxis)),
-        colorScale1(new QCPColorScale(customPlot1)),
-        colorScale2(new QCPColorScale(customPlot2))
+        colorScale1(new QCPColorScale(customPlot1))
 {
     QLineSeries *series1 = new QLineSeries();
     QLineSeries *series2 = new QLineSeries();
@@ -26,12 +21,14 @@ VisWidget::VisWidget(QWidget *parent)
     // Create the two graphs (chart views)
     createScatterGraph(chartView1, series1, "Graph 1", "X", "Y");
     //createScatterGraph(chartView2, series2, "Graph 2", "X", "Y");
-    createMeshGraph(customPlot1, colorMap1, colorScale1, "Mesh", "X", "Y");
+    createMeshGraph(customPlot1, colorScale1, "Mesh", "X", "Y");
+    customPlot1->setMinimumHeight(300);
 
     // Set up layout to display both charts vertically
     QVBoxLayout *layout = new QVBoxLayout(this);
-    //layout->addWidget(chartView1);
+    layout->addWidget(chartView1);
     layout->addWidget(customPlot1);
+    //layout->addWidget(chartView2);
 
     setLayout(layout);
 }
@@ -57,19 +54,22 @@ void VisWidget::createScatterGraph(QChartView *chartView, QLineSeries *series, Q
     chartView->setRenderHint(QPainter::Antialiasing);
 }
 
-void VisWidget::createMeshGraph(QCustomPlot *&customPlot, QCPColorMap *&colorMap, QCPColorScale *&colorScale, QString title, QString xTitle, QString yTitle)
+void VisWidget::createMeshGraph(QCustomPlot *&customPlot, QCPColorScale *&colorScale, QString title, QString xTitle, QString yTitle)
 {
+    if (customPlot)
+    {
+        customPlot->clearPlottables();
+        customPlot->clearItems();
+        customPlot->plotLayout()->clear();
+    }
+
     customPlot = new QCustomPlot(this); // Or in your widget
-    colorMap = new QCPColorMap(customPlot->xAxis, customPlot->yAxis);
     colorScale = new QCPColorScale(customPlot);
 
     customPlot->plotLayout()->addElement(0, 1, colorScale); // Color scale on the right
     colorScale->setType(QCPAxis::atRight);
     customPlot->plotLayout()->setColumnStretchFactor(0, 0.8);
     customPlot->plotLayout()->setColumnStretchFactor(1, 0.2);
-    
-    colorMap->setGradient(QCPColorGradient::gpJet);
-    colorMap->setColorScale(colorScale);
 
     customPlot->xAxis->setLabel(xTitle);
     customPlot->yAxis->setLabel(yTitle);
@@ -77,38 +77,48 @@ void VisWidget::createMeshGraph(QCustomPlot *&customPlot, QCPColorMap *&colorMap
     customPlot->replot();
 }
 
-void VisWidget::updateMeshGraph(QCustomPlot *&customPlot, QCPColorMap *&colorMap, const t_grid &grid, const float *mesh_data) {
+void VisWidget::updateMeshGraph(QCustomPlot *&customPlot, QCPColorScale *&colorScale, const t_grid &grid, const float *mesh_data)
+{
+    customPlot->clearItems();
 
-    // Ensure the color map has the correct dimensions
-    colorMap->data()->setSize(grid.ni, grid.nj);
+    float minValue = *std::min_element(mesh_data, mesh_data + grid.ni * grid.nj);
+    float maxValue = *std::max_element(mesh_data, mesh_data + grid.ni * grid.nj);
 
-    int last = grid.ni * grid.nj - 1;
+    QCPRange dataRange(0, 1);
 
-    // Set the range of the axes based on the data
-    colorMap->data()->setRange(
-        QCPRange(0, 1),
-        QCPRange(0, 1)
-        );
-
-    // Fill the color map with the mesh data
-    for (int i = 0; i < grid.ni; i++)
+    for (int i = 0; i < grid.ni - 1; i++)
     {
-        for (int j = 0; j < grid.nj; j++)
-        { 
-            colorMap->data()->setCell(i, j, mesh_data[j * grid.ni + i]);
+        for (int j = 0; j < grid.nj - 1; j++)
+        {
+            QCPItemRect *rect = new QCPItemRect(customPlot);
+
+            // this is awful and it seems like it wont draw anything if the bottom is above the top or the right is left of the left
+            rect->topLeft->setCoords(grid.x[j * grid.ni + i], grid.y[j * grid.ni + i]);
+            rect->bottomRight->setCoords(grid.x[(j + 1) * grid.ni + i + 1], grid.y[(j + 1) * grid.ni + i + 1]);
+
+            float normalizedValue = (mesh_data[j * grid.ni + i] - minValue) / (maxValue - minValue);
+
+            QColor color = colorScale->gradient().color(normalizedValue, dataRange);
+            rect->setBrush(QBrush(color));
         }
     }
-    // set color range of mesh_data to be between 0 and 1
-    colorMap->rescaleDataRange();
 
-    customPlot->rescaleAxes();
-    customPlot->replot();
+    colorScale->axis()->setRange(minValue, maxValue);
+
+    // reset axis
+    customPlot->xAxis->setRange(grid.x[0], grid.x[grid.ni * grid.nj - 1]);
+    customPlot->yAxis->setRange(grid.y[0], grid.y[grid.ni * grid.nj - 1]);
+
+    // set aspect ratio to 1:1
+    customPlot->yAxis->setScaleRatio(customPlot->xAxis, 1.0);
+
+    customPlot->replot(); // replot
 }
 
 void VisWidget::outputGrid(const t_grid &grid)
 {
     //currentGrid = grid;
 
-    updateMeshGraph(customPlot1, colorMap1, grid, grid.ro);
+    updateMeshGraph(customPlot1, colorScale1, grid, grid.x);
     // function run by main thread when fortran emits the grid signal
 }
