@@ -96,6 +96,10 @@
         "qchart": "cpp",
         "qlineseries": "cpp",
         "qstring": "cpp",
-        "qhboxlayout": "cpp"
+        "qhboxlayout": "cpp",
+        "qpainterpath": "cpp",
+        "span": "cpp",
+        "memory_resource": "cpp",
+        "source_location": "cpp"
     }
 }

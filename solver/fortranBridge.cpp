@@ -9,14 +9,14 @@ void setGlobalConsoleWidget(ConsoleWidget* widget) {
     globalConsoleWidget = widget;
 
     QObject::connect(globalConsoleWidget, &ConsoleWidget::newMessage,
-                     globalConsoleWidget, &ConsoleWidget::outputMessage);
+                     globalConsoleWidget, &ConsoleWidget::outputMessage, Qt::QueuedConnection);
 }
 
 void setGlobalVisWidget(VisWidget* widget) {
     globalVisWidget = widget;
 
     QObject::connect(globalVisWidget, &VisWidget::newGrid,
-                     globalVisWidget, &VisWidget::outputGrid);
+                     globalVisWidget, &VisWidget::outputGrid, Qt::QueuedConnection);
 }
 
 extern "C" {
@@ -32,9 +32,6 @@ void emit_console_signal(const char* text, int length) {
 
 void emit_grid_signal(t_grid g) {
 
-    if (globalVisWidget) {
-        emit globalVisWidget->newGrid(g);
-    }
     /*
     if (globalConsoleWidget) {
         emit globalConsoleWidget->newMessage("grid signal received");
@@ -42,12 +39,16 @@ void emit_grid_signal(t_grid g) {
         for (int i = 0; i < g.ni; i++) {
             QString row = "";
             for (int j = 0; j < g.nj; j++) {
-                row += QString::number(g.y[j * g.nj + i]) + " ";
+                row += QString::number(g.x[i * g.ni + j]) + " ";
             }
             emit globalConsoleWidget->newMessage(row);
         }
 
     }
     */
+
+    if (globalVisWidget) {
+        emit globalVisWidget->newGrid(g);
+    }
 }
 }

@@ -11,6 +11,11 @@ MainWindow::MainWindow() {
     inputWidget = new InputWidget(this);
     visWidget = new VisWidget(this);
 
+    // set widget sizes
+    console->setMinimumWidth(300);
+    visWidget->setMinimumWidth(600);
+    visWidget->setMinimumHeight(600);
+
     layout->addWidget(inputWidget);
     layout->addWidget(console);
     layout->addWidget(visWidget);

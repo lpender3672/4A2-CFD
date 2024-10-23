@@ -80,9 +80,9 @@
       write(6,*)
       write(msg_bfr,*) 'Read application variables from file'
       call write_to_qt(msg_bfr)
-      write(msg_bfr,*) '  rgas =', av%rgas, 'cp =', av%cp, 'cv =', av%cv
+      write(msg_bfr,*) '  rgas =', av%rgas, 'cp =', av%cp, 'cv =', av%cv, 'gam =', av%gam
       call write_to_qt(msg_bfr)
-      write(msg_bfr,*) '  CFL =', av%cfl, 'sfac =', av%sfac
+      write(msg_bfr,*) '  CFL =', av%cfl, 'sfac =', av%sfac, 'rfin =', bcs%rfin
       call write_to_qt(msg_bfr)
       write(msg_bfr,*) '  Convergence  d_max =', av%d_max
       call write_to_qt(msg_bfr)

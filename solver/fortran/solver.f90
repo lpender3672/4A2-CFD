@@ -97,7 +97,6 @@
 
 !     Optional output call to inspect the initial guess of the flowfield
       call write_output(av,g,2)
-      call grid_to_qt(g)
 
       ! print grid y values here
       !write(msg_bfr,*) 'Grid y values:'
@@ -170,6 +169,8 @@
       write(msg_bfr,*) 'Calculation completed after', av%nstep,'iterations'
       call write_to_qt(msg_bfr)
       call write_output(av,g,3)
+
+      call grid_to_qt(g)
 !
 !     Close open convergence history file
       close(3)

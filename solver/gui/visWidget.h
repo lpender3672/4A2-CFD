@@ -8,6 +8,7 @@
 #include <QVBoxLayout>
 #include <QGraphicsLayout>
 
+#include "qcustomplot.h"
 #include "../types.h"
 
 class VisWidget : public QWidget
@@ -29,7 +30,21 @@ private:
     QChartView *chartView1;
     QChartView *chartView2;
 
-    void createGraph(QChartView *chartView, QLineSeries *series, QString title, QString xTitle, QString yTitle);
+    QCustomPlot *customPlot1;
+    QCustomPlot *customPlot2;
+
+    QCPColorMap *colorMap1;
+    QCPColorMap *colorMap2;
+
+    QCPColorScale *colorScale1;
+    QCPColorScale *colorScale2;
+
+    t_grid currentGrid;
+
+    void createScatterGraph(QChartView *chartView, QLineSeries *series, QString title, QString xTitle, QString yTitle);
+    void createMeshGraph(QCustomPlot *&customPlot, QCPColorMap *&colorMap, QCPColorScale *&colorScale, QString title, QString xTitle, QString yTitle);
+
+    void updateMeshGraph(QCustomPlot *&customPlot, QCPColorMap *&colorMap, const t_grid &grid, const float *mesh_data);
 };
 
 #endif // VISWIDGET_H

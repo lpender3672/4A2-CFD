@@ -4,7 +4,7 @@ file(GLOB SOURCES *.cpp gui/*.cpp fortran/*.f90)
 
 qt_add_executable(solverApp ${SOURCES})
 
-target_link_libraries(solverApp PRIVATE Qt6::Core Qt6::Widgets Qt6::Charts)
+target_link_libraries(solverApp PRIVATE Qt6::Core Qt6::Widgets Qt6::Charts Qt6::PrintSupport)
 
 include_directories(${CMAKE_Fortran_INCLUDE_DIRECTORIES})
 

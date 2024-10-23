@@ -7,12 +7,13 @@
 
 !     Explicitly declare the required variables
       use types
+      use debug
       use io_module
       implicit none
       type(t_appvars), intent(in) :: av
       type(t_grid), intent(inout) :: g
       type(t_bconds), intent(inout) :: bcs
-      character(len=128) :: msg_bfr
+      character(len=64) :: msg_bfr
 
 !     Declare the other variables you need here
       
@@ -30,6 +31,10 @@
 !     the values to be slightly less than "rostag". This can prevent the solver 
 !     crashing during severe transients.
 
+      !write(msg_bfr,*) 'before applying bcs'
+      !call write_to_qt(msg_bfr)
+      !call find_all_NaN(g,msg_bfr)
+
       if(av%nstep == 1) then
           bcs%ro = g%ro(1,:)
       else
@@ -42,6 +47,7 @@
 !     "hstag(1,:)"
 
       Tstatic = bcs%tstag * (bcs%ro / bcs%rostag)**(av%gam - 1)
+      Tstatic = min(Tstatic, 0.9999 * bcs%tstag)
       Vinlet = sqrt(2 * av%cp * (bcs%tstag - Tstatic))
 
       g%vx(1,:) = Vinlet * cos(bcs%alpha)
@@ -53,11 +59,10 @@
       g%hstag(1,:) = (g%roe(1,:) + g%p(1,:)) / bcs%ro
       ! CHECK AGAIN
 
-      if (isnan(sum(g%rovx))) then 
-            write(msg_bfr,*) 'CRITICAL: g%rovx contains NaNs after bcs'
-            call write_to_qt(msg_bfr)
-      end if
-
+      !write(msg_bfr,*) 'after applying bcs'
+      !call write_to_qt(msg_bfr)
+      !call find_all_NaN(g,msg_bfr)
+      
 !     For the outlet boundary condition set the value of "p(ni,:)" to the
 !     specified value of static pressure "p_out" in "bcs"
       g%p(g%ni,:) = bcs%p_out
