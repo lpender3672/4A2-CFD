@@ -70,6 +70,7 @@ void VisWidget::createMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, 
 
     customPlot->plotLayout()->addElement(0, 1, colorScale); // Color scale on the right
     colorScale->setType(QCPAxis::atRight);
+    colorScale->setGradient(QCPColorGradient::gpThermal);
     customPlot->plotLayout()->setColumnStretchFactor(0, 0.8);
     customPlot->plotLayout()->setColumnStretchFactor(1, 0.2);
 
@@ -133,6 +134,6 @@ void VisWidget::outputGrid(const t_grid &grid)
 {
     //currentGrid = grid;
 
-    updateMeshGraph(customPlot1, meshPlot1, colorScale1, grid, grid.x);
+    updateMeshGraph(customPlot1, meshPlot1, colorScale1, grid, grid.vy);
     // function run by main thread when fortran emits the grid signal
 }

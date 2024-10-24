@@ -94,8 +94,8 @@
 !            approximation to the converged flowfield and so the time to
 !            solution will be reduced. You will need to complete this option.
       call flow_guess(av,g,bcs,2)
+      call set_secondary(av,g)
       call grid_to_qt(g)
-      call sleepqq(100)
 
 !     Optional output call to inspect the initial guess of the flowfield
       call write_output(av,g,2)

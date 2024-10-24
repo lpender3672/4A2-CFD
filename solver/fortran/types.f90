@@ -153,7 +153,7 @@
 
       subroutine grid_to_c(grid, grid_c)
         
-            type(t_grid), intent(in) :: grid     ! Fortran-specific struct
+            type(t_grid), intent(inout) :: grid     ! Fortran-specific struct
             type(t_grid_c), intent(out) :: grid_c  ! Outgoing C-compatible struct
         
             ! Assign scalar components directly

@@ -16,7 +16,7 @@ void setGlobalVisWidget(VisWidget* widget) {
     globalVisWidget = widget;
 
     QObject::connect(globalVisWidget, &VisWidget::newGrid,
-                     globalVisWidget, &VisWidget::outputGrid, Qt::QueuedConnection);
+                     globalVisWidget, &VisWidget::outputGrid, Qt::BlockingQueuedConnection);
 }
 
 extern "C" {

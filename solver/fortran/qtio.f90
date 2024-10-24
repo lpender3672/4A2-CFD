@@ -45,11 +45,16 @@
 
         subroutine grid_to_qt(g)
 
-            type(t_grid), intent(in) :: g
+            type(t_grid), intent(inout) :: g
             type(t_grid_c) :: g_c
 
             call grid_to_c(g, g_c)
             call emit_grid_signal(g_c)
+
+            ! testing has shown that this delay is required for
+            ! the main thread to copy the data before fortran 
+            ! steams ahead and overwrites the data
+            ! call sleepqq(20) ! no longer required as signal is blocking now
 
         end subroutine grid_to_qt
     
