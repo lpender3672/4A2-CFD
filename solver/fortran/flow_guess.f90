@@ -89,14 +89,13 @@
           ! av%fgam = (av%gam - 1.0) / av%gam
           ro_guess(ni) = ro_out
           v_guess(ni) = v_out
-          do i = ni, 2, -1 ! looping backwards from exit to inlet
-              v_guess(i-1) = mdot_exit / (ro_out * l_i(i-1))
-              t_guess(i-1) = max(t_lim, bcs%tstag - 0.5 * v_guess(i-1)**2 / av%cp)
-
+          do i = 1, ni-1
+              v_guess(i) = mdot_exit / (ro_out * l_i(i))
+              t_guess(i) = max(t_lim, bcs%tstag - 0.5 * v_guess(i)**2 / av%cp)
               ! this is pstatic / (rgas * tstatic)
-              ro_guess(i-1) = ( bcs%pstag * (t_guess(i-1) / bcs%tstag)**(av%fgam) ) / (av%rgas * t_guess(i-1))
+              ro_guess(i) = ( bcs%pstag * (t_guess(i) / bcs%tstag)**(av%fgam) ) / (av%rgas * t_guess(i))
               ! update the velocity guess
-              v_guess(i-1) = mdot_exit / (ro_guess(i-1) * l_i(i-1))
+              v_guess(i) = mdot_exit / (ro_guess(i) * l_i(i))
           end do
 
 !         Direct the calculated velocity to be parallel to the "j = const"
@@ -108,23 +107,21 @@
           ! direction of flow is now taken at each point j instead of just the middle
           ! This is then also updated at every point
           do j = 1, nj
-            g%ro(:,j) = ro_guess
             do i = 1,ni-1
-                  lx = g%lx_j(i,j); ly = g%ly_j(i,j); 
+                  lx = g%lx_j(i,j);
+                  ly = g%ly_j(i,j); 
                   l = hypot(lx,ly)
-                  g%rovx(i, j) = g%ro(i, j) * v_out * ly / l
-                  g%rovy(i, j) = -g%ro(i, j) * v_out * lx / l
-
-                  g%roe(i, j) = g%ro(i, j) * (t_guess(i) + 0.5 * v_guess(i)**2)
+                  g%ro(i,j) = ro_guess(i)
+                  g%rovx(i, j) = g%ro(i, j) * v_guess(i) * ly / l
+                  g%rovy(i, j) = -g%ro(i, j) * v_guess(i) * lx / l
+                  g%roe(i, j) = g%ro(i, j) * (av%cv * t_guess(i) + 0.5 * v_guess(i)**2)
               end do
           end do
               
 !         Make sure the guess has been copied for the "i = ni" values too
           g%ro(ni,:) = g%ro(ni-1,:)
-
           g%rovx(ni,:) = g%rovx(ni-1,:)
           g%rovy(ni,:) = g%rovy(ni-1,:)
-
           g%roe(ni,:) = g%roe(ni-1,:)
 
 

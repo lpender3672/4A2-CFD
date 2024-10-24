@@ -12,37 +12,93 @@
 #include "../types.h"
 
 
-class MeshPlot : public QCustomPlot
+class QMeshPlot : public QCPAbstractPlottable
 {
 public:
-    MeshPlot(QWidget *parent = nullptr) : QCustomPlot(parent)
+    QMeshPlot(QCPAxis *keyAxis, QCPAxis *valueAxis)
+        : QCPAbstractPlottable(keyAxis, valueAxis)
     {
+
+        int gridSize = 53 * 37;
+        polygons.reserve(gridSize);
+        colors.reserve(gridSize);
     }
 
-    QVector<QVector<QPointF>> polygons;  // polygons
-    QVector<QColor> polygonColors;       // colors for polygons
-
-protected:
-
-    void draw(QCPPainter *painter) override
+    void addPolygon(const QPolygonF &polygon, const QColor &color)
     {
-        QCustomPlot::draw(painter);
+        polygons.push_back(polygon);
+        colors.push_back(color);
+    }
 
-        // loop through the polygons and draw black outline and fill with color
+    virtual void draw(QCPPainter *painter) override
+    {
+        // iterate over all polygons and draw them
         for (int i = 0; i < polygons.size(); ++i)
         {
-            QPolygonF qPolygon(polygons[i]); // Convert to QPolygonF for drawing
+            painter->setPen(QPen(Qt::black));
+            painter->setBrush(QBrush(colors[i]));
 
-            // Set the brush to the corresponding color
-            painter->setBrush(QBrush(polygonColors[i])); 
-            painter->setPen(QPen(Qt::black));  // Polygon outline color
+            // connvert coordinates to pixel coordinates
+            QPolygonF pixelPolygon;
+            for (const QPointF &point : polygons[i])
+            {
+                pixelPolygon << coordsToPixels(point.x(), point.y());
+            }
 
-            // Draw the polygon
-            painter->drawPolygon(qPolygon);
+            // draw the polygon with pixel coordinates
+            painter->drawPolygon(pixelPolygon);
         }
     }
-};
 
+    // abstract methods
+
+    virtual QCPRange getKeyRange(bool &foundRange, QCP::SignDomain inSignDomain) const override
+    {
+        Q_UNUSED(inSignDomain);
+        foundRange = true;
+        return QCPRange(0, 1);
+    }
+
+    virtual QCPRange getValueRange(bool &foundRange, QCP::SignDomain inSignDomain, const QCPRange &inRange = QCPRange()) const override
+    {
+        Q_UNUSED(inSignDomain);
+        Q_UNUSED(inRange);
+        foundRange = true;
+        return QCPRange(0, 1);
+    }
+
+    virtual void drawLegendIcon(QCPPainter *painter, const QRectF &rect) const override
+    {
+        Q_UNUSED(painter);
+        Q_UNUSED(rect);
+    }
+
+    virtual double selectTest(const QPointF &pos, bool onlySelectable, QVariant *details = nullptr) const override
+    {
+        Q_UNUSED(details);
+
+        if (!onlySelectable || selectable())
+        {
+            for (const QPolygonF &polygon : polygons)
+            {
+                if (polygon.containsPoint(pos, Qt::OddEvenFill))
+                    return 0.0;  // point is inside a polygon
+            }
+        }
+        return -1.0;  // point is outside all polygons
+    }
+
+    void clearPolygons()
+    {
+        polygons.clear();
+        colors.clear();
+    }
+
+private:
+    std::vector<QPolygonF> polygons;  // Use std::vector for polygons
+    std::vector<QColor> colors;       // Use std::vector for colors
+
+};
 
 
 class VisWidget : public QWidget
@@ -62,23 +118,19 @@ signals:
 private:
 
     QChartView *chartView1;
-    QChartView *chartView2;
 
     QCustomPlot *customPlot1;
-    QCustomPlot *customPlot2;
-
-    QCPColorMap *colorMap1;
-    QCPColorMap *colorMap2;
 
     QCPColorScale *colorScale1;
-    QCPColorScale *colorScale2;
+
+    QMeshPlot *meshPlot1;
 
     t_grid currentGrid;
 
     void createScatterGraph(QChartView *chartView, QLineSeries *series, QString title, QString xTitle, QString yTitle);
-    void createMeshGraph(QCustomPlot *&customPlot, QCPColorScale *&colorScale, QString title, QString xTitle, QString yTitle);
+    void createMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, QString title, QString xTitle, QString yTitle);
 
-    void updateMeshGraph(QCustomPlot *&customPlot, QCPColorScale *&colorScale, const t_grid &grid, const float *mesh_data);
+    void updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const t_grid &grid, const float *mesh_data);
 
 };
 

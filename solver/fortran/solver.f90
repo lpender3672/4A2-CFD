@@ -93,7 +93,9 @@
 !            flow in the i-direction allows a calculation of a better
 !            approximation to the converged flowfield and so the time to
 !            solution will be reduced. You will need to complete this option.
-      call flow_guess(av,g,bcs,1)
+      call flow_guess(av,g,bcs,2)
+      call grid_to_qt(g)
+      call sleepqq(100)
 
 !     Optional output call to inspect the initial guess of the flowfield
       call write_output(av,g,2)
@@ -170,7 +172,6 @@
       call write_to_qt(msg_bfr)
       call write_output(av,g,3)
 
-      call grid_to_qt(g)
 !
 !     Close open convergence history file
       close(3)
