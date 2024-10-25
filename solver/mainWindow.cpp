@@ -7,7 +7,7 @@
 MainWindow::MainWindow() {
     QHBoxLayout *layout = new QHBoxLayout(this);
 
-    setWindowIcon(QIcon("solver/icon.png"));
+    setWindowIcon(QIcon(":/icon.ico"));
 
     console = new ConsoleWidget(this);
     inputWidget = new InputWidget(this);
