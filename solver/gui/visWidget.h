@@ -12,6 +12,15 @@
 #include "../types.h"
 
 
+// enum for 2d array type cell or node
+enum class t_data_type
+{
+    CELL,
+    NODE,
+    I_FLUX,
+    J_FLUX
+};
+
 class QMeshPlot : public QCPAbstractPlottable
 {
 public:
@@ -130,7 +139,7 @@ private:
     void createScatterGraph(QChartView *chartView, QLineSeries *series, QString title, QString xTitle, QString yTitle);
     void createMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, QString title, QString xTitle, QString yTitle);
 
-    void updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const t_grid &grid, const float *mesh_data);
+    void updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const t_grid &grid, const float *mesh_data, t_data_type type);
 
 };
 

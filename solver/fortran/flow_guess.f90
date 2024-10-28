@@ -89,6 +89,7 @@
           ! av%fgam = (av%gam - 1.0) / av%gam
           ro_guess(ni) = ro_out
           v_guess(ni) = v_out
+          t_guess(ni) = max(t_lim, bcs%tstag - 0.5 * v_guess(ni)**2 / av%cp)
           do i = 1, ni-1
               v_guess(i) = mdot_exit / (ro_out * l_i(i))
               t_guess(i) = max(t_lim, bcs%tstag - 0.5 * v_guess(i)**2 / av%cp)

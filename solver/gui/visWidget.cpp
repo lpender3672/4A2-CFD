@@ -80,14 +80,26 @@ void VisWidget::createMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, 
     customPlot->replot();
 }
 
-void VisWidget::updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const t_grid &grid, const float *mesh_data)
+void VisWidget::updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const t_grid &grid, const float *mesh_data, t_data_type mesh_data_type)
 {
     customPlot->clearItems();
-
     meshPlot->clearPolygons();
 
-    float minValue = *std::min_element(mesh_data, mesh_data + grid.ni * grid.nj);
-    float maxValue = *std::max_element(mesh_data, mesh_data + grid.ni * grid.nj);
+    float minValue, maxValue;
+
+    // the averaged nodes cant be less or greater than the respective min and max node values
+    if (mesh_data_type == t_data_type::NODE) {
+        minValue = *std::min_element(mesh_data, mesh_data + grid.ni * grid.nj);
+        maxValue = *std::max_element(mesh_data, mesh_data + grid.ni * grid.nj);
+        // ideally would peform the node averaging here and then pass the averaged data to the meshPlot as cell data
+    } else if (mesh_data_type == t_data_type::CELL) {
+        minValue = *std::min_element(mesh_data, mesh_data + (grid.ni - 1) * (grid.nj - 1));
+        maxValue = *std::max_element(mesh_data, mesh_data + (grid.ni - 1) * (grid.nj - 1));
+    } else {
+        std::cerr << "Invalid data type" << std::endl;
+        return;
+    }
+    
     float minX = *std::min_element(grid.x, grid.x + grid.ni * grid.nj);
     float maxX = *std::max_element(grid.x, grid.x + grid.ni * grid.nj);
     float minY = *std::min_element(grid.y, grid.y + grid.ni * grid.nj);
@@ -100,6 +112,7 @@ void VisWidget::updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, 
         for (int j = 0; j < grid.nj - 1; j++)
         {
             QPolygonF polygon;
+            float normalizedValue;
 
             // Define the four corners of the quadrilateral (or triangle if needed)
             polygon << QPointF(grid.x[j * grid.ni + i], grid.y[j * grid.ni + i])        // Bottom-left
@@ -107,7 +120,17 @@ void VisWidget::updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, 
                     << QPointF(grid.x[(j + 1) * grid.ni + i + 1], grid.y[(j + 1) * grid.ni + i + 1]) // Top-right
                     << QPointF(grid.x[(j + 1) * grid.ni + i], grid.y[(j + 1) * grid.ni + i]);  // Top-left
 
-            float normalizedValue = (mesh_data[j * grid.ni + i] - minValue) / (maxValue - minValue);
+
+            if (mesh_data_type == t_data_type::CELL){
+                // value is at the center of the cell
+                normalizedValue = (mesh_data[j * (grid.ni - 1) + i] - minValue) / (maxValue - minValue);
+            } else if (mesh_data_type == t_data_type::NODE){
+                // average four corner nodes to get the value at the center of the cell
+                normalizedValue = ((mesh_data[j * grid.ni + i] +
+                                    mesh_data[j * grid.ni + i + 1] + 
+                                    mesh_data[(j + 1) * grid.ni + i] +
+                                    mesh_data[(j + 1) * grid.ni + i + 1]) / 4 - minValue) / (maxValue - minValue);
+            }
 
             QColor color = colorScale->gradient().color(normalizedValue, dataRange);
             meshPlot->addPolygon(polygon, color);
@@ -134,6 +157,6 @@ void VisWidget::outputGrid(const t_grid &grid)
 {
     //currentGrid = grid;
 
-    updateMeshGraph(customPlot1, meshPlot1, colorScale1, grid, grid.vy);
+    updateMeshGraph(customPlot1, meshPlot1, colorScale1, grid, grid.area, t_data_type::CELL);
     // function run by main thread when fortran emits the grid signal
 }
