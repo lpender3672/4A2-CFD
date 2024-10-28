@@ -29,7 +29,7 @@
       type(t_geometry) :: geom
       type(t_grid) :: g
       real :: d_max = 1, d_avg = 1
-      integer :: nstep, nconv = 1, ncheck = 1
+      integer :: nstep, nconv = 10, ncheck = 10
 
       len_path = 0
       do i = 1, 256
@@ -95,7 +95,6 @@
 !            solution will be reduced. You will need to complete this option.
       call flow_guess(av,g,bcs,2)
       call set_secondary(av,g)
-      call grid_to_qt(g)
 
 !     Optional output call to inspect the initial guess of the flowfield
       call write_output(av,g,2)
@@ -128,6 +127,7 @@
 !     Start the time stepping do loop for "nsteps". This is now the heart of the
 !     program, you should aim to program anything inside this loop to operate as
 !     efficiently as you can.
+
       do nstep = 1, av%nsteps
 
 !         Update record of nstep to use in subroutines
@@ -171,6 +171,8 @@
       write(msg_bfr,*) 'Calculation completed after', av%nstep,'iterations'
       call write_to_qt(msg_bfr)
       call write_output(av,g,3)
+
+      call grid_to_qt(g)
 
 !
 !     Close open convergence history file

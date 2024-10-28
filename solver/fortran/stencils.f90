@@ -33,7 +33,7 @@
 !     INSERT
       ! The finite volume method relies upon the divergence theorem; the fluxes through the boundaries are summed
 !     to calculate the spatial derivatives in the Euler equations and therefore the time derivative
-      dcell = av%dt * (flux_i(:,1:ni-1) - flux_i(:,2:ni) + flux_j(1:nj-1,:) - flux_j(2:nj,:)) / area
+      dcell = av%dt * (flux_i(1:ni-1,1:nj-1) - flux_i(2:ni,1:nj-1) + flux_j(1:ni-1,1:nj-1) - flux_j(1:ni-1,2:nj)) / area
 
 !     Now distribute the changes equally to the four corners of each cell. Each 
 !     interior grid point receives one quarter of the change from each of the 
@@ -50,10 +50,10 @@
 !     INSERT
       ! there are 4 edges
       ! EXCLUDE CORNERS
-      dnode(1,2:nj-1) = prop(1,2:nj-1) + (dcell(1,1:nj-2) + dcell(1,2:nj-1)) / 2
-      dnode(ni,2:nj-1) = prop(ni,2:nj-1) + (dcell(ni-1,1:nj-2) + dcell(ni-1,2:nj-1)) / 2
-      dnode(2:ni-1,1) = prop(2:ni-1,1) + (dcell(1:ni-2,1) + dcell(2:ni-1,1)) / 2
-      dnode(2:ni-1,nj) = prop(2:ni-1,nj) + (dcell(1:ni-2,nj-1) + dcell(2:ni-1,nj-1)) / 2
+      dnode(1,2:nj-1) = (dcell(1,1:nj-2) + dcell(1,2:nj-1)) / 2
+      dnode(ni,2:nj-1) =  (dcell(ni-1,1:nj-2) + dcell(ni-1,2:nj-1)) / 2
+      dnode(2:ni-1,1) =  (dcell(1:ni-2,1) + dcell(2:ni-1,1)) / 2
+      dnode(2:ni-1,nj) = (dcell(1:ni-2,nj-1) + dcell(2:ni-1,nj-1)) / 2
 
 !     Finally distribute the changes to be to the four bounding corner points, 
 !     these receive the full change from the single cell of which they form one 
