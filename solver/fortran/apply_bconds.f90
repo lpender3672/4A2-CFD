@@ -47,7 +47,6 @@
 !     "hstag(1,:)"
 
       Tstatic = bcs%tstag * (bcs%ro / bcs%rostag)**(av%gam - 1)
-      Tstatic = min(Tstatic, 0.9999 * bcs%tstag)
       Vinlet = sqrt(2 * av%cp * (bcs%tstag - Tstatic))
 
       g%vx(1,:) = Vinlet * cos(bcs%alpha)
@@ -65,7 +64,7 @@
       
 !     For the outlet boundary condition set the value of "p(ni,:)" to the
 !     specified value of static pressure "p_out" in "bcs"
-      g%p(g%ni,:) = bcs%p_out
+      g%p(g%ni,1:g%nj) = bcs%p_out
 
       end subroutine apply_bconds
 

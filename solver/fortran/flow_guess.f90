@@ -109,6 +109,7 @@
           ! This is then also updated at every point
           do j = 1, nj
             do i = 1,ni-1
+                  ! similar to type 1 but now j changes
                   lx = g%lx_j(i,j);
                   ly = g%ly_j(i,j); 
                   l = hypot(lx,ly)

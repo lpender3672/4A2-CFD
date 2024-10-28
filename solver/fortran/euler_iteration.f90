@@ -52,11 +52,6 @@
       flux_i = mass_i * 0.5 * (g%hstag(1:ni,1:nj-1) + g%hstag(1:ni,2:nj))
       flux_j = mass_j * 0.5 * (g%hstag(1:ni-1,1:nj) + g%hstag(2:ni,1:nj))
 
-      write(msg_bfr,*) 'finding nan in flux i'
-      call write_to_qt(msg_bfr)
-      call find_NaN(g%hstag,msg_bfr)
-      call write_to_qt(msg_bfr)
-
 !     Update the internal energy with enthalpy fluxes
 !     INSERT
       call sum_fluxes(av,flux_i,flux_j, g%area, g%roe, g%droe)
