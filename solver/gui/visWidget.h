@@ -7,6 +7,7 @@
 #include <QtCharts/QChart>
 #include <QVBoxLayout>
 #include <QGraphicsLayout>
+#include <QTabWidget>
 
 #include "qcustomplot.h"
 #include "../types.h"
@@ -116,7 +117,7 @@ class VisWidget : public QWidget
 
 public:
 
-    VisWidget(QWidget *parent = 0);
+    explicit VisWidget(QWidget *parent = nullptr);
     ~VisWidget();
 
     void outputGrid(const t_grid &grid);
@@ -125,21 +126,25 @@ signals:
     void newGrid(const t_grid &message);
 
 private:
-
+    QVBoxLayout *mainLayout; // No error should occur here now
+    QTabWidget *tabWidget;
     QChartView *chartView1;
 
-    QCustomPlot *customPlot1;
+    QVector<QCustomPlot*> customPlots;
+    QVector<QCPColorScale*> colorScales;
+    QVector<QMeshPlot*> meshPlots;
 
-    QCPColorScale *colorScale1;
+    void setupTabs();
 
-    QMeshPlot *meshPlot1;
-
-    t_grid currentGrid;
+    t_grid *currentGrid;
 
     void createScatterGraph(QChartView *chartView, QLineSeries *series, QString title, QString xTitle, QString yTitle);
     void createMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, QString title, QString xTitle, QString yTitle);
 
-    void updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const t_grid &grid, const float *mesh_data, t_data_type type);
+    void updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const t_grid *grid, const float *mesh_data, t_data_type type);
+
+private slots:
+    void onTabChanged(int index);
 
 };
 
