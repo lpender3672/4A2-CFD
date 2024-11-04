@@ -25,7 +25,7 @@
 !     residual variables contained within the "g" variable. It is relatively
 !     straightforward to read into other programs as long as you know the
 !     structure.
-      open(unit=7,file=av%casefolder // '/out_' // outname // '_' // av%casename // '.bin', &
+      open(unit=7,file= trim(av%casefolder) // '/out_' // outname // '_' // trim(av%casename) // '.bin', &
           form='unformatted',access='stream',status='replace')
 
 !     Write the size of the mesh

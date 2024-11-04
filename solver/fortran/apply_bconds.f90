@@ -55,7 +55,7 @@
       g%rovy(1,:) = bcs%ro * g%vy(1,:)
       g%p(1,:) = bcs%pstag * (bcs%ro / bcs%rostag ) ** av%gam
       g%roe(1,:) = bcs%ro * ( av%cv * Tstatic + 0.5 * Vinlet**2 )
-      g%hstag(1,:) = (g%roe(1,:) + g%p(1,:)) / bcs%ro
+      g%hstag(1,:) = av%cp * bcs%tstag
       ! CHECK AGAIN
 
       !write(msg_bfr,*) 'after applying bcs'
