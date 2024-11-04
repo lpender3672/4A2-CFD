@@ -43,8 +43,8 @@
 !     pointing inwards towards the centre of the cell. This is only the case for
 !     the left hand side of the cell, the vector stored in position i,j points
 !     towards the centre of the i,j cell
-      g%lx_i = g%y(1:ni,2:nj) - g%y(1:ni,1:-1)
-      g%ly_i = - g%x(1:ni,2:nj) + g%x(1:ni,1:-1)
+      g%lx_i = g%y(1:ni,2:nj) - g%y(1:ni,1:nj-1)
+      g%ly_i = - g%x(1:ni,2:nj) + g%x(1:ni,1:nj-1)
       ! this is giving 0 for some value
 
 !     Now repeat the calculation for the project lengths on the "j=const"

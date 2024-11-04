@@ -11,8 +11,8 @@
       type t_appvars
 
 !         Case name
-          character(len=:), allocatable :: casename
-          character(len=:), allocatable :: casefolder
+          character(kind = C_CHAR, len=128) :: casename
+          character(kind = C_CHAR, len=128) :: casefolder
           ! need this in the long run
           ! character(kind = C_CHAR), dimension(128) :: casename
           ! character(kind = C_CHAR), dimension(128) :: casefolder
@@ -38,8 +38,8 @@
       end type t_appvars
 
       type, bind(C) :: t_appvars_c
-          character(kind = C_CHAR), dimension(128) :: casename
-          character(kind = C_CHAR), dimension(128) :: casefolder
+          character(kind = C_CHAR, len=128) :: casename
+          character(kind = C_CHAR, len=128) :: casefolder
 
           real(C_FLOAT) :: rgas, gam, cp, cv, fgam
           real(C_FLOAT) :: cfl, sfac, dt, d_max, d_avg
@@ -243,7 +243,9 @@
             integer :: i
             !call c_f_pointer(av_c%casename, av%casename, [128])
             !call c_f_pointer(av_c%casefolder, av%casefolder, [128])
-
+            ! copy the strings
+            av%casename = av_c%casename
+            av%casefolder = av_c%casefolder
         
             ! Assign scalar components directly
             av%rgas = av_c%rgas

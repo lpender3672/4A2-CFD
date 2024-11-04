@@ -1,5 +1,5 @@
       
-      subroutine read_settings(fpath, av,bcs)
+      subroutine read_settings(av,bcs)
 
 !     Read in the application variables and gas constants, they are in the
 !     standard input file which is already assigned to unit 5
@@ -7,16 +7,17 @@
 !     Explicitly declare the required variables
       use types
       use io_module
+      use routines
       implicit none
-      character(len=*), intent(in) :: fpath
-      character(len=:), allocatable :: folderpath
-      type(t_appvars), intent(out) :: av
-      type(t_bconds), intent(out) :: bcs
+      character(len=:), allocatable :: folderpath, temp_casefolder, temp_casename, fpath
+      type(t_appvars), intent(inout) :: av
+      type(t_bconds), intent(inout) :: bcs
       character(len=80) :: tempname
-      character(len=128) :: msg_bfr
+      character(len=256) :: msg_bfr 
       integer :: last_slash_index
 
 !     Read the case name and trim to the required length
+      fpath = "cases/bump/input_bump.txt"
       open(unit=5, file=fpath, status='old')
       read(5,*) tempname
       av%casename = trim(tempname)
@@ -75,7 +76,7 @@
 !     Print the settings to check they have been read, you can use this syntax
 !     anywhere else you want in the program to debug your code
       write(6,*)
-      write(msg_bfr,*) 'Solver begins on ', av%casename, ' case in folder ', av%casefolder
+      write(msg_bfr,*) 'Solver begins on ', trim(av%casename), ' case in folder ', trim(av%casefolder)
       call write_to_qt(msg_bfr)
       write(6,*)
       write(msg_bfr,*) 'Read application variables from file'

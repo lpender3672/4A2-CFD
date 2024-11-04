@@ -2,7 +2,7 @@
 #include <cstring>
 
 extern "C" {
-    void solver(const char* path, t_appvars& av, t_bconds& bcs, t_grid& g);
+    void solver(t_appvars& av, t_bconds& bcs, t_grid& g);
 }
 
 SolveWorker::SolveWorker() {
@@ -19,18 +19,19 @@ void SolveWorker::runSolver() {
     if (path.isEmpty()) {
         return;
     }
-    char fixedPath[128] = {0};
-    QByteArray pathArray = path.toUtf8();
-    std::strncpy(fixedPath, pathArray.constData(), sizeof(fixedPath) - 1);
 
     t_appvars av;
     t_bconds bcs;
     t_grid g;
 
-    //read_settings(fixedPath, av, bcs);  // Call the read_settings function
+    QByteArray pathArray = path.toUtf8();
+    std::strncpy(av.casename, pathArray.constData(), sizeof(av.casename) - 1);
+    av.casename[sizeof(av.casename) - 1] = '\0';  // Ensure null-termination
+
+    read_settings(av.casename, av, bcs);  // Call the read_settings function
     
     emit solverStarted();
-    solver(fixedPath, av, bcs, g);  // Call the solver function
+    solver(av, bcs, g);  // Call the solver function
     emit solverFinished();
 
     // Clean up all memory

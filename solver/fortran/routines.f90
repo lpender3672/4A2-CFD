@@ -102,6 +102,20 @@
 
       end subroutine interp
 
+      function remove_nulls(str) result(clean_str)
+            use iso_c_binding, only: c_char
+            character(kind=c_char, len=*), intent(in) :: str
+            character(len=len_trim(str)) :: clean_str
+            integer :: i
+        
+            clean_str = ""
+            do i = 1, len_trim(str)
+                if (str(i:i) /= char(0)) then
+                    clean_str = clean_str // str(i:i)
+                end if
+            end do
+      end function remove_nulls
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       end module routines
