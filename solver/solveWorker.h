@@ -4,6 +4,8 @@
 
 #include <QObject>
 #include <QString>
+#include "types.h"
+#include "routines.h"
 
 class SolveWorker : public QObject {
     Q_OBJECT

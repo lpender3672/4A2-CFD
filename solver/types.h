@@ -1,3 +1,4 @@
+#include <string>
 
 #ifndef TYPES_H
 #define TYPES_H
@@ -36,6 +37,31 @@ extern "C" {
 
         // Logical array for wall locations
         bool* wall;
+    };
+
+    struct t_appvars {
+        char casename[128];
+        char casefolder[128];
+        
+        float rgas, gam, cp, cv, fgam;
+        float cfl, sfac, dt, d_max, d_avg;
+        int nsteps, nstep;
+        float ro_ref, roe_ref, rov_ref;
+        int ni, nj;
+        int nn, nm;
+        bool crashed;
+
+    };
+    
+
+    struct t_bconds {
+        float pstag, tstag, alpha, rfin, rostag;
+
+        float* p;
+        float* ro;
+
+        float p_out;
+        int n_in, n_out;
     };
 }
 

@@ -3,6 +3,7 @@
 #include "gui/visWidget.h"
 #include "gui/inputWidget.h"
 #include "solveWorker.h"
+#include "routines.h"
 #include <QPushButton>
 #include <QThread>
 

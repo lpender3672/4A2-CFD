@@ -1,5 +1,5 @@
 
-      subroutine solver(path) bind(C, name="solver")
+      subroutine solver(path, av_c, bcs_c, g_c) bind(C, name="solver")
 
 !     The main body of the CFD solver, calls all subroutines to march towards a
 !     flow solution
@@ -10,17 +10,23 @@
 !     run in the background
 
 !     Use derived data types defined in a separate module
-      use iso_c_binding, only: c_char
+      use iso_c_binding, only: c_char, c_int, c_float, c_ptr
       use types
+      use routines
       use io_module
+      use conversion
 
 !     Don't use historical implicit variable naming
       implicit none
 
 !     Explicitly declare the required variables
       character(kind=c_char), dimension(*), intent(in) :: path
-      integer :: i, len_path
+      type(t_appvars_c), intent(in) :: av_c
+      type(t_bconds_c), intent(in) :: bcs_c
+      type(t_grid_c), intent(inout) :: g_c
+
       character(len=:), allocatable :: fpath
+      integer :: i, len_path
       character(len=128) :: msg_bfr
       
       type(t_appvars) :: av
