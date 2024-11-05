@@ -17,19 +17,10 @@
       integer :: last_slash_index
 
 !     Read the case name and trim to the required length
-      fpath = "cases/bump/input_bump.txt"
-      open(unit=5, file=fpath, status='old')
+
+      open(5, file = av%casefolder // '/input_' // av%casename // '.txt', status='old')
+      ! open(5, file = 'cases/bump/input_bump.txt', status='old')
       read(5,*) tempname
-      av%casename = trim(tempname)
-
-      last_slash_index = scan(fpath, '/', back=.true.)
-      if (last_slash_index > 0) then
-          folderpath = fpath(1:last_slash_index)
-      else
-          folderpath = ''
-      end if
-
-      av%casefolder = folderpath
 
       av%crashed = .false.
 

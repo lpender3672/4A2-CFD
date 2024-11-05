@@ -20,10 +20,6 @@ void SolveWorker::runSolver() {
         return;
     }
 
-    t_appvars av;
-    t_bconds bcs;
-    t_grid g;
-
     QByteArray pathArray = path.toUtf8();
     std::strncpy(av.casename, pathArray.constData(), sizeof(av.casename) - 1);
     av.casename[sizeof(av.casename) - 1] = '\0';  // Ensure null-termination

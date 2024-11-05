@@ -24,6 +24,9 @@ signals:
 
 private:
     QString path;
+    t_appvars av;
+    t_bconds bcs;
+    t_grid g;
 };
 
 #endif

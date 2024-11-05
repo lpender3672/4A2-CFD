@@ -11,8 +11,8 @@
       type t_appvars
 
 !         Case name
-          character(kind = C_CHAR, len=128) :: casename
-          character(kind = C_CHAR, len=128) :: casefolder
+          character(len=:), allocatable :: casename
+          character(len=:), allocatable :: casefolder
           ! need this in the long run
           ! character(kind = C_CHAR), dimension(128) :: casename
           ! character(kind = C_CHAR), dimension(128) :: casefolder
@@ -132,7 +132,7 @@
 
       module conversion
       
-      use iso_c_binding, only: C_INT, C_FLOAT, c_loc, c_f_pointer
+      use iso_c_binding, only: C_INT, C_FLOAT, c_loc, c_f_pointer, c_null_char
       use types
       implicit none
 
@@ -240,12 +240,28 @@
             type(t_appvars_c), intent(in) :: av_c  ! Incoming C-compatible struct
             type(t_appvars), intent(out) :: av     ! Fortran-specific struct
 
-            integer :: i
+            integer :: null_pos
             !call c_f_pointer(av_c%casename, av%casename, [128])
             !call c_f_pointer(av_c%casefolder, av%casefolder, [128])
             ! copy the strings
-            av%casename = av_c%casename
-            av%casefolder = av_c%casefolder
+            !av%casename = av_c%casename
+            !av%casefolder = av_c%casefolder
+
+            null_pos = index(av_c%casefolder, c_null_char)
+            if (null_pos == 0) then
+                  null_pos = len(av_c%casefolder) + 1
+            end if
+            allocate(character(len=null_pos-1) :: av%casefolder)
+            av%casefolder = av_c%casefolder(1:null_pos-1)
+
+            null_pos = index(av_c%casename, c_null_char)
+            if (null_pos == 0) then
+                  null_pos = len(av_c%casename) + 1
+            end if
+            allocate(character(len=null_pos-1) :: av%casename)
+            av%casename = av_c%casename(1:null_pos-1)
+
+            !write(6,*) 'casefolder: ', av%casefolder
         
             ! Assign scalar components directly
             av%rgas = av_c%rgas
