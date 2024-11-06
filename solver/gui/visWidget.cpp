@@ -120,7 +120,7 @@ void VisWidget::createMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, 
 
     customPlot->plotLayout()->addElement(0, 1, colorScale); // Color scale on the right
     colorScale->setType(QCPAxis::atRight);
-    colorScale->setGradient(QCPColorGradient::gpThermal);
+    colorScale->setGradient(QCPColorGradient::gpJet);
     customPlot->plotLayout()->setColumnStretchFactor(0, 0.8);
     customPlot->plotLayout()->setColumnStretchFactor(1, 0.2);
 
