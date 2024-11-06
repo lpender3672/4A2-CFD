@@ -2,16 +2,12 @@
 #include <iostream>
 
 VisWidget::VisWidget(QWidget *parent)
-    : QWidget(parent),
-      chartView1(new QChartView(this))
+    : QWidget(parent)
 {
     
     mainLayout = new QVBoxLayout(this);
     tabWidget = new QTabWidget(this);
     currentGrid = nullptr;
-
-    //createScatterGraph(chartView1, series1, "Graph 1", "X", "Y");
-    //createMeshGraph(customPlot1, meshPlot1, colorScale1, "Mesh", "X", "Y");
 
     mainLayout->addWidget(tabWidget);
     connect(tabWidget, &QTabWidget::currentChanged, this, &VisWidget::onTabChanged);
