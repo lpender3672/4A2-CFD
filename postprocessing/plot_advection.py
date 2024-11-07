@@ -8,7 +8,7 @@
 #   with "python path_to_script/plot_advection.py"
 
 # Import other functions, including those written for this project and numpy etc
-from routines import *
+from postprocessing.routines import *
 
 # Put the bulk of your program in a function called "main"
 def main():
@@ -62,6 +62,7 @@ def main():
 
 
 # This is where "main" actually gets executed
-main()
+if __name__ == '__main__':
+    main()
 
 

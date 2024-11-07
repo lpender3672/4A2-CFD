@@ -7,7 +7,7 @@
 #   with "python path_to_script/plot_coord.py casename"
 
 # Import modules and functions
-from routines import *
+from postprocessing.routines import *
 
 def main():
 
@@ -33,7 +33,7 @@ def main():
     # Show all the plots
     plt.show()
 
-    
-main()
+if __name__ == '__main__':
+    main()
 
 

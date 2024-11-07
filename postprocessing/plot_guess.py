@@ -7,7 +7,7 @@
 #   with "python path_to_script/plot_guess.py casename"
 
 # Import modules and functions
-from routines import *
+from postprocessing.routines import *
 
 def main():
 

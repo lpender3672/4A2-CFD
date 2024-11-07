@@ -2,6 +2,16 @@ build/
 postprocessing/__pycache__/
 preprocessing/__pycache__/
 
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.synctex.gz
+*.toc
+*.out
+*.pdf
+
+
 # Compiled object files
 *.o
 *.obj
