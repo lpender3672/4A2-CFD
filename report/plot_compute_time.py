@@ -6,10 +6,12 @@ import matplotlib.pyplot as plt
 
 from postprocessing.routines import (
     read_settings,
-    write_settings
+    write_settings,
+    parse_output
 )
 
 global rel_folder
+global outfname
 
 rel_folder = 'cases/'
 
@@ -65,6 +67,12 @@ for casename in cases:
     for cfl in cfls:
         apply_settings(casename, cfl=cfl)
         elapsed_time = timed_run_solver(casename)
+
+        # read output
+        with open(outfname, 'r') as f:
+            lines = f.readlines()
+        
+        result = parse_output(lines)
         
         times.append(elapsed_time)
     

@@ -820,5 +820,6 @@ def write_mesh(av,g):
     return
 
 
-
+def parse_output(content):
+    raise NotImplementedError
 

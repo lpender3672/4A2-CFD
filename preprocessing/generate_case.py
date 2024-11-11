@@ -422,11 +422,7 @@ def gen_multi(casename):
 
 ################################################################################
 
-def main():
- 
-    # Get the casename from command line input
-    casename = sys.argv[-1]
-
+def generate_case(casename):
     # Create the curves for the desired case and set the boundary conditions
     if casename == 'bend':
         av,geom = gen_bend(casename)
@@ -516,11 +512,35 @@ def main():
         # Write the entire grid definition to file
         write_mesh(av,g)
 
+def generate_all():
+
+    cases = [
+        'bend',
+        'bump',
+        'tunnel',
+        'waves',
+        'tube',
+        'naca',
+        'turbine_c',
+        'turbine_h',
+        'multi'
+    ]
+
+    for casename in cases:
+        generate_case(casename)
+
+def main():
+ 
+    # Get the casename from command line input
+    casename = sys.argv[-1]
+
+    generate_case(casename)
+    #generate_all()
     # Show all the plots
     plt.show()
 
 
-if __name__ == '__main__': # what?
+if __name__ == '__main__':
     main()
 
 
