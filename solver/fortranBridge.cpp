@@ -4,12 +4,13 @@
 
 static ConsoleWidget* globalConsoleWidget = nullptr;
 static VisWidget* globalVisWidget = nullptr;
+static ConvWidget* globalConvWidget = nullptr;
 
 void setGlobalConsoleWidget(ConsoleWidget* widget) {
     globalConsoleWidget = widget;
 
     QObject::connect(globalConsoleWidget, &ConsoleWidget::newMessage,
-                     globalConsoleWidget, &ConsoleWidget::outputMessage, Qt::QueuedConnection);
+                     globalConsoleWidget, &ConsoleWidget::outputMessage, Qt::BlockingQueuedConnection);
 }
 
 void setGlobalVisWidget(VisWidget* widget) {
@@ -17,6 +18,13 @@ void setGlobalVisWidget(VisWidget* widget) {
 
     QObject::connect(globalVisWidget, &VisWidget::newGrid,
                      globalVisWidget, &VisWidget::outputGrid, Qt::BlockingQueuedConnection);
+}
+
+void setGlobalConvWidget(ConvWidget* widget) {
+    globalConvWidget = widget;
+
+    QObject::connect(globalConvWidget, &ConvWidget::newConvPoint,
+                     globalConvWidget, &ConvWidget::outputConvPoint, Qt::BlockingQueuedConnection);
 }
 
 extern "C" {
@@ -32,23 +40,14 @@ void emit_console_signal(const char* text, int length) {
 
 void emit_grid_signal(t_grid g) {
 
-    /*
-    if (globalConsoleWidget) {
-        emit globalConsoleWidget->newMessage("grid signal received");
-
-        for (int i = 0; i < g.ni; i++) {
-            QString row = "";
-            for (int j = 0; j < g.nj; j++) {
-                row += QString::number(g.x[i * g.ni + j]) + " ";
-            }
-            emit globalConsoleWidget->newMessage(row);
-        }
-
-    }
-    */
-
     if (globalVisWidget) {
         emit globalVisWidget->newGrid(g);
+    }
+}
+
+void emit_conv_point_signal(t_conv_point cp) {
+    if (globalConvWidget) {
+        emit globalConvWidget->newConvPoint(cp);
     }
 }
 }

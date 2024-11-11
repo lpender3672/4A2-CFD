@@ -1,16 +1,20 @@
 #include "mainwindow.h"
 #include "fortranBridge.h"
-#include <QVBoxLayout>
-#include <QHBoxLayout>
+#include <QWidget>
+#include <QGridLayout>
 #include <QFileDialog>
 
 MainWindow::MainWindow() {
-    QHBoxLayout *layout = new QHBoxLayout(this);
+
+    QGridLayout *gridLayout  = new QGridLayout(this);
+    
 
     setWindowIcon(QIcon(":/icon.ico"));
 
-    console = new ConsoleWidget(this);
+    
     inputWidget = new InputWidget(this);
+    convWidget = new ConvWidget(this);
+    console = new ConsoleWidget(this);
     visWidget = new VisWidget(this);
 
     // set widget sizes
@@ -18,20 +22,20 @@ MainWindow::MainWindow() {
     visWidget->setMinimumWidth(600);
     visWidget->setMinimumHeight(600);
 
-    layout->addWidget(inputWidget);
-    layout->addWidget(console);
-    layout->addWidget(visWidget);
+    gridLayout->addWidget(inputWidget, 0, 0, 1, 1);
+    gridLayout->addWidget(convWidget, 1, 0, 1, 1);
+    gridLayout->addWidget(console, 0, 1, 2, 1);
+    gridLayout->addWidget(visWidget, 0, 2, 2, 1);
 
     solveWorker = nullptr;
     solveWorkerThread = nullptr;
 
     connect(inputWidget, &InputWidget::pathChanged, this, &MainWindow::onPathChanged);
     connect(inputWidget, &InputWidget::runSolverRequested, this, &MainWindow::startSolver);
-
-    setLayout(layout);
     
     setGlobalConsoleWidget(console);
     setGlobalVisWidget(visWidget);
+    setGlobalConvWidget(convWidget);
 
     console->outputMessage("Program started");
 
@@ -39,6 +43,7 @@ MainWindow::MainWindow() {
     inputWidget->setPath(path);
     console->outputMessage("Selected path: " + path);
 
+    setLayout(gridLayout);
 }
 
 MainWindow::~MainWindow() {

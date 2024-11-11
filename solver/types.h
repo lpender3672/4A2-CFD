@@ -63,6 +63,11 @@ extern "C" {
         float p_out;
         int n_in, n_out;
     };
+
+    struct t_conv_point {
+        int iter;
+        float d_max, d_avg;
+    };
 }
 
 #endif // TYPES_H

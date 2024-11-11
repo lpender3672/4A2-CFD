@@ -128,6 +128,11 @@
             type(C_PTR) :: wall
       end type t_grid_c
 
+      type, bind(C) :: t_conv_point
+            integer(C_INT) :: iters
+            real(C_FLOAT) :: d_max, d_avg
+      end type t_conv_point
+
       end module types
 
       module conversion

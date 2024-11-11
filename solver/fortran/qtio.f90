@@ -19,6 +19,11 @@
                 use types
                 type(t_grid_c), intent(in) :: g
             end subroutine emit_grid_signal
+
+            subroutine emit_conv_point_signal(cp) bind(C, name="emit_conv_point_signal")
+                use types
+                type(t_conv_point), intent(in) :: cp
+            end subroutine emit_conv_point_signal
         end interface
     
     contains
@@ -57,5 +62,12 @@
             ! call sleepqq(20) ! no longer required as signal is blocking now
 
         end subroutine grid_to_qt
+
+        subroutine conv_point_to_qt(cp)
+
+            type(t_conv_point), intent(in) :: cp
+            call emit_conv_point_signal(cp)
+
+        end subroutine conv_point_to_qt
     
     end module io_module

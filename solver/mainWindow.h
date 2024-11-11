@@ -2,6 +2,7 @@
 #include "gui/consoleWidget.h"
 #include "gui/visWidget.h"
 #include "gui/inputWidget.h"
+#include "gui/convWidget.h"
 #include "solveWorker.h"
 #include "routines.h"
 #include <QPushButton>
@@ -27,6 +28,7 @@ private:
     ConsoleWidget *console;
     InputWidget *inputWidget;
     VisWidget *visWidget;
+    ConvWidget *convWidget;
 
     QString path;
     

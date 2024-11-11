@@ -103,6 +103,7 @@
         "source_location": "cpp",
         "qgraphicslayout": "cpp",
         "qtabwidget": "cpp",
-        "qchartview": "cpp"
+        "qchartview": "cpp",
+        "*.inc": "cpp"
     }
 }

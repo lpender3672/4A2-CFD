@@ -32,6 +32,7 @@
       type(t_match) :: p
       type(t_geometry) :: geom
       type(t_grid) :: g
+      type(t_conv_point) :: conv_point
       real :: d_max = 1, d_avg = 1
       integer :: nstep, nconv = 10, ncheck = 10
       
@@ -141,6 +142,12 @@
 !         Write out summary every "nconv" steps and update "davg" and "dmax" 
           if(mod(av%nstep,nconv) == 0) then
               call check_conv(av,g,d_avg,d_max)
+              conv_point%iters = av%nstep
+              conv_point%d_max = d_max
+              conv_point%d_avg = d_avg
+
+              call conv_point_to_qt(conv_point)
+                  
           end if
 
 !         Check the solution hasn't diverged or a stop has been requested 
@@ -155,6 +162,7 @@
               call write_to_qt(msg_bfr)
               exit
           end if
+          
 
           if (av%crashed) then
               exit
