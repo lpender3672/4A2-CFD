@@ -7,6 +7,7 @@
 !     Explicitly declare the required variables
       use types
       use routines
+      use io_module
       implicit none
       type(t_appvars), intent(in) :: av
       type(t_grid), intent(in) :: g
@@ -16,6 +17,7 @@
       real :: dro_max, drovx_max, drovy_max, droe_max, dro_avg, drovx_avg, &
           drovy_avg, droe_avg, flow_ratio
       character(len=100) :: fmt_step
+      character(len=128) :: msg_bfr
 
 !     Get the number of cells from the size of the residual arrays
       ncells = size(g%dro)
@@ -49,10 +51,11 @@
           drovy_avg, dro_max, droe_max, drovx_max, drovy_max
 
 !     Write a short human readable output summary to the screen.
-      write(6,*) 'Time step number ', av%nstep
-      fmt_step = '(a,e10.3,a,i4,a,i4,a,e10.3)'
-      write(*,fmt_step) '   d_max =', d_max, ' at i =', ij_max(1), ', j =', &
-          ij_max(2), ', d_avg =', d_avg
+      !write(6,*) 'Time step number ', av%nstep
+
+      fmt_step = '(a,i6,a,e10.3,a,i4,a,i4,a,e10.3)'
+      write(msg_bfr,fmt_step) 'iteration ', av%nstep, ', d_max =', d_max, ' at i =', ij_max(1), ', j =', ij_max(2), ', d_avg =', d_avg
+      call write_to_qt(msg_bfr)
 
       end subroutine check_conv
 

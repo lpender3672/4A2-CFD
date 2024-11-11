@@ -104,6 +104,8 @@
         "qgraphicslayout": "cpp",
         "qtabwidget": "cpp",
         "qchartview": "cpp",
-        "*.inc": "cpp"
+        "*.inc": "cpp",
+        "qgridlayout": "cpp",
+        "qcommandlineparser": "cpp"
     }
 }

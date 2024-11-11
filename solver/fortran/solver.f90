@@ -34,7 +34,7 @@
       type(t_grid) :: g
       type(t_conv_point) :: conv_point
       real :: d_max = 1, d_avg = 1
-      integer :: nstep, nconv = 10, ncheck = 10
+      integer :: nstep, nconv = 50, ncheck = 10
       
       call appvars_from_c(av_c, av)
 

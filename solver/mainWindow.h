@@ -8,15 +8,22 @@
 #include <QPushButton>
 #include <QThread>
 
+enum class t_mode
+{
+    GUI,
+    CMD
+};
+
 class MainWindow : public QWidget {
     Q_OBJECT
 
 public:
-    MainWindow();
+    MainWindow(t_mode mode = t_mode::GUI);
     ~MainWindow();
 
 public slots:
     void startSolver();
+    void startSolverFromCMD(const QString &path);
     void onSolverStarted();
     void onSolverFinished();
 
@@ -31,5 +38,6 @@ private:
     ConvWidget *convWidget;
 
     QString path;
+    t_mode mode;
     
 };
