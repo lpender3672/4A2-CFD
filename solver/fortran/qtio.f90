@@ -34,7 +34,7 @@
             integer :: length
 
             ! still want it command line outout
-            write(6, *) text
+            write(6, *) trim(text)
     
             ! trim and get the length of the string
             length = len_trim(text)

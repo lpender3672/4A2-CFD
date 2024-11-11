@@ -1,0 +1,38 @@
+  Solver preprocessing started
+ 
+  Solver begins on bend case in folder cases/bend
+ 
+  Read application variables from file
+    rgas =   1.400000     cp =   1.404895     cv =  4.8951046E-03 gam =   287.00
+ 00
+    CFL =  0.5000000     sfac =  0.2000000     rfin =  0.2500000
+    Convergence  d_max =  4.9999999E-05
+    Mesh size  ni =          53 nj =          37
+    Inlet  pstag =   100000.0     tstag =   300.0000     alpha =   0.7853976
+    Outlet  p_out =   50000.00
+ 
+  Generating Mesh
+ Read domain curves from file
+   Curve lengths ni_a =         363 ni_b =          363
+ 
+ Interpolated mesh from the bounding geometry curves
+ 
+ Calculated cell areas and facet lengths
+   Overall minimum element size =   5.5554509E-03
+ 
+  Minimum mesh size found to be   5.5554509E-03
+ Mesh check passed
+ 
+ Flow guess calaculated using improved method
+ At g(1,1): ro =   238.6689     roe =   49868.25     rovx =   3443.846     rovy 
+ =   3443.846    
+ At g(ni,1): ro =   238.6682     roe =   49823.27     rovx =   3442.279     
+ rovy =  -3442.274    
+ 
+  Time step set to   4.0003106E-06  seconds
+  Calculation started
+ iteration     50, d_max = 0.795E-01 at i =  32, j =   6, d_avg = 0.136E-01
+  NaN detected, stopping the solver
+  "ifstop" modified, writing an output
+  Solver stopped prematurely
+  Calculation completed after          80 iterations

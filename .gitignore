@@ -2,6 +2,8 @@ build/
 postprocessing/__pycache__/
 preprocessing/__pycache__/
 
+*.egg-info/
+
 *.aux
 *.fdb_latexmk
 *.fls

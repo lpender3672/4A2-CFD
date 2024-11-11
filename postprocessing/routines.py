@@ -568,7 +568,7 @@ def read_settings(filename):
     av['casename'] = f.readline()
 
     # Read two gas constants and calculate the rest
-    av['gam'],av['rgas'] = [float(x) for x in f.readline().split()]
+    av['rgas'], av['gam'] = [float(x) for x in f.readline().split()]
     av['cp'] = av['rgas'] * av['gam'] / (av['gam'] - 1.0)
     av['cv'] = av['cp'] / av['gam']
 
@@ -719,7 +719,7 @@ def write_settings(av):
     f.write('%s\n' % av['casename'])
 
     # Write two gas constants
-    f.write('%f %f\n' % (av['gam'],av['rgas']))
+    f.write('%f %f\n' % (av['rgas'], av['gam']))
 
     # Write the CFL, smoothing factor and convergence limit
     f.write('%f %f %f\n' % (av['cfl'],av['sfac'],av['d_max']))

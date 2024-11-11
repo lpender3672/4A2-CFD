@@ -7,10 +7,7 @@
 #   with "python path_to_script/plot_conv.py casename"
 
 # Import modules and functions
-if __name__ == '__main__': 
-    from routines import *
-else:
-    from postprocessing.routines import *
+from postprocessing.routines import *
 
 def main():
 

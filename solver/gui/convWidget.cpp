@@ -63,6 +63,7 @@ void ConvWidget::updateConvGraph() {
     double maxY = std::max(*std::max_element(yDataMax.begin(), yDataMax.end()), 
                            *std::max_element(yDataAvg.begin(), yDataAvg.end()));
     convPlot->yAxis->setRange(minY * 0.7, maxY);
+    convPlot->yAxis->ticker()->setTickOrigin(minY * 0.7);
 
     convPlot->legend->setVisible(true);
 
