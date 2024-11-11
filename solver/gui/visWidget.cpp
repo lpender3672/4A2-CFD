@@ -23,16 +23,17 @@ VisWidget::~VisWidget()
 
 void VisWidget::setupTabs()
 {
-    int tabCount = 7;
+    int tabCount = 8;
 
     QStringList tabNames = {
         "ro",
         "rovx",
         "rovy",
         "roe",
-        "area",
-        "p",
-        "hstag"
+        "T",
+        "P",
+        "hstag",
+        "mach"
     };
 
     for (int i = 0; i < tabCount; ++i) {
@@ -50,12 +51,45 @@ void VisWidget::setupTabs()
     }
 }
 
+void calc_temp(const t_grid *grid, float *temp)
+{
+    float gamma = 1.4;
+    float rgas = 287.05;
+    float cv = rgas / (gamma - 1);
+
+    // b['t'] = ( b['roe'] / b['ro'] - 0.5 * (b['vx']**2 + b['vy']**2) ) / av['cv']
+
+    for (int i = 0; i < grid->ni; i++) {
+        for (int j = 0; j < grid->nj; j++) {
+            int idx = j * grid->ni + i;
+            temp[idx] = (grid->roe[idx] / grid->ro[idx] - 0.5 * (pow(grid->vx[idx], 2) + pow(grid->vy[idx], 2))) / cv;
+        }
+    }
+}
+void calc_mach(const t_grid *grid, float *mach, const float *temp)
+{
+    float gamma = 1.4;
+    float rgas = 287.05;
+
+    // b['mach'] = np.sqrt(b['vx']**2 + b['vy']**2) / np.sqrt( av['gam'] * av['rgas'] * b['t'] )
+
+    for (int i = 0; i < grid->ni; i++) {
+        for (int j = 0; j < grid->nj; j++) {
+            int idx = j * grid->ni + i;
+            mach[idx] = sqrt(pow(grid->vx[idx], 2) + pow(grid->vy[idx], 2)) / sqrt(gamma * rgas * temp[idx]);
+        }
+    }
+}
+
 void VisWidget::onTabChanged(int index)
 {
     if (currentGrid == nullptr)
     {
         return;
     }
+
+    float *mach = nullptr;
+    float *temp = nullptr;
 
     switch (index)
     {
@@ -72,13 +106,22 @@ void VisWidget::onTabChanged(int index)
         updateMeshGraph(customPlots[3], meshPlots[3], colorScales[3], currentGrid, currentGrid->roe, t_data_type::NODE);
         break;
     case 4:
-        updateMeshGraph(customPlots[4], meshPlots[4], colorScales[4], currentGrid, currentGrid->area, t_data_type::CELL);
+        temp = new float[currentGrid->ni * currentGrid->nj];
+        calc_temp(currentGrid, temp);
+        updateMeshGraph(customPlots[4], meshPlots[4], colorScales[4], currentGrid, temp, t_data_type::NODE);
         break;
     case 5:
         updateMeshGraph(customPlots[5], meshPlots[5], colorScales[5], currentGrid, currentGrid->p, t_data_type::NODE);
         break;
     case 6:
         updateMeshGraph(customPlots[6], meshPlots[6], colorScales[6], currentGrid, currentGrid->hstag, t_data_type::NODE);
+        break;
+    case 7:
+        mach = new float[currentGrid->ni * currentGrid->nj];
+        temp = new float[currentGrid->ni * currentGrid->nj];
+        calc_temp(currentGrid, temp);
+        calc_mach(currentGrid, mach, temp);
+        updateMeshGraph(customPlots[7], meshPlots[7], colorScales[7], currentGrid, mach, t_data_type::NODE);
         break;
     default:
         break;

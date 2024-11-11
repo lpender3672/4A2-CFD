@@ -45,7 +45,8 @@ public:
         // iterate over all polygons and draw them
         for (int i = 0; i < polygons.size(); ++i)
         {
-            painter->setPen(QPen(Qt::black));
+            //painter->setPen(QPen(Qt::black));
+            painter->setPen(Qt::NoPen);
             painter->setBrush(QBrush(colors[i]));
 
             // connvert coordinates to pixel coordinates

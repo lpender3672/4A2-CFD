@@ -66,10 +66,20 @@ void ConvWidget::updateConvGraph() {
 
     convPlot->legend->setVisible(true);
 
+    convPlot->setInteractions(QCP::iRangeZoom | QCP::iRangeDrag);
+    convPlot->axisRect()->setRangeZoom(Qt::Horizontal | Qt::Vertical);
+    convPlot->axisRect()->setRangeDrag(Qt::Horizontal | Qt::Vertical);
+
     convPlot->replot();
 }
 
 void ConvWidget::outputConvPoint(const t_conv_point &cp) {
+    if (cp.iter <= 50) {
+        iterations.clear();
+        d_max.clear();
+        d_avg.clear();
+    }
+
     iterations.append(cp.iter);
     d_max.append(cp.d_max);
     d_avg.append(cp.d_avg);
