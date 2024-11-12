@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import concurrent.futures
 
 from postprocessing.routines import (
+    default_settings,
     read_settings,
     write_settings,
     parse_run_output,
@@ -72,18 +73,25 @@ def cfl_sfac_grid_run(casename):
 
     cfls = np.logspace(-2, np.log10(0.5), 10, endpoint = True)
     sfacs = np.arange(0.05, 0.65, 0.05)
+    ni = 53
+    nj = 37
+
+    print(f'Running {casename} with {len(cfls) * len(sfacs)} combinations')
+    print("cfls:", cfls)
+    print("sfacs:", sfacs)
+    
 
     for cfl in cfls:
         for sfac in sfacs:
             # we want 3 unique runs for each cfl and sfac to average
             # decided to just do this in another nested loop
-            duplicates =  np.sum((history[:, 0] == cfl) * (history[:, 1] == sfac))
+            duplicates =  np.sum((history[:, 0] == cfl) * (history[:, 1] == sfac) * (history[:, 7] == ni))
             if duplicates >= 1:
                 continue
 
-            av = apply_settings(casename, cfl=cfl, sfac=sfac)
+            av = apply_settings(casename, cfl=cfl, sfac=sfac, ni=ni, nj=nj)
             time = 0
-            n = 1
+            n = 3
             for _ in range(n):
                 time += timed_run_solver(casename)
             time /= n
@@ -104,7 +112,7 @@ def cfl_sfac_grid_run(casename):
             converged = check_run_converged(lines)
 
             newrow = np.array([
-                cfl, sfac, time, converged, iterations, d_max, d_avg
+                cfl, sfac, time, converged, iterations, d_max, d_avg, av['ni'], av['nj']
             ])
             history = np.vstack((history, newrow))
 
@@ -113,7 +121,20 @@ def cfl_sfac_grid_run(casename):
     np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
 
 
-def plot_cfl_sfac_scatter(ax, casename):
+def plot_cfl_sfac_scatter(casename):
+
+    cfl_sfac_grid_run(casename)
+    
+    fig, ax = plt.subplots(figsize=[12,9])
+
+    fig.subplots_adjust(
+        top=0.872,
+        bottom=0.087,
+        left=0.073,
+        right=0.983,
+        hspace=0.2,
+        wspace=0.2
+    )
 
     try:
         history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
@@ -183,21 +204,152 @@ def plot_cfl_sfac_scatter(ax, casename):
     
     return ax
 
+
+def d_avg_cfl_run(casename):
+
+    sfac = 0.5 # higher sfac allows larger range of cfls
+    cfls = np.logspace(-2, np.log10(0.5), 10, endpoint = True)
+    ni = 53
+    nj = 37
+
+    try:
+        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+    except FileNotFoundError:
+        history = np.zeros((0, 7))
+
+    for cfl in cfls:
+        duplicates =  np.sum((history[:, 0] == cfl) * (history[:, 1] == sfac) * (history[:, 7] == ni))
+        if duplicates >= 1:
+            continue
+
+        av = apply_settings(casename, cfl=cfl, sfac=sfac, ni=ni, nj=nj)
+        time = 0
+        n = 3
+        for _ in range(n):
+            time += timed_run_solver(casename)
+        time /= n
+
+        with open(outfname, 'r') as f:
+            lines = f.readlines()
+        
+        conv_hist = parse_run_output(lines, av)
+        if conv_hist.shape[0] > 0:
+            iterations = conv_hist[-1, 0]
+            d_max = conv_hist[-1, 1]
+            d_avg = conv_hist[-1, 4]
+        else:
+            iterations = 1
+            d_max = np.inf
+            d_avg = np.inf
+
+        converged = check_run_converged(lines)
+
+        newrow = np.array([
+            cfl, sfac, time, converged, iterations, d_max, d_avg, av['ni'], av['nj']
+        ])
+        history = np.vstack((history, newrow))
+
+        print(f'cfl: {cfl}, sfac: {sfac}, time: {time}, converged: {converged}, iterations: {iterations}, d_max: {d_max}, d_avg: {d_avg}')
+
+    np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
+
+
+def d_avg_ni_run(casename):
+
+    sfac = 0.5 # higher sfac allows larger range of cfls
+    cfl = 0.13572088082974532
+    nis = np.logspace(1, 3, 10, endpoint = True).astype(int)
+
+    try:
+        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+    except FileNotFoundError:
+        history = np.zeros((0, 7))
+
+    for ni in nis:
+        duplicates =  np.sum((history[:, 0] == cfl) * (history[:, 1] == sfac) * (history[:, 7] == ni))
+        if duplicates >= 1:
+            continue
+
+        av = apply_settings(casename, cfl=cfl, sfac=sfac, ni=ni, nj=nj)
+        time = 0
+        n = 3
+        for _ in range(n):
+            time += timed_run_solver(casename)
+        time /= n
+
+        with open(outfname, 'r') as f:
+            lines = f.readlines()
+        
+        conv_hist = parse_run_output(lines, av)
+        if conv_hist.shape[0] > 0:
+            iterations = conv_hist[-1, 0]
+            d_max = conv_hist[-1, 1]
+            d_avg = conv_hist[-1, 4]
+        else:
+            iterations = 1
+            d_max = np.inf
+            d_avg = np.inf
+
+        converged = check_run_converged(lines)
+
+        newrow = np.array([
+            cfl, sfac, time, converged, iterations, d_max, d_avg
+        ])
+        history = np.vstack((history, newrow))
+
+        print(f'cfl: {cfl}, sfac: {sfac}, time: {time}, converged: {converged}, iterations: {iterations}, d_max: {d_max}, d_avg: {d_avg}')
+
+    np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
+
+def reshape_saved_data(casename):
+    
+    history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+    # add two columns to end with ni and nj
+    ni = 53
+    nj = 37
+    newdata = np.zeros((history.shape[0], 9))
+    newdata[:, :-2] = history
+    newdata[:, -2] = ni
+    newdata[:, -1] = nj
+
+    np.savetxt(f'report/data/{casename}_runs_{appver}.txt', newdata)
+
+def plot_d_avg_cfl(casename):
+
+    fig,ax = plt.subplots()
+
+    try:
+        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+    except FileNotFoundError:
+        return ax
+    
+    sfac = 0.5 # higher sfac allows larger range of cfls
+    
+    # filter by sfac and cfl
+    history = history[(history[:, 1] == sfac)]
+    # sort by cfl
+    history = history[history[:, 0].argsort()]
+
+    ax.loglog(history[:, 0], history[:, 6], 'o-')
+
+    x = np.linspace(np.min(history[:, 0]), np.max(history[:, 0]), 100)
+    ax.loglog(x, 1e-4 * x**0.5, 'k--')
+    ax.loglog(x, 1e-4 * x**1, 'k--')
+
+    ax.set_xlabel('CFL')
+    ax.set_ylabel('Average density residual error')
+
+    ax.grid(which='both', linestyle='--')
+
+    return ax
+
+
 if __name__ == '__main__':
     
-    cfl_sfac_grid_run('bump')
     
-    fig, ax = plt.subplots(figsize=[12,9])
+    d_avg_cfl_run('bump')
+    
+    plot_d_avg_cfl('bump')
 
-    fig.subplots_adjust(
-        top=0.872,
-        bottom=0.087,
-        left=0.073,
-        right=0.983,
-        hspace=0.2,
-        wspace=0.2
-    )
-
-    ax = plot_cfl_sfac_scatter(ax, 'bump')
-    plt.savefig('report/interim/figures/cfl_sfac_scatter.png')
+    plt.tight_layout()
     plt.show()
