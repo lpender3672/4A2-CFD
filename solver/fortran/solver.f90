@@ -33,8 +33,13 @@
       type(t_geometry) :: geom
       type(t_grid) :: g
       type(t_conv_point) :: conv_point
-      real :: d_max = 1, d_avg = 1
+      real :: d_max = 1, d_avg = 1, avg_of_hist = 1
       integer :: nstep, nconv = 50, ncheck = 10
+
+      real, allocatable :: d_avg_hist(:)
+      allocate(d_avg_hist(100))
+      d_avg_hist(1:100) = 1
+      d_avg_hist(100) = 0
       
       call appvars_from_c(av_c, av)
 
@@ -146,6 +151,9 @@
               conv_point%d_max = d_max
               conv_point%d_avg = d_avg
 
+              d_avg_hist(1:99) = d_avg_hist(2:100)
+              d_avg_hist(100) = d_avg
+
               call conv_point_to_qt(conv_point)
                   
           end if
@@ -157,9 +165,19 @@
           end if
 
 !         Stop marching if converged to the desired tolerance "conlim"
-          if(d_max < av%d_max .and. d_avg < av%d_avg) then
-              write(msg_bfr,*) 'Calculation converged in', nstep,'iterations'
-              call write_to_qt(msg_bfr)
+          !if(d_max < av%d_max .and. d_avg < av%d_avg) then
+          avg_of_hist = sum(d_avg_hist)/100
+          if (all(abs(d_avg_hist / avg_of_hist - 1) < 0.01)) then
+            ! this code is modified. The original code is commented out above
+            ! the calculation stops when the variation of the average residual is less than 1%
+              if(d_max < av%d_max .and. d_avg < av%d_avg) then
+                  write(msg_bfr,*) 'Calculation converged within bounds in', nstep,'iterations'
+                  call write_to_qt(msg_bfr)
+              else
+                  write(msg_bfr,*) 'Calculation converged outside bounds in', nstep,'iterations'
+                  call write_to_qt(msg_bfr)
+              end if
+              
               exit
           end if
           

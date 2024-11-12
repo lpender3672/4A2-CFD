@@ -1,38 +1,43 @@
   Solver preprocessing started
  
-  Solver begins on bend case in folder cases/bend
+  Solver begins on bump case in folder cases/bump
  
   Read application variables from file
-    rgas =   1.400000     cp =   1.404895     cv =  4.8951046E-03 gam =   287.00
+    rgas =   287.0000     cp =   1004.500     cv =   717.5000     gam =   1.4000
  00
-    CFL =  0.5000000     sfac =  0.2000000     rfin =  0.2500000
+    CFL =  0.5000000     sfac =  0.3000000     rfin =  0.2500000
     Convergence  d_max =  4.9999999E-05
     Mesh size  ni =          53 nj =          37
-    Inlet  pstag =   100000.0     tstag =   300.0000     alpha =   0.7853976
-    Outlet  p_out =   50000.00
+    Inlet  pstag =   100000.0     tstag =   300.0000     alpha =   0.0000000E+00
+    Outlet  p_out =   85000.00
  
   Generating Mesh
  Read domain curves from file
-   Curve lengths ni_a =         363 ni_b =          363
+   Curve lengths ni_a =         401 ni_b =          401
  
  Interpolated mesh from the bounding geometry curves
  
  Calculated cell areas and facet lengths
-   Overall minimum element size =   5.5554509E-03
+   Overall minimum element size =   9.4494428E-03
  
-  Minimum mesh size found to be   5.5554509E-03
+  Minimum mesh size found to be   9.4494428E-03
  Mesh check passed
  
  Flow guess calaculated using improved method
- At g(1,1): ro =   238.6689     roe =   49868.25     rovx =   3443.846     rovy 
- =   3443.846    
- At g(ni,1): ro =   238.6682     roe =   49823.27     rovx =   3442.279     
- rovy =  -3442.274    
+ At g(1,1): ro =   1.200608     roe =   258884.6     rovx =   171.0127     rovy 
+ =  0.0000000E+00
+ At g(ni,1): ro =   1.200608     roe =   258884.6     rovx =   171.0127     
+ rovy =  0.0000000E+00
  
-  Time step set to   4.0003106E-06  seconds
+  Time step set to   6.8042555E-06  seconds
   Calculation started
- iteration     50, d_max = 0.795E-01 at i =  32, j =   6, d_avg = 0.136E-01
+ iteration     50, d_max = 0.282E-01 at i =  17, j =   1, d_avg = 0.198E-02
+ iteration    100, d_max = 0.102E+00 at i =  18, j =   1, d_avg = 0.321E-02
+ iteration    150, d_max = 0.180E+00 at i =  20, j =   1, d_avg = 0.604E-02
+ iteration    200, d_max = 0.397E+00 at i =  16, j =   1, d_avg = 0.156E-01
+ iteration    250, d_max = 0.920E+00 at i =  19, j =   2, d_avg = 0.357E-01
+ iteration    300, d_max = 0.144E+01 at i =  16, j =  36, d_avg = 0.469E-01
   NaN detected, stopping the solver
   "ifstop" modified, writing an output
   Solver stopped prematurely
-  Calculation completed after          80 iterations
+  Calculation completed after         320 iterations

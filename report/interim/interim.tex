@@ -11,6 +11,7 @@
 \usepackage{hyperref}
 \usepackage{tikz}
 \usepackage{layout}
+\usepackage{booktabs}
 
 \usepackage[margin=1in]{geometry}
 \usepackage{listings}
@@ -81,8 +82,27 @@
 \subsection{Purpose}
 
 
-% design and theory of test rig and data acquisition system
-% precise problem statement of experiment and how it fits into reducing noise
+\subsection{Results}
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{lcc}
+        \toprule
+        \textbf{Configuration} & \textbf{Run Time Normalised, Averaged } & \textbf{Variation Coefficient Run Time} \\
+        \midrule
+        Debug & 6.83 & 0.021 \\
+        Release O2 & 1.05 & 0.018 \\
+        Release O2, QxHost & 1.69 & 0.049 \\
+        Release O2, Qparallel & 2.66 & 0.087 \\
+        Release O2, fp:fast & 1.01 & 0.036 \\
+        Release O3 & 1.09 & 0.016 \\
+        Release O3, fp:fast & 1.00 & 0.010 \\
+        Release O2 & 1.03 & 0.019 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Standard bump case run times for various compiler flags, normalised by the minimum averaged time. The average and deviation were found over three runs at a low $CFL$ such that 20,000 iterations were performed.}
+    \label{tab:performance}
+\end{table}
 
 
 \subsection{Objectives}

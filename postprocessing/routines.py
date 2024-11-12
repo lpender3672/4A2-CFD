@@ -6,6 +6,7 @@
 
 # Import modules and functions
 import sys
+import re
 import numpy as np
 import matplotlib.pyplot as plt 
 import scipy.interpolate as interp
@@ -819,7 +820,38 @@ def write_mesh(av,g):
 
     return
 
+def check_run_converged(content):
 
-def parse_output(content):
-    raise NotImplementedError
+    for line in content:
+        if 'NaN detected' in line: # diverged
+            return 2
+    for line in content:
+        if 'converged outside bounds' in line:
+            return 1
+    for line in content:
+        if 'converged within bounds' in line:
+            return 0
+
+    # exit code 3 means did not converge, nor diverge
+    # check inputs
+    return 3
+
+def parse_run_output(content, av):
+
+    pattern = r"iteration\s+(\d+),\s+d_max\s+=\s+([\d.E+-]+)\s+at\s+i\s+=\s+(\d+),\s+j\s+=\s+(\d+),\s+d_avg\s+=\s+([\d.E+-]+)"
+
+    convergence_array = np.zeros((0, 5))
+
+    for line in content:
+        
+        match = re.search(pattern, line)
+        if match:
+            iteration = int(match.group(1))
+            d_max = float(match.group(2))
+            i = int(match.group(3))
+            j = int(match.group(4))
+            d_avg = float(match.group(5))
+            convergence_array = np.vstack((convergence_array, [iteration, d_max, i, j, d_avg]))
+
+    return convergence_array
 

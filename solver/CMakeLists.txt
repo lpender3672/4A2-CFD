@@ -17,10 +17,4 @@ endif()
 
 target_link_libraries(solverApp PRIVATE Qt6::Core Qt6::Widgets Qt6::Charts Qt6::PrintSupport)
 
-include(CheckFortranCompilerFlag)
-check_fortran_compiler_flag("-fast" HAS_FAST_MATH_FLAG)
-
-if (HAS_FAST_MATH_FLAG)
-    # If the flag is supported, apply it to the target
-    target_compile_options(solverApp PRIVATE "-fast")
-endif()
+set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} /O3 /fp:fast")

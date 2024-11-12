@@ -13,7 +13,7 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "console": "integratedTerminal",
-            "preLaunchTask": "build",  // From tasks.json for building
+            //"preLaunchTask": "build",  // From tasks.json for building
             "visualizerFile": "${workspaceFolder}/path/to/.natvis", // Optional: Visualizer for complex data structures
             "logging": {
                 "moduleLoad": false,
