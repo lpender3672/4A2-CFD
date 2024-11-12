@@ -10,7 +10,8 @@ from postprocessing.routines import (
     read_settings,
     write_settings,
     parse_run_output,
-    check_run_converged
+    check_run_converged,
+    read_conv
 )
 
 global rel_folder
@@ -69,7 +70,7 @@ def cfl_sfac_grid_run(casename):
     try:
         history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
     except FileNotFoundError:
-        history = np.zeros((0, 7))
+        history = np.zeros((0, 9))
 
     cfls = np.logspace(-2, np.log10(0.5), 10, endpoint = True)
     sfacs = np.arange(0.05, 0.65, 0.05)
@@ -99,24 +100,26 @@ def cfl_sfac_grid_run(casename):
             with open(outfname, 'r') as f:
                 lines = f.readlines()
             
-            conv_hist = parse_run_output(lines, av)
-            if conv_hist.shape[0] > 0:
-                iterations = conv_hist[-1, 0]
-                d_max = conv_hist[-1, 1]
-                d_avg = conv_hist[-1, 4]
+            convpath = rel_folder + casename + '/conv_' + casename + '.csv'
+            conv_hist = read_conv(convpath)
+            
+            if conv_hist['nstep'].shape[0] > 0:
+                iterations = conv_hist['nstep'][-1]
+                dro_max = conv_hist['dro_max'][-1]
+                dro_avg = conv_hist['dro_avg'][-1]
             else:
                 iterations = 1
-                d_max = np.inf
-                d_avg = np.inf
+                dro_max = np.inf
+                dro_avg = np.inf
 
             converged = check_run_converged(lines)
 
             newrow = np.array([
-                cfl, sfac, time, converged, iterations, d_max, d_avg, av['ni'], av['nj']
+                cfl, sfac, time, converged, iterations, dro_max, dro_avg, av['ni'], av['nj']
             ])
             history = np.vstack((history, newrow))
 
-            print(f'cfl: {cfl}, sfac: {sfac}, time: {time}, converged: {converged}, iterations: {iterations}, d_max: {d_max}, d_avg: {d_avg}')
+            print(f'cfl: {cfl}, sfac: {sfac}, time: {time}, converged: {converged}, iterations: {iterations}, dro_max: {dro_max}, dro_avg: {dro_avg}')
 
     np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
 
@@ -215,7 +218,7 @@ def d_avg_cfl_run(casename):
     try:
         history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
     except FileNotFoundError:
-        history = np.zeros((0, 7))
+        history = np.zeros((0, 9))
 
     for cfl in cfls:
         duplicates =  np.sum((history[:, 0] == cfl) * (history[:, 1] == sfac) * (history[:, 7] == ni))
@@ -232,24 +235,26 @@ def d_avg_cfl_run(casename):
         with open(outfname, 'r') as f:
             lines = f.readlines()
         
-        conv_hist = parse_run_output(lines, av)
-        if conv_hist.shape[0] > 0:
-            iterations = conv_hist[-1, 0]
-            d_max = conv_hist[-1, 1]
-            d_avg = conv_hist[-1, 4]
+        convpath = rel_folder + casename + '/conv_' + casename + '.csv'
+        conv_hist = read_conv(convpath)
+        
+        if conv_hist['nstep'].shape[0] > 0:
+            iterations = conv_hist['nstep'][-1]
+            dro_max = conv_hist['dro_max'][-1]
+            dro_avg = conv_hist['dro_avg'][-1]
         else:
             iterations = 1
-            d_max = np.inf
-            d_avg = np.inf
+            dro_max = np.inf
+            dro_avg = np.inf
 
         converged = check_run_converged(lines)
 
         newrow = np.array([
-            cfl, sfac, time, converged, iterations, d_max, d_avg, av['ni'], av['nj']
+            cfl, sfac, time, converged, iterations, dro_max, dro_avg, av['ni'], av['nj']
         ])
         history = np.vstack((history, newrow))
 
-        print(f'cfl: {cfl}, sfac: {sfac}, time: {time}, converged: {converged}, iterations: {iterations}, d_max: {d_max}, d_avg: {d_avg}')
+        print(f'cfl: {cfl}, sfac: {sfac}, time: {time}, converged: {converged}, iterations: {iterations}, dro_max: {dro_max}, dro_avg: {dro_avg}')
 
     np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
 
@@ -259,11 +264,12 @@ def d_avg_ni_run(casename):
     sfac = 0.5 # higher sfac allows larger range of cfls
     cfl = 0.13572088082974532
     nis = np.logspace(1, 3, 10, endpoint = True).astype(int)
+    nj = 37
 
     try:
         history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
     except FileNotFoundError:
-        history = np.zeros((0, 7))
+        history = np.zeros((0, 9))
 
     for ni in nis:
         duplicates =  np.sum((history[:, 0] == cfl) * (history[:, 1] == sfac) * (history[:, 7] == ni))
@@ -280,11 +286,13 @@ def d_avg_ni_run(casename):
         with open(outfname, 'r') as f:
             lines = f.readlines()
         
-        conv_hist = parse_run_output(lines, av)
-        if conv_hist.shape[0] > 0:
-            iterations = conv_hist[-1, 0]
-            d_max = conv_hist[-1, 1]
-            d_avg = conv_hist[-1, 4]
+        convpath = rel_folder + casename + '/conv_' + casename + '.csv'
+        conv_hist = read_conv(convpath)
+
+        if conv_hist['nstep'].shape[0] > 0:
+            iterations = conv_hist['nstep'][-1]
+            dro_max = conv_hist['dro_max'][-1]
+            dro_avg = conv_hist['dro_avg'][-1]
         else:
             iterations = 1
             d_max = np.inf
@@ -293,11 +301,11 @@ def d_avg_ni_run(casename):
         converged = check_run_converged(lines)
 
         newrow = np.array([
-            cfl, sfac, time, converged, iterations, d_max, d_avg
+            cfl, sfac, time, converged, iterations, dro_max, dro_avg, ni, nj
         ])
         history = np.vstack((history, newrow))
 
-        print(f'cfl: {cfl}, sfac: {sfac}, time: {time}, converged: {converged}, iterations: {iterations}, d_max: {d_max}, d_avg: {d_avg}')
+        print(f'cfl: {cfl}, sfac: {sfac}, time: {time}, converged: {converged}, iterations: {iterations}, dro_max: {d_max}, dro_avg: {d_avg}')
 
     np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
 
@@ -330,16 +338,17 @@ def plot_d_avg_cfl(casename):
     # sort by cfl
     history = history[history[:, 0].argsort()]
 
-    ax.loglog(history[:, 0], history[:, 6], 'o-')
 
     x = np.linspace(np.min(history[:, 0]), np.max(history[:, 0]), 100)
-    ax.loglog(x, 1e-4 * x**0.5, 'k--')
-    ax.loglog(x, 1e-4 * x**1, 'k--')
+    ax.loglog(x, 1e-4 * x**1, 'k--', label=r'$O(CFL^1)$')
+
+    ax.loglog(history[:, 0], history[:, 6], 'o-', label = 'Average density residual error')
 
     ax.set_xlabel('CFL')
     ax.set_ylabel('Average density residual error')
 
     ax.grid(which='both', linestyle='--')
+    ax.legend()
 
     return ax
 
@@ -348,7 +357,6 @@ if __name__ == '__main__':
     
     
     d_avg_cfl_run('bump')
-    
     plot_d_avg_cfl('bump')
 
     plt.tight_layout()
