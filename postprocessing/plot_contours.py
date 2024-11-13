@@ -44,7 +44,7 @@ def main():
     for n,name in enumerate(fieldnames):
 
         # Open figure window
-        fig = plt.figure(figsize=[9.6,7.2]); ax = plt.axes();
+        fig = plt.figure(figsize=[9.6,3.8]); ax = plt.axes();
     
         # Set aspect ratio as equal and remove axes labels
         ax.set_aspect('equal',adjustable='box'); ax.axis('off')
@@ -62,6 +62,8 @@ def main():
 
         # Draw the walls of the block
         plot_wall(ax,g)
+
+        fig.tight_layout()
 
         fig.savefig(f'report/interim/figures/{sys.argv[-1]}_{name}.png', dpi=300)
 

@@ -6,10 +6,8 @@ import matplotlib.pyplot as plt
 import concurrent.futures
 
 from postprocessing.routines import (
-    default_settings,
     read_settings,
     write_settings,
-    parse_run_output,
     check_run_converged,
     read_conv
 )
@@ -44,7 +42,8 @@ def timed_run_solver(casename):
             subprocess.run([exe_path, '--path', casepath], check=True, stdout=f)
     except subprocess.CalledProcessError as e:
         print(f'Error running {casename}: {e}')
-        print(f'Output: {e.stderr}')
+        raise e
+
     elapsed_time = timer() - start_time
 
     return elapsed_time
@@ -127,7 +126,7 @@ def cfl_sfac_grid_run(casename):
             if duplicates >= 1:
                 continue
 
-            newrow = collect_run_data(casename, cfl, sfac, ni, nj)
+            newrow = collect_run_data(casename, cfl, sfac, ni, nj, 3)
             history = np.vstack((history, newrow))
 
             if i % saveinterval == 0:
@@ -138,6 +137,55 @@ def cfl_sfac_grid_run(casename):
 
     np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
 
+
+def increase_resolution_cfl_sfac_grid_boundary(casename):
+
+    try:
+        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+    except FileNotFoundError:
+        history = np.zeros((0, 9))
+
+    cfls = np.logspace(-2, np.log10(0.5), 10, endpoint = True)
+    sfacs = np.arange(0.05, 0.55, 0.05)
+    ni = 53
+    nj = 37
+
+    # filter by ni
+    history = history[(history[:, 7] == ni)]
+    # sort history into sorted grid of (sfacs, cfls)
+
+    grid = np.zeros((len(sfacs), len(cfls), 9))
+    for row in history:
+        sfac = row[1]
+        cfl = row[0]
+        i = np.where(sfacs == sfac)[0][0]
+        j = np.where(cfls == cfl)[0][0]
+        grid[i, j] = row
+    
+    # increase resolution of grid
+    on_converged = True
+    i = 0
+    j = 0
+    while i < len(cfls) - 1 and j < len(sfacs) - 1:
+        # if on converged and the right has diverged
+        if on_converged:
+            i += 1
+            if grid[j, i, 3] == 2:
+                on_converged = False
+                cfl = np.sqrt(cfls[i-1] * cfls[i])
+                sfac = sfacs[j]
+                newrow = collect_run_data(casename, cfl, sfac, ni, nj)
+                history = np.vstack((history, newrow))
+        else:
+            j += 1
+            if grid[j, i, 3] != 2:
+                on_converged = True
+                sfac = np.mean([sfacs[j-1], sfacs[j]])
+                cfl = cfls[i]
+                newrow = collect_run_data(casename, cfl, sfac, ni, nj)
+                history = np.vstack((history, newrow))
+
+    np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
 
 def plot_cfl_sfac_time(casename):
 
@@ -333,7 +381,7 @@ def d_avg_cfl_run(casename):
         if duplicates >= 1:
             continue
 
-        newrow = collect_run_data(casename, cfl, sfac, ni, nj)
+        newrow = collect_run_data(casename, cfl, sfac, ni, nj, 3)
         history = np.vstack((history, newrow))
 
     np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
@@ -357,7 +405,7 @@ def d_avg_ni_run(casename):
         if duplicates >= 1:
             continue
 
-        newrow = collect_run_data(casename, cfl, sfac, ni, nj)
+        newrow = collect_run_data(casename, cfl, sfac, ni, nj, 3)
         history = np.vstack((history, newrow))
 
     np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
@@ -399,7 +447,7 @@ def plot_d_avg_cfl(casename):
     x = np.linspace(np.min(history[:, 0]), np.max(history[:, 0]), 100)
     ax.loglog(x, 1e-4 * x**1, 'k--', label=r'$O(CFL^1)$')
 
-    ax.loglog(history[:, 0], history[:, 6], 'o-', label = f'{casename} density residual error')
+    ax.loglog(history[:, 0], history[:, 6], 'o-')
 
     ax.set_xlabel('CFL')
     ax.set_ylabel('Average density residual error')
@@ -433,11 +481,11 @@ def plot_d_avg_ni(casename):
     history = history[history[:, 7].argsort()]
 
     x = np.linspace(np.min(history[:, 7]), np.max(history[:, 7]), 100)
-    ax.loglog(x, 3e-2 * x**-2, 'k--', label=r'$O(ni^{-2})$')
+    ax.loglog(x, 3e-2 * x**-2, 'k--', label=r'$O(n_i^{-2})$')
 
-    ax.loglog(history[:, 7], history[:, 6], 'o-', label = f'{casename} density residual error')
+    ax.loglog(history[:, 7], history[:, 6], 'o-')
 
-    ax.set_xlabel('ni')
+    ax.set_xlabel('$n_i$')
     ax.set_ylabel('Average density residual error')
 
     ax.grid(which='both', linestyle='--')
@@ -446,6 +494,77 @@ def plot_d_avg_ni(casename):
     fig.tight_layout()
 
     return fig, ax
+
+def plot_time_cfl(casename):
+    
+        try:
+            history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+        except FileNotFoundError:
+            return
+    
+        sfac = 0.5
+        ni = 53
+        nj = 37
+    
+        # filter by ni and sfac
+        history = history[(history[:, 7] == ni) * (history[:, 1] == sfac)]
+        # filter by converged
+        history = history[history[:, 3] < 2]
+        # sort by cfl
+        history = history[history[:, 0].argsort()]
+    
+        fig, ax = plt.subplots()
+
+        x = np.linspace(np.min(history[:, 0]), np.max(history[:, 0]), 100)
+        ax.loglog(x, 7e-1 * x**-0.5, 'k--', label=r'$O(CFL^{-1/2})$')
+    
+        ax.loglog(history[:, 0], history[:, 2], 'o-')
+    
+        ax.set_xlabel('CFL')
+        ax.set_ylabel('Run Time (s)')
+    
+        ax.grid(which='both', linestyle='--')
+        ax.legend()
+    
+        fig.tight_layout()
+    
+        return fig, ax
+
+def plot_time_ni(casename):
+        
+        d_avg_ni_run(casename)
+    
+        try:
+            history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+        except FileNotFoundError:
+            return
+    
+        sfac = 0.5 # higher sfac allows larger range of cfls
+        cfl = 0.13572088082974532
+    
+        # filter by sfac and cfl
+        history = history[(history[:, 1] == sfac) * (history[:, 0] == cfl)]
+        # filter by converged
+        history = history[history[:, 3] < 2]
+        # sort by ni
+        history = history[history[:, 7].argsort()]
+    
+        fig, ax = plt.subplots()
+
+        x = np.linspace(np.min(history[:, 7]), np.max(history[:, 7]), 100)
+        ax.loglog(x, 2e-2 * x**1, 'k--', label=r'$O(n_i^{1})$')
+    
+        ax.loglog(history[:, 7], history[:, 2], 'o-')
+    
+        ax.set_xlabel('$n_i$')
+        ax.set_ylabel('Run Time (s)')
+    
+        ax.grid(which='both', linestyle='--')
+        ax.legend()
+    
+        fig.tight_layout()
+    
+        return fig, ax
 
 def delete_saved_data(casename):
 
@@ -460,10 +579,13 @@ if __name__ == '__main__':
     
     axes = {}
     figs = {}
-    casename = 'bump'
+    casename = 'bend'
 
-    figs['d_avg_ni'], axes['d_avg_ni'] = plot_d_avg_ni(casename)
-    figs['d_avg_cfl'], axes['d_avg_cfl'] = plot_d_avg_cfl(casename)
+    #figs['d_avg_ni'], axes['d_avg_ni'] = plot_d_avg_ni(casename)
+    #figs['d_avg_cfl'], axes['d_avg_cfl'] = plot_d_avg_cfl(casename)
+
+    #figs['time_cfl'], axes['time_cfl'] = plot_time_cfl(casename)
+    #figs['time_ni'], axes['time_ni'] = plot_time_ni(casename)
 
     figs['cfl_sfac_time'], axes['cfl_sfac_time'] = plot_cfl_sfac_time(casename)
     figs['cfl_sfac_residual'], axes['cfl_sfac_residual'] = plot_cfl_sfac_residual(casename)

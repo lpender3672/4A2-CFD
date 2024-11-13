@@ -40,6 +40,8 @@ def main():
     # Add the legend for colours which are shared for max and average residuals
     ax.legend(colnames)
 
+    plt.savefig(f'report/interim/figures/{sys.argv[-1]}_conv.png', dpi = 300)
+
     # Show all the plots
     plt.show()
 
