@@ -666,7 +666,7 @@ def read_conv(filename):
     l = {}
 
     # Read the entire file into a single array
-    arr = np.loadtxt(filename)
+    arr = np.loadtxt(filename, ndmin=2)
 
     # Store the columns in the log dictionary
     fieldnames = ['nstep', 'dro_avg', 'droe_avg', 'drovx_avg', 'drovy_avg', 
