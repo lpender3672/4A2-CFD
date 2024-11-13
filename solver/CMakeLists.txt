@@ -18,3 +18,4 @@ endif()
 target_link_libraries(solverApp PRIVATE Qt6::Core Qt6::Widgets Qt6::Charts Qt6::PrintSupport)
 
 set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} /O2 /fp:fast")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:10485760") # 10 MB stack
