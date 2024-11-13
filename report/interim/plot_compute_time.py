@@ -68,6 +68,37 @@ def apply_settings(casename, **kwargs):
 
     return av
 
+def collect_run_data(casename, cfl, sfac, ni, nj, n=3):
+    av = apply_settings(casename, cfl=cfl, sfac=sfac, ni=ni, nj=nj)
+    time = 0
+    for _ in range(n):
+        time += timed_run_solver(casename)
+    time /= n
+
+    with open(outfname, 'r') as f:
+        lines = f.readlines()
+    
+    convpath = rel_folder + casename + '/conv_' + casename + '.csv'
+    conv_hist = read_conv(convpath)
+    
+    if conv_hist['nstep'].shape[0] > 0:
+        iterations = conv_hist['nstep'][-1]
+        dro_max = conv_hist['dro_max'][-1]
+        dro_avg = conv_hist['dro_avg'][-1]
+    else:
+        iterations = 1
+        dro_max = np.inf
+        dro_avg = np.inf
+
+    converged = check_run_converged(lines)
+
+    newrow = np.array([
+        cfl, sfac, time, converged, iterations, dro_max, dro_avg, av['ni'], av['nj']
+    ])
+
+    print(f'cfl: {cfl:.4f}, sfac: {sfac:.4f}, time: {time:.4f}, converged: {converged}, iterations: {iterations}, dro_max: {dro_max}, dro_avg: {dro_avg}, ni: {ni}, nj: {nj}')
+
+    return newrow
 
 def cfl_sfac_grid_run(casename):
     
@@ -96,40 +127,13 @@ def cfl_sfac_grid_run(casename):
             if duplicates >= 1:
                 continue
 
-            av = apply_settings(casename, cfl=cfl, sfac=sfac, ni=ni, nj=nj)
-            time = 0
-            n = 1
-            for _ in range(n):
-                time += timed_run_solver(casename)
-            time /= n
-
-            with open(outfname, 'r') as f:
-                lines = f.readlines()
-            
-            convpath = rel_folder + casename + '/conv_' + casename + '.csv'
-            conv_hist = read_conv(convpath)
-            
-            if conv_hist['nstep'].shape[0] > 0:
-                iterations = conv_hist['nstep'][-1]
-                dro_max = conv_hist['dro_max'][-1]
-                dro_avg = conv_hist['dro_avg'][-1]
-            else:
-                iterations = 1
-                dro_max = np.inf
-                dro_avg = np.inf
-
-            converged = check_run_converged(lines)
-
-            newrow = np.array([
-                cfl, sfac, time, converged, iterations, dro_max, dro_avg, av['ni'], av['nj']
-            ])
+            newrow = collect_run_data(casename, cfl, sfac, ni, nj)
             history = np.vstack((history, newrow))
 
             if i % saveinterval == 0:
                 # learnt to have this in the hard way
                 np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
 
-            print(f'cfl: {cfl}, sfac: {sfac}, time: {time}, converged: {converged}, iterations: {iterations}, dro_max: {dro_max}, dro_avg: {dro_avg}')
             i += 1
 
     np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
@@ -329,36 +333,8 @@ def d_avg_cfl_run(casename):
         if duplicates >= 1:
             continue
 
-        av = apply_settings(casename, cfl=cfl, sfac=sfac, ni=ni, nj=nj)
-        time = 0
-        n = 3
-        for _ in range(n):
-            time += timed_run_solver(casename)
-        time /= n
-
-        with open(outfname, 'r') as f:
-            lines = f.readlines()
-        
-        convpath = rel_folder + casename + '/conv_' + casename + '.csv'
-        conv_hist = read_conv(convpath)
-        
-        if conv_hist['nstep'].shape[0] > 0:
-            iterations = conv_hist['nstep'][-1]
-            dro_max = conv_hist['dro_max'][-1]
-            dro_avg = conv_hist['dro_avg'][-1]
-        else:
-            iterations = 1
-            dro_max = np.inf
-            dro_avg = np.inf
-
-        converged = check_run_converged(lines)
-
-        newrow = np.array([
-            cfl, sfac, time, converged, iterations, dro_max, dro_avg, av['ni'], av['nj']
-        ])
+        newrow = collect_run_data(casename, cfl, sfac, ni, nj)
         history = np.vstack((history, newrow))
-
-        print(f'cfl: {cfl}, sfac: {sfac}, time: {time}, converged: {converged}, iterations: {iterations}, dro_max: {dro_max}, dro_avg: {dro_avg}')
 
     np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
 
@@ -381,36 +357,8 @@ def d_avg_ni_run(casename):
         if duplicates >= 1:
             continue
 
-        av = apply_settings(casename, cfl=cfl, sfac=sfac, ni=ni, nj=nj)
-        time = 0
-        n = 3
-        for _ in range(n):
-            time += timed_run_solver(casename)
-        time /= n
-
-        with open(outfname, 'r') as f:
-            lines = f.readlines()
-        
-        convpath = rel_folder + casename + '/conv_' + casename + '.csv'
-        conv_hist = read_conv(convpath)
-
-        if conv_hist['nstep'].shape[0] > 0:
-            iterations = conv_hist['nstep'][-1]
-            dro_max = conv_hist['dro_max'][-1]
-            dro_avg = conv_hist['dro_avg'][-1]
-        else:
-            iterations = 1
-            dro_max = np.inf
-            dro_avg = np.inf
-
-        converged = check_run_converged(lines)
-
-        newrow = np.array([
-            cfl, sfac, time, converged, iterations, dro_max, dro_avg, ni, nj
-        ])
+        newrow = collect_run_data(casename, cfl, sfac, ni, nj)
         history = np.vstack((history, newrow))
-
-        print(f'cfl: {cfl}, sfac: {sfac}, time: {time}, converged: {converged}, iterations: {iterations}, dro_max: {dro_max}, dro_avg: {dro_avg}, ni: {ni}, nj: {nj}')
 
     np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
 
@@ -517,8 +465,8 @@ if __name__ == '__main__':
     figs['d_avg_ni'], axes['d_avg_ni'] = plot_d_avg_ni(casename)
     figs['d_avg_cfl'], axes['d_avg_cfl'] = plot_d_avg_cfl(casename)
 
-    #figs['cfl_sfac_time'], axes['cfl_sfac_time'] = plot_cfl_sfac_time(casename)
-    #figs['cfl_sfac_residual'], axes['cfl_sfac_residual'] = plot_cfl_sfac_residual(casename)
+    figs['cfl_sfac_time'], axes['cfl_sfac_time'] = plot_cfl_sfac_time(casename)
+    figs['cfl_sfac_residual'], axes['cfl_sfac_residual'] = plot_cfl_sfac_residual(casename)
 
     for key in axes:
         figs[key].savefig(f'report/interim/figures/{casename}_{key}.png', dpi = 300)
