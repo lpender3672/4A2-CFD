@@ -82,9 +82,12 @@
 \subsection{Purpose}
 
 
-\subsection{Results}
+Higher values of ni tested caused a fatal exception in chkstk.asm which indicated that the program ran out of stack space when allocating the grid arrays.
+This was resolved by increasing the stack size 
 
-\begin{table}[h!]
+\subsection{Appendix}
+
+\begin{table}[H]
     \centering
     \begin{tabular}{lcc}
         \toprule
@@ -104,21 +107,24 @@
     \label{tab:performance}
 \end{table}
 
-\begin{figure}
+
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{figures/bump_d_avg_cfl.png}
-    \caption{}
-    \label{fig:bump_d_avg_cfl}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/bump_d_avg_cfl.png}
+        \caption{}
+        \label{fig:bump_d_avg_cfl}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/bump_d_avg_ni.png}
+        \caption{}
+        \label{fig:bump_d_avg_ni}
+    \end{subfigure}
 \end{figure}
 
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\textwidth]{figures/bump_d_avg_ni.png}
-    \caption{}
-    \label{fig:bump_d_avg_ni}
-\end{figure}
-
-\begin{figure}
+\begin{figure}[H]
     \centering
     \begin{subfigure}{0.49\textwidth}
         \centering
@@ -133,14 +139,6 @@
         \label{fig:bump_residual}
     \end{subfigure}
 \end{figure}
-
-Higher values of ni tested caused a fatal exception in chkstk.asm which indicated that the program ran out of stack space when allocating the grid arrays.
-This was resolved by increasing the stack size 
-
-\subsection{Objectives}
-% set goal of what to achieve
-
-% bibliography
 
 \begin{thebibliography}{9}
 

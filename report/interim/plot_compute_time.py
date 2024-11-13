@@ -399,7 +399,7 @@ def plot_d_avg_cfl(casename):
     x = np.linspace(np.min(history[:, 0]), np.max(history[:, 0]), 100)
     ax.loglog(x, 1e-4 * x**1, 'k--', label=r'$O(CFL^1)$')
 
-    ax.loglog(history[:, 0], history[:, 6], 'o-', label = 'Average density residual error')
+    ax.loglog(history[:, 0], history[:, 6], 'o-', label = f'{casename} density residual error')
 
     ax.set_xlabel('CFL')
     ax.set_ylabel('Average density residual error')
@@ -435,7 +435,7 @@ def plot_d_avg_ni(casename):
     x = np.linspace(np.min(history[:, 7]), np.max(history[:, 7]), 100)
     ax.loglog(x, 3e-2 * x**-2, 'k--', label=r'$O(ni^{-2})$')
 
-    ax.loglog(history[:, 7], history[:, 6], 'o-', label = 'Average density residual error')
+    ax.loglog(history[:, 7], history[:, 6], 'o-', label = f'{casename} density residual error')
 
     ax.set_xlabel('ni')
     ax.set_ylabel('Average density residual error')

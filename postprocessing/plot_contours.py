@@ -63,6 +63,8 @@ def main():
         # Draw the walls of the block
         plot_wall(ax,g)
 
+        fig.savefig(f'report/interim/figures/{sys.argv[-1]}_{name}.png', dpi=300)
+
     # Show all the plots
     plt.show()
 
