@@ -39,8 +39,12 @@ outfname = wdir + '/report/output.txt'
 def timed_run_solver(casename):
     casepath = rel_folder + casename + '/input_' + casename + '.txt'
     start_time = timer()
-    with open(outfname, 'w') as f:
-        subprocess.run([exe_path, '--path', casepath], check=True, stdout=f)
+    try:
+        with open(outfname, 'w') as f:
+            subprocess.run([exe_path, '--path', casepath], check=True, stdout=f)
+    except subprocess.CalledProcessError as e:
+        print(f'Error running {casename}: {e}')
+        print(f'Output: {e.stderr}')
     elapsed_time = timer() - start_time
 
     return elapsed_time
@@ -73,7 +77,7 @@ def cfl_sfac_grid_run(casename):
         history = np.zeros((0, 9))
 
     cfls = np.logspace(-2, np.log10(0.5), 10, endpoint = True)
-    sfacs = np.arange(0.05, 0.65, 0.05)
+    sfacs = np.arange(0.05, 0.55, 0.05)
     ni = 53
     nj = 37
 
@@ -81,6 +85,8 @@ def cfl_sfac_grid_run(casename):
     print("cfls:", cfls)
     print("sfacs:", sfacs)
     
+    i = 0
+    saveinterval = 10
 
     for cfl in cfls:
         for sfac in sfacs:
@@ -92,7 +98,7 @@ def cfl_sfac_grid_run(casename):
 
             av = apply_settings(casename, cfl=cfl, sfac=sfac, ni=ni, nj=nj)
             time = 0
-            n = 3
+            n = 1
             for _ in range(n):
                 time += timed_run_solver(casename)
             time /= n
@@ -119,12 +125,17 @@ def cfl_sfac_grid_run(casename):
             ])
             history = np.vstack((history, newrow))
 
+            if i % saveinterval == 0:
+                # learnt to have this in the hard way
+                np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
+
             print(f'cfl: {cfl}, sfac: {sfac}, time: {time}, converged: {converged}, iterations: {iterations}, dro_max: {dro_max}, dro_avg: {dro_avg}')
+            i += 1
 
     np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
 
 
-def plot_cfl_sfac_scatter(casename):
+def plot_cfl_sfac_time(casename):
 
     cfl_sfac_grid_run(casename)
     
@@ -144,6 +155,9 @@ def plot_cfl_sfac_scatter(casename):
     except FileNotFoundError:
         return ax
 
+    # filter history by ni
+    ni = 53
+    history = history[(history[:, 7] == ni)]
     # remove rows where the run did not converge
     converged_within = history[history[:, 3] == 0]
     converged_outside = history[history[:, 3] == 1]
@@ -197,7 +211,7 @@ def plot_cfl_sfac_scatter(casename):
 
     # add colourbar
     cbar = plt.colorbar(conout)
-    cbar.set_label('Minimum normalised run time')
+    cbar.set_label('Run time normalised by minimum')
 
 
     ax.grid(which='both', linestyle='--')
@@ -205,8 +219,98 @@ def plot_cfl_sfac_scatter(casename):
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15),
           ncol=2, fancybox=True, shadow=True)
     
-    return ax
+    fig.tight_layout()
+    
+    return fig, ax
 
+
+def plot_cfl_sfac_residual(casename):
+
+    cfl_sfac_grid_run(casename)
+    
+    fig, ax = plt.subplots(figsize=[12,9])
+
+    fig.subplots_adjust(
+        top=0.872,
+        bottom=0.087,
+        left=0.073,
+        right=0.983,
+        hspace=0.2,
+        wspace=0.2
+    )
+
+    try:
+        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+    except FileNotFoundError:
+        return ax
+
+    # filter history by ni
+    ni = 53
+    history = history[(history[:, 7] == ni)]
+
+    # remove rows where the run did not converge
+    converged_within = history[history[:, 3] == 0]
+    converged_outside = history[history[:, 3] == 1]
+    diverged = history[history[:, 3] == 2]
+    maxiter = history[history[:, 3] == 3]
+    
+    #cols = np.log10(passed_runs[:, 2] / np.min(passed_runs[:, 2]))
+    if converged_within.shape[0] > 0:
+        colsin = converged_within[:, 6] / np.min(converged_within[:, 6])
+        #colsin = np.log10(colsin)
+    else:
+        colsin = []
+    conin = ax.scatter(converged_within[:, 0], 
+                        converged_within[:, 1], 
+                        c=colsin, 
+                        marker='o', 
+                        label='Converged within bounds',
+                        cmap='jet',
+                        s=100)
+
+    if converged_outside.shape[0] > 0:
+        colsout = converged_outside[:, 6] / np.min(converged_outside[:, 6])
+        #colsout = np.log10(colsout)
+    else:
+        colsout = []
+    conout = ax.scatter(converged_outside[:, 0], 
+                        converged_outside[:, 1], 
+                        c=colsout, 
+                        marker='d', 
+                        label='Converged outside bounds',
+                        cmap='jet',
+                        s=100)
+
+    div = ax.scatter(diverged[:, 0], 
+                        diverged[:, 1], 
+                        c='r', 
+                        marker='x', 
+                        label='Diverged',
+                        s=100)
+    
+    maxit = ax.scatter(maxiter[:, 0],
+                        maxiter[:, 1],
+                        c='k',
+                        marker='s',
+                        label='Max iterations reached',
+                        s=100)
+    # add failed runs to plot
+    
+    ax.set_xlabel('CFL')
+    ax.set_ylabel('SFAC')
+
+    # add colourbar
+    cbar = plt.colorbar(conout)
+    cbar.set_label('Residual error normalised by minimum')
+
+    ax.grid(which='both', linestyle='--')
+    ax.set_xscale('log')
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15),
+          ncol=2, fancybox=True, shadow=True)
+    
+    fig.tight_layout()
+    
+    return fig, ax
 
 def d_avg_cfl_run(casename):
 
@@ -264,6 +368,7 @@ def d_avg_ni_run(casename):
     sfac = 0.5 # higher sfac allows larger range of cfls
     cfl = 0.13572088082974532
     nis = np.logspace(1, 3, 10, endpoint = True).astype(int)
+    nis = np.insert(nis, 0, [5, 8])
     nj = 37
 
     try:
@@ -295,8 +400,8 @@ def d_avg_ni_run(casename):
             dro_avg = conv_hist['dro_avg'][-1]
         else:
             iterations = 1
-            d_max = np.inf
-            d_avg = np.inf
+            dro_max = np.inf
+            dro_avg = np.inf
 
         converged = check_run_converged(lines)
 
@@ -305,7 +410,7 @@ def d_avg_ni_run(casename):
         ])
         history = np.vstack((history, newrow))
 
-        print(f'cfl: {cfl}, sfac: {sfac}, time: {time}, converged: {converged}, iterations: {iterations}, dro_max: {d_max}, dro_avg: {d_avg}')
+        print(f'cfl: {cfl}, sfac: {sfac}, time: {time}, converged: {converged}, iterations: {iterations}, dro_max: {dro_max}, dro_avg: {dro_avg}, ni: {ni}, nj: {nj}')
 
     np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
 
@@ -324,20 +429,24 @@ def reshape_saved_data(casename):
 
 def plot_d_avg_cfl(casename):
 
+    d_avg_cfl_run(casename)
+
     fig,ax = plt.subplots()
 
     try:
         history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
     except FileNotFoundError:
-        return ax
+        return fig, ax
     
     sfac = 0.5 # higher sfac allows larger range of cfls
+    ni = 53
     
     # filter by sfac and cfl
-    history = history[(history[:, 1] == sfac)]
+    history = history[(history[:, 1] == sfac) * (history[:, 7] == ni)]
+    # filter by converged
+    history = history[history[:, 3] < 2]
     # sort by cfl
     history = history[history[:, 0].argsort()]
-
 
     x = np.linspace(np.min(history[:, 0]), np.max(history[:, 0]), 100)
     ax.loglog(x, 1e-4 * x**1, 'k--', label=r'$O(CFL^1)$')
@@ -350,14 +459,69 @@ def plot_d_avg_cfl(casename):
     ax.grid(which='both', linestyle='--')
     ax.legend()
 
-    return ax
+    fig.tight_layout()
 
+    return fig, ax
+
+def plot_d_avg_ni(casename):
+
+    d_avg_ni_run(casename)
+
+    fig, ax = plt.subplots()
+
+    try:
+        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+    except FileNotFoundError:
+        return ax
+    
+    sfac = 0.5 # higher sfac allows larger range of cfls
+    cfl = 0.13572088082974532
+
+    # filter by sfac and cfl
+    history = history[(history[:, 1] == sfac) * (history[:, 0] == cfl)]
+    # filter by converged
+    history = history[history[:, 3] < 2]
+    # sort by ni
+    history = history[history[:, 7].argsort()]
+
+    x = np.linspace(np.min(history[:, 7]), np.max(history[:, 7]), 100)
+    ax.loglog(x, 3e-2 * x**-2, 'k--', label=r'$O(ni^{-2})$')
+
+    ax.loglog(history[:, 7], history[:, 6], 'o-', label = 'Average density residual error')
+
+    ax.set_xlabel('ni')
+    ax.set_ylabel('Average density residual error')
+
+    ax.grid(which='both', linestyle='--')
+    ax.legend()
+
+    fig.tight_layout()
+
+    return fig, ax
+
+def delete_saved_data(casename):
+
+    history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+    # filter by ni
+    ni = 53
+    history = history[(history[:, 7] == ni)]
+    # save again
+    np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
 
 if __name__ == '__main__':
     
-    
-    d_avg_cfl_run('bump')
-    plot_d_avg_cfl('bump')
+    axes = {}
+    figs = {}
+    casename = 'bump'
+
+    figs['d_avg_ni'], axes['d_avg_ni'] = plot_d_avg_ni(casename)
+    figs['d_avg_cfl'], axes['d_avg_cfl'] = plot_d_avg_cfl(casename)
+
+    #figs['cfl_sfac_time'], axes['cfl_sfac_time'] = plot_cfl_sfac_time(casename)
+    #figs['cfl_sfac_residual'], axes['cfl_sfac_residual'] = plot_cfl_sfac_residual(casename)
+
+    for key in axes:
+        figs[key].savefig(f'report/interim/figures/{casename}_{key}.png', dpi = 300)
 
     plt.tight_layout()
     plt.show()

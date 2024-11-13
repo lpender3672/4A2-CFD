@@ -104,6 +104,36 @@
     \label{tab:performance}
 \end{table}
 
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/bump_d_avg_cfl.png}
+    \caption{}
+    \label{fig:bump_d_avg_cfl}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/bump_d_avg_ni.png}
+    \caption{}
+    \label{fig:bump_d_avg_ni}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=0.99\textwidth]{figures/bump_cfl_sfac_time.png}
+        \caption{}
+        \label{fig:bump_time}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=0.99\textwidth]{figures/bump_cfl_sfac_residual.png}
+        \caption{}
+        \label{fig:bump_residual}
+    \end{subfigure}
+\end{figure}
+
+Higher values of ni tested caused a fatal exception in chkstk.asm which indicated that the program ran out of stack space when allocating the grid arrays.
+This was resolved by increasing the stack size 
 
 \subsection{Objectives}
 % set goal of what to achieve
