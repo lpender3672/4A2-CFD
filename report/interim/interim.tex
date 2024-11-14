@@ -79,6 +79,17 @@
 \section{Introduction}
 %-----------------------------------------------------------------------------------------
 
+Computational Fluid Dynamics (CFD) is a powerful tool for solving fluid flow problems.
+This can be done much faster and at lower cost than experimental methods.
+This makes it a valuable tool to be used alongside experimental validation.
+
+\section{Objective}
+
+To write a program to solve the Euler equations for two-dimensional flows using a finite volume time
+marching method. Completing this work will give you practical expertise in pre-processing and post-
+processing the simulations as well as understanding the methods of solution. The knowledge gained
+is core to all CFD methods and transferrable to all other research and commercial CFD packages
+
 \section{Software}
 
 The software is a Qt application that calls fortran routines to solve the Euler equations for a 2D inviscid flow.
@@ -129,19 +140,19 @@ The solution to the Euler equations for this case, which is absent of shocks, sh
 However, asymmetry is observed in the low mach number region to the right of the bump.
 Figure \ref{fig:bump_cp} shows the pressure coefficient distribution over the bump domain, showing good agreement with
 the Mach plot where regions of high pressure coincide with low Mach number regions.
+A small smoothing factor was chosen for accuracy and a $CFL$ number close to the largest possible for stability  was used to ensure the solver made good progress.
+The results match those in the handout closely \cite{handout}.
 
 In figure \ref{fig:bump_conv} the convergence history of all the primary flow variables are shown.
 The maximum residuals show a decrease in one order of magnitude over the first 20,000 iterations, after which these begin to plateau.
 The averaged residuals decrease nearly two orders of magnitude and start to plateau at around 40,000 iterations.
 Oscillations in the residuals were observed at low smoothing factors, which is expected as there is less dissipation of large gradients.
-These oscillations were also observed for detailed meshes, which produce larger gradient errors which must be dissipated over a smaller area each iteration.
+These oscillations were also observed for detailed meshes, which produce larger spatial gradient errors which must be dissipated over a smaller area each iteration.
 High CFL numbers also cause oscillations as larger timesteps relative to the mesh size cause the solver to overshoot the solution, potentially amplifying the residuals.
-
 
 Figure \ref{fig:bump_d_avg_cfl} shows the average density residual against the CFL number.
 The CFL number is proportional to the timestep $\Delta t$, and by plotting the residuals against this parameter on a log-log plot, we can determine the order of the error.
 This shows that our scheme is first-order time accurate.
-
 Figure \ref{fig:bump_d_avg_ni} shows the average density residual against the number of cells in the $i$ direction.
 The $n_i$ parameter is inversely proportional to the spatial step size $\Delta x$.
 The graph shows the scheme is second-order spatially accurate for smaller mesh sizes, but the error plateaus for larger meshes.
@@ -151,10 +162,7 @@ which is due to boundary conditions applied at large scales.
 
 Figure \ref{fig:bump_time_cfl} shows log runtime against the CFL number.
 This shows that the runtime is inversely proportional to the square of the CFL number, meaning that quartering the CFL doubles the runtime.
-The time per iteration is clearly inversely proportional to the CFL number.
 The number of iterations required to converge is inversely proportional to the CFL number.
-This makes sense because the total change primary flow variables must be proportional to the timestep times the number of iterations.
-
 Figure \ref{fig:bump_time_ni} shows the log runtime against log $n_i$.
 The line shows proportionality at higher mesh sizes with higher runtimes at smaller mesh sizes.
 This is likely due to increased and unstable errors failing to meet the convergence criteria.
@@ -166,19 +174,38 @@ This is because instabilities that arise from the high CFL numbers are not dissi
 Improved accuracy in the form of reduced error residuals are achieved at lower CFL and smoothing factors.
 The similar plot, figure \ref{fig:bump_cfl_sfac_time} shows that this improved accuracy comes at the cost of increased runtime.
 
+The figure \ref{fig:bump_ni_cfl_residual} is a similar scatter plot but varying $CFL$ and $n_i$.
+It shows that an increased mesh detail, a slightly smaller CFL number is required for stability.
+This is for reasons mentioned earlier, where larger spatial gradient errors must be dissipated over a smaller area each iteration.
+The plot contains some incorrectly marked converged runs in the top left where the average error very slowly increased, indicating instability.
+This highlights an issue with the convergence criteria, which needs to be refined to prevent premature termination.
+Figure \ref{fig:bump_ni_cfl_time}, then shows that increasing this mesh detail improves accuracy at the cost of runtime.
+
 \subsection{Bend case}
 
-Figure \ref{fig:bend_mach}
+The bend case mach number distribution is shown in figure \ref{fig:bend_mach}.
+A region of supersonic flow can be seen on the inside of the bend by the Mach 1 contour, which seems to compress back to subsonic flow before re-expanding to supersonic just before the exit.
+The corresponding static pressure distribution is shown in figure \ref{fig:bend_cp}.
+A small smoothing factor was chosen for accuracy and a correspondingly small CFL number was used to ensure the solver did not diverge.
+The results differ slightly from the handout \cite{handout}, where the regions of supersonic flow in my run case are larger.
+The final average density residual reached by the example in the handout is $3\times 10^{-5}$, where as my run case reached $5\times 10^{-6}$.
+This suggests that my result is more accurate than that seen in the handout.
 
-Figure \ref{fig:bend_cp}
+Figure \ref{fig:bend_conv} shows the convergence history, which shows more severe initial transience than the bump case, suggesting more innacuracies in the initial flow guess for this case.
+Orders of error and runtime with respect to CFL and mesh size showed the same trends as with the bump case and so are omitted.
 
-Figure \ref{fig:bend_conv}
-
-Figure \ref{fig:bend_cfl_sfac_residual}
-
-Figure \ref{fig:bend_cfl_sfac_time}
+Figure \ref{fig:bend_cfl_sfac_residual} shows similar trends to the scatter plot for the bump case shown in figure \ref{fig:bump_cfl_sfac_residual}.
+However, the line between converged and diverged is higher, indicating more smoothing is required for the bend case.
+This could be due to a higher aspect ratio of cell sizes in the bend case causing smaller spatial steps and so more smoothing is required.
 
 
+\section{Conclusion}
+
+The solver was able to numerically solve the Euler equations for the bump and bend test cases.
+Low CFL numbers and smoothing factors were found to improve accuracy but increase runtime, while high CFL numbers risk instability without sufficient smoothing.
+The solver achieves first-order temporal and second-order spatial accuracy for small celled meshes,
+though floating-point errors limit accuracy at finer resolutions. 
+The bend case required more smoothing which is thought to be due to higher cell aspect ratios.
 
 \section{Appendix}
 
@@ -268,7 +295,7 @@ Figure \ref{fig:bend_cfl_sfac_time}
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{figures/bump_ni_cfl_residual.png}
-    \caption{Scatter plot showing variation in residual error for different $CFL$ and $n_i$ values. $sfac = 0.5$.}
+    \caption{Scatter plot showing variation in residual error for different $CFL$ and $n_i$ values. $sfac = 0.5$. Runs in the top left are incorrectly marked as converged by the solver.}
     \label{fig:bump_ni_cfl_residual}
 \end{figure}
 
@@ -276,7 +303,7 @@ Figure \ref{fig:bend_cfl_sfac_time}
     \centering
     \centering
     \includegraphics[width=0.8\textwidth]{figures/bump_ni_cfl_time.png}
-    \caption{Scatter plot showing variation in runtime for different $CFL$ and $n_i$ values. $sfac = 0.5$.}
+    \caption{Scatter plot showing variation in runtime for different $CFL$ and $n_i$ values. $sfac = 0.5$. Runs in the top left are incorrectly marked as converged by the solver.}
     \label{fig:bump_ni_cfl_time}
 \end{figure}
 
@@ -327,7 +354,7 @@ Figure \ref{fig:bend_cfl_sfac_time}
     \centering
     \begin{tabular}{lcc}
         \toprule
-        \textbf{Configuration} & \textbf{Normalised Time}\footnotemark  & \textbf{Variation Coefficient} \\
+        \textbf{Configuration} & \textbf{Normalised Time}  & \textbf{Variation Coefficient} \\
         \midrule
         Debug & 6.83 & 0.021 \\
         Release O2 & 1.05 & 0.018 \\
@@ -343,12 +370,29 @@ Figure \ref{fig:bend_cfl_sfac_time}
     \label{tab:performance}
 \end{table}
 
+\subsection{Device Specifications}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{ll}
+        \toprule
+        \textbf{Component} & \textbf{Specification} \\
+        \midrule
+        CPU & AMD Ryzen 9 3900x \\
+        GPU & NVIDIA GeForce GTX 1070 \\
+        RAM & 32GB DDR4 3200MHz \\
+        OS & Windows 10 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Device specifications used for testing.}
+    \label{tab:device}
+\end{table}
 
 \begin{thebibliography}{9}
 
   \bibitem{handout}
-  J. V. Taylor and J. C. Massey
-  \emph{GA3 Heat Exchanger Handout}
+  J. V. Taylor
+  \emph{4A2 COMPUTATIONAL FLUID DYNAMICS: WRITING AN EULER SOLVER}
   University of Cambridge,
   2024.
 
