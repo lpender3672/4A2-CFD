@@ -218,8 +218,8 @@ def plot_cfl_sfac_time(casename):
     
     #cols = np.log10(passed_runs[:, 2] / np.min(passed_runs[:, 2]))
     if converged_within.shape[0] > 0:
-        colsin = converged_within[:, 2] / np.min(converged_within[:, 2])
-        #colsin = np.log10(colsin)
+        colsin = converged_within[:, 2] #/ np.min(converged_within[:, 2])
+        colsin = np.log10(colsin)
     else:
         colsin = []
     conin = ax.scatter(converged_within[:, 0], 
@@ -231,8 +231,8 @@ def plot_cfl_sfac_time(casename):
                         s=100)
 
     if converged_outside.shape[0] > 0:
-        colsout = converged_outside[:, 2] / np.min(converged_outside[:, 2])
-        #colsout = np.log10(colsout)
+        colsout = converged_outside[:, 2] #/ np.min(converged_outside[:, 2])
+        colsout = np.log10(colsout)
     else:
         colsout = []
     conout = ax.scatter(converged_outside[:, 0], 
@@ -263,7 +263,7 @@ def plot_cfl_sfac_time(casename):
 
     # add colourbar
     cbar = plt.colorbar(conout)
-    cbar.set_label('Run time normalised by minimum')
+    cbar.set_label('Log10 average run time')
 
 
     ax.grid(which='both', linestyle='--')
@@ -308,8 +308,8 @@ def plot_cfl_sfac_residual(casename):
     
     #cols = np.log10(passed_runs[:, 2] / np.min(passed_runs[:, 2]))
     if converged_within.shape[0] > 0:
-        colsin = converged_within[:, 6] / np.min(converged_within[:, 6])
-        #colsin = np.log10(colsin)
+        colsin = converged_within[:, 6] #/ np.min(converged_within[:, 6])
+        colsin = np.log10(colsin)
     else:
         colsin = []
     conin = ax.scatter(converged_within[:, 0], 
@@ -321,8 +321,8 @@ def plot_cfl_sfac_residual(casename):
                         s=100)
 
     if converged_outside.shape[0] > 0:
-        colsout = converged_outside[:, 6] / np.min(converged_outside[:, 6])
-        #colsout = np.log10(colsout)
+        colsout = converged_outside[:, 6] #/ np.min(converged_outside[:, 6])
+        colsout = np.log10(colsout)
     else:
         colsout = []
     conout = ax.scatter(converged_outside[:, 0], 
@@ -353,7 +353,7 @@ def plot_cfl_sfac_residual(casename):
 
     # add colourbar
     cbar = plt.colorbar(conout)
-    cbar.set_label('Residual error normalised by minimum')
+    cbar.set_label('Log10 residual density error')
 
     ax.grid(which='both', linestyle='--')
     ax.set_xscale('log')
@@ -386,6 +386,44 @@ def d_avg_cfl_run(casename):
 
     np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
 
+
+def ni_cfl_grid_run(casename):
+
+    try:
+        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+    except FileNotFoundError:
+        history = np.zeros((0, 9))
+
+    sfac = 0.5
+    cfls = np.logspace(-2, np.log10(0.5), 10, endpoint = True)
+    nis = np.logspace(1, 3, 10, endpoint = True).astype(int)
+    nis = np.insert(nis, 0, [5, 8])
+    nj = 37
+
+    print(f'Running {casename} with {len(nis) * len(cfls)} combinations')
+    print("nis:", nis)
+    print("cfls:", cfls)
+    
+    i = 0
+    saveinterval = 10
+
+    for ni in nis[::-1]:
+
+        for cfl in cfls:
+            duplicates =  np.sum((history[:, 0] == cfl) * (history[:, 1] == sfac) * (history[:, 7] == ni))
+            if duplicates >= 1:
+                continue
+
+            newrow = collect_run_data(casename, cfl, sfac, ni, nj, 3)
+            history = np.vstack((history, newrow))
+
+            if i % saveinterval == 0:
+                # learnt to have this in the hard way
+                np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
+
+            i += 1
+
+    np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
 
 def d_avg_ni_run(casename):
 
@@ -566,6 +604,188 @@ def plot_time_ni(casename):
     
         return fig, ax
 
+def plot_ni_cfl_residual(casename):
+
+    ni_cfl_grid_run(casename)
+
+    # plot grid
+
+    fig, ax = plt.subplots(figsize=[12,9])
+
+    fig.subplots_adjust(
+        top=0.872,
+        bottom=0.087,
+        left=0.073,
+        right=0.983,
+        hspace=0.2,
+        wspace=0.2
+    )
+
+    try:
+        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+    except FileNotFoundError:
+        return ax
+    
+    # filter history by sfac
+    sfac = 0.5
+    history = history[(history[:, 1] == sfac)]
+
+    # remove rows where the run did not converge
+    converged_within = history[history[:, 3] == 0]
+    converged_outside = history[history[:, 3] == 1]
+    diverged = history[history[:, 3] == 2]
+    maxiter = history[history[:, 3] == 3]
+    
+    #cols = np.log10(passed_runs[:, 2] / np.min(passed_runs[:, 2]))
+    if converged_within.shape[0] > 0:
+        colsin = converged_within[:, 6] #/ np.min(converged_within[:, 6])
+        colsin = np.log10(colsin)
+    else:
+        colsin = []
+    conin = ax.scatter(converged_within[:, 0], 
+                        converged_within[:, 7], 
+                        c=colsin, 
+                        marker='o', 
+                        label='Converged within bounds',
+                        cmap='jet',
+                        s=100)
+
+    if converged_outside.shape[0] > 0:
+        colsout = converged_outside[:, 6] #/ np.min(converged_outside[:, 6])
+        colsout = np.log10(colsout)
+    else:
+        colsout = []
+    conout = ax.scatter(converged_outside[:, 0], 
+                        converged_outside[:, 7], 
+                        c=colsout, 
+                        marker='d', 
+                        label='Converged outside bounds',
+                        cmap='jet',
+                        s=100)
+
+    div = ax.scatter(diverged[:, 0], 
+                        diverged[:, 7], 
+                        c='r', 
+                        marker='x', 
+                        label='Diverged',
+                        s=100)
+    
+    maxit = ax.scatter(maxiter[:, 0],
+                        maxiter[:, 7],
+                        c='k',
+                        marker='s',
+                        label='Max iterations reached',
+                        s=100)
+    # add failed runs to plot
+    
+    ax.set_xlabel('CFL')
+    ax.set_ylabel('$n_i$')
+
+    # add colourbar
+    cbar = plt.colorbar(conout)
+    cbar.set_label('Log10 residual density error')
+
+    ax.grid(which='both', linestyle='--')
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15),
+          ncol=2, fancybox=True, shadow=True)
+    
+    fig.tight_layout()
+    
+    return fig, ax
+
+
+def plot_ni_cfl_time(casename):
+
+    ni_cfl_grid_run(casename)
+
+    # plot grid
+
+    fig, ax = plt.subplots(figsize=[12,9])
+
+    fig.subplots_adjust(
+        top=0.872,
+        bottom=0.087,
+        left=0.073,
+        right=0.983,
+        hspace=0.2,
+        wspace=0.2
+    )
+
+    try:
+        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+    except FileNotFoundError:
+        return ax
+    
+    # filter history by sfac
+    sfac = 0.5
+    history = history[(history[:, 1] == sfac)]
+
+    # remove rows where the run did not converge
+    converged_within = history[history[:, 3] == 0]
+    converged_outside = history[history[:, 3] == 1]
+    diverged = history[history[:, 3] == 2]
+    maxiter = history[history[:, 3] == 3]
+    
+    if converged_within.shape[0] > 0:
+        colsin = converged_within[:, 2] #/ np.min(converged_within[:, 2])
+        colsin = np.log10(colsin)
+    else:
+        colsin = []
+    conin = ax.scatter(converged_within[:, 0], 
+                        converged_within[:, 7], 
+                        c=colsin, 
+                        marker='o', 
+                        label='Converged within bounds',
+                        cmap='jet',
+                        s=100)
+
+    if converged_outside.shape[0] > 0:
+        colsout = converged_outside[:, 2] # / np.min(converged_outside[:, 6])
+        colsout = np.log10(colsout)
+    else:
+        colsout = []
+    conout = ax.scatter(converged_outside[:, 0], 
+                        converged_outside[:, 7], 
+                        c=colsout, 
+                        marker='d', 
+                        label='Converged outside bounds',
+                        cmap='jet',
+                        s=100)
+
+    div = ax.scatter(diverged[:, 0], 
+                        diverged[:, 7], 
+                        c='r', 
+                        marker='x', 
+                        label='Diverged',
+                        s=100)
+    
+    maxit = ax.scatter(maxiter[:, 0],
+                        maxiter[:, 7],
+                        c='k',
+                        marker='s',
+                        label='Max iterations reached',
+                        s=100)
+    # add failed runs to plot
+    
+    ax.set_xlabel('CFL')
+    ax.set_ylabel('$n_i$')
+
+    # add colourbar
+    cbar = plt.colorbar(conout)
+    cbar.set_label('Log10 average run time')
+
+    ax.grid(which='both', linestyle='--')
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15),
+          ncol=2, fancybox=True, shadow=True)
+    
+    fig.tight_layout()
+    
+    return fig, ax
+
 def delete_saved_data(casename):
 
     history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
@@ -581,14 +801,17 @@ if __name__ == '__main__':
     figs = {}
     casename = 'bend'
 
-    #figs['d_avg_ni'], axes['d_avg_ni'] = plot_d_avg_ni(casename)
-    #figs['d_avg_cfl'], axes['d_avg_cfl'] = plot_d_avg_cfl(casename)
+    figs['d_avg_ni'], axes['d_avg_ni'] = plot_d_avg_ni(casename)
+    figs['d_avg_cfl'], axes['d_avg_cfl'] = plot_d_avg_cfl(casename)
 
-    #figs['time_cfl'], axes['time_cfl'] = plot_time_cfl(casename)
-    #figs['time_ni'], axes['time_ni'] = plot_time_ni(casename)
+    figs['time_cfl'], axes['time_cfl'] = plot_time_cfl(casename)
+    figs['time_ni'], axes['time_ni'] = plot_time_ni(casename)
 
     figs['cfl_sfac_time'], axes['cfl_sfac_time'] = plot_cfl_sfac_time(casename)
     figs['cfl_sfac_residual'], axes['cfl_sfac_residual'] = plot_cfl_sfac_residual(casename)
+
+    figs['ni_cfl_time'], axes['ni_cfl_time'] = plot_ni_cfl_time(casename)
+    figs['ni_cfl_residual'], axes['ni_cfl_residual'] = plot_ni_cfl_residual(casename)
 
     for key in axes:
         figs[key].savefig(f'report/interim/figures/{casename}_{key}.png', dpi = 300)

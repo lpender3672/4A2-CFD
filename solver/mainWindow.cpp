@@ -19,6 +19,12 @@ MainWindow::MainWindow(t_mode app_mode) {
     convWidget = new ConvWidget(this);
     console = new ConsoleWidget(this);
     visWidget = new VisWidget(this);
+    
+    // add a description widget
+    QLabel *desc = new QLabel("
+    <h1> Description </h1>
+    <p> This is a program that solves the 2D Euler Equation using the finite difference method. </p>
+    ", this);
 
     // set widget sizes
     inputWidget->setMaximumWidth(300);

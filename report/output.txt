@@ -7,7 +7,7 @@
  00
     CFL =  0.5000000     sfac =  0.2500000     rfin =  0.2500000
     Convergence  d_max =  4.9999999E-05
-    Mesh size  ni =          53 nj =          37
+    Mesh size  ni =           5 nj =          37
     Inlet  pstag =   100000.0     tstag =   300.0000     alpha =   0.7853975
     Outlet  p_out =   50000.00
  
@@ -24,19 +24,34 @@
  Mesh check passed
  
  Flow guess calaculated using improved method
- At g(1,1): ro =   1.322985     roe =   257818.7     rovx =   164.7184     rovy 
- =   164.7184    
- At g(ni,1): ro =   1.322985     roe =   257800.0     rovx =   164.6434     
- rovy =  -164.6432    
+ At g(1,1): ro =   1.322985     roe =   257818.7     rovx =   172.8777     rovy 
+ =   156.1334    
+ At g(ni,1): ro =   1.322985     roe =   257426.1     rovx =   171.2147     
+ rovy =  -154.6317    
  
   Time step set to   4.0003106E-06  seconds
   Calculation started
- iteration     50, d_max = 0.111E-01 at i =  39, j =  34, d_avg = 0.347E-02
- iteration    100, d_max = 0.393E-01 at i =  37, j =  36, d_avg = 0.107E-01
- iteration    150, d_max = 0.905E-01 at i =  35, j =  24, d_avg = 0.243E-01
- iteration    200, d_max = 0.281E+00 at i =  32, j =  36, d_avg = 0.494E-01
- iteration    250, d_max = 0.106E+01 at i =  35, j =   1, d_avg = 0.128E+00
+ iteration     50, d_max = 0.361E-01 at i =   3, j =  17, d_avg = 0.970E-02
+ iteration    100, d_max = 0.358E-01 at i =   1, j =  36, d_avg = 0.618E-02
+ iteration    150, d_max = 0.280E-01 at i =   1, j =  36, d_avg = 0.610E-02
+ iteration    200, d_max = 0.298E-01 at i =   1, j =  36, d_avg = 0.609E-02
+ iteration    250, d_max = 0.358E-01 at i =   1, j =  36, d_avg = 0.721E-02
+ iteration    300, d_max = 0.386E-01 at i =   1, j =  36, d_avg = 0.632E-02
+ iteration    350, d_max = 0.371E-01 at i =   1, j =  36, d_avg = 0.542E-02
+ iteration    400, d_max = 0.368E-01 at i =   1, j =  36, d_avg = 0.523E-02
+ iteration    450, d_max = 0.400E-01 at i =   1, j =  36, d_avg = 0.551E-02
+ iteration    500, d_max = 0.438E-01 at i =   1, j =  36, d_avg = 0.553E-02
+ iteration    550, d_max = 0.464E-01 at i =   1, j =  36, d_avg = 0.482E-02
+ iteration    600, d_max = 0.470E-01 at i =   1, j =  36, d_avg = 0.438E-02
+ iteration    650, d_max = 0.479E-01 at i =   1, j =  36, d_avg = 0.417E-02
+ iteration    700, d_max = 0.491E-01 at i =   1, j =  36, d_avg = 0.420E-02
+ iteration    750, d_max = 0.493E-01 at i =   1, j =  36, d_avg = 0.399E-02
+ iteration    800, d_max = 0.483E-01 at i =   1, j =  36, d_avg = 0.367E-02
+ iteration    850, d_max = 0.466E-01 at i =   1, j =  36, d_avg = 0.345E-02
+ iteration    900, d_max = 0.449E-01 at i =   1, j =  36, d_avg = 0.326E-02
+ iteration    950, d_max = 0.431E-01 at i =   1, j =  36, d_avg = 0.318E-02
+ iteration   1000, d_max = 0.199E+00 at i =   3, j =  36, d_avg = 0.897E-02
   NaN detected, stopping the solver
   "ifstop" modified, writing an output
   Solver stopped prematurely
-  Calculation completed after         270 iterations
+  Calculation completed after        1030 iterations
