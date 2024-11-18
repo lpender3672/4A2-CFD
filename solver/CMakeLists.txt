@@ -17,10 +17,26 @@ endif()
 
 target_link_libraries(solverApp PRIVATE Qt6::Core Qt6::Widgets Qt6::Charts Qt6::PrintSupport)
 
-set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} /O2 /fp:fast")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:10485760") # 10 MB stack
+find_path(MKL_INCLUDE_DIR mkl.h HINTS ENV MKLROOT PATH_SUFFIXES include)
+find_library(MKL_LIBRARY mkl_rt HINTS ENV MKLROOT PATH_SUFFIXES lib lib/intel64)
+
+if(MKL_INCLUDE_DIR AND MKL_LIBRARY)
+    message(STATUS "Found MKL: ${MKL_LIBRARY}")
+
+    include_directories(${MKL_INCLUDE_DIR})
+
+    target_link_libraries(solverApp PRIVATE ${MKL_LIBRARY})
+    
+    target_link_options(solverApp PRIVATE "-Wl,--start-group ${MKL_LIBRARY} -Wl,--end-group")
+else()
+    message(FATAL_ERROR "MKL not found. Please ensure MKL is installed and MKLROOT is set.")
+endif()
+
 
 if(WIN32)
+    set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} /O2 /fp:fast")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:10485760") # 10 MB stack
+
     find_program(WINDEPLOYQT_EXECUTABLE windeployqt
         HINTS "${QT_INSTALL_DIR}/bin"
     )
