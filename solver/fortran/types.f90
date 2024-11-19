@@ -21,7 +21,7 @@
           real(C_FLOAT) :: rgas, gam, cp, cv, fgam
 
 !         Timestepping, smoothing and other run options
-          real(C_FLOAT) ::  cfl, sfac, dt, d_max, d_avg
+          real(C_FLOAT) ::  cfl, sfac, dt, dt_total, d_max, d_avg
           integer(C_INT) :: nsteps, nstep
 
 !         Reference values of the primary flow variables
@@ -109,10 +109,15 @@
 
 !         Primary variables at nodes
           real(C_FLOAT), dimension(:,:), pointer :: ro, roe, rovx, rovy
+!         Primary variables at start of each step before runge-kutta
+          ! These arent in the C struct because it is not needed and would block the solver thread for longer
+          real(C_FLOAT), dimension(:,:), pointer :: ro_start, roe_start, rovx_start, rovy_start
+          
 !         Variables to hold cell increments
           real(C_FLOAT), dimension(:,:), pointer :: dro, droe, drovx, drovy
 !         Secondary variables at nodes
           real(C_FLOAT), dimension(:,:), pointer :: p, hstag, vx, vy 
+          
 !         Logical array to store wall locations for the nodes
           logical(C_INT), dimension(:,:), pointer :: wall
 
@@ -174,8 +179,12 @@
             !     Secondary variables stored at the nodes for convenience
             allocate(g%p(ni,nj),g%hstag(ni,nj),g%vx(ni,nj),g%vy(ni,nj))
 
+            !     Primary flow variables in the mesh
+            allocate(g%ro_start(ni,nj),g%rovx_start(ni,nj),g%rovy_start(ni,nj),g%roe_start(ni,nj))
+
             ! allocate wall now
             allocate(g%wall(ni,nj))
+
             
       end subroutine grid_from_c
 

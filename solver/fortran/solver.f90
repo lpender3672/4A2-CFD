@@ -35,6 +35,8 @@
       type(t_conv_point) :: conv_point
       real :: d_max = 1, d_avg = 1, avg_of_hist = 1
       integer :: nstep, nconv = 50, ncheck = 10
+      integer :: nrkuts = 4
+      integer :: nrkut
 
       real, allocatable :: d_avg_hist(:)
       allocate(d_avg_hist(100))
@@ -135,14 +137,17 @@
 !         Update record of nstep to use in subroutines
           av%nstep = nstep
 
-!         Calculate secondary flow variables used in conservation equations
-          call set_secondary(av,g)
+          g%ro_start = g%ro
+          g%roe_start = g%roe
+          g%rovx_start = g%rovx
+          g%rovy_start = g%rovy
 
-!         Apply inlet and outlet values at the boundaries of the domain
-          call apply_bconds(av,g,bcs)
-
-!         Perform the timestep to update the primary flow variables
-          call euler_iteration(av,g)
+          do nrkut = 1,nrkuts
+              av%dt = av%dt_total / (1 + nrkuts - nrkut)
+              call set_secondary(av,g)
+              call apply_bconds(av,g,bcs)
+              call euler_iteration(av,g)
+          end do
 
 !         Write out summary every "nconv" steps and update "davg" and "dmax" 
           if(mod(av%nstep,nconv) == 0) then

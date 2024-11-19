@@ -36,6 +36,12 @@ extern "C" {
         float* vy;
 
         // Logical array for wall locations
+
+        float *ro_start;
+        float *roe_start;
+        float *rovx_start;
+        float *rovy_start;
+
         bool* wall;
     };
 

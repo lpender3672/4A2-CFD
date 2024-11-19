@@ -22,6 +22,9 @@
 !     Wall flag array
       allocate(g%wall(ni,nj))
 
+      !     Primary flow variables at the start of the timestep
+      allocate(g%ro_start(ni,nj),g%rovx_start(ni,nj),g%rovy_start(ni,nj),g%roe_start(ni,nj))
+
 !     Arrays to store static conditions at the inlet plane
       allocate(bcs%ro(nj),bcs%p(nj))
 
@@ -39,6 +42,7 @@
       allocate(g%dro(ni-1,nj-1),g%drovx(ni-1,nj-1), &
           g%drovy(ni-1,nj-1),g%droe(ni-1,nj-1))
 
+          
 !     Secondary variables stored at the nodes for convenience
       allocate(g%p(ni,nj),g%hstag(ni,nj),g%vx(ni,nj),g%vy(ni,nj))
 

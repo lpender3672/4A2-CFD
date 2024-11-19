@@ -21,10 +21,7 @@ MainWindow::MainWindow(t_mode app_mode) {
     visWidget = new VisWidget(this);
     
     // add a description widget
-    QLabel *desc = new QLabel("
-    <h1> Description </h1>
-    <p> This is a program that solves the 2D Euler Equation using the finite difference method. </p>
-    ", this);
+    QLabel *desc = new QLabel("<h1> Description </h1>\n <p> This is a program that solves the 2D Euler Equation using the finite difference method. </p>", this);
 
     // set widget sizes
     inputWidget->setMaximumWidth(300);
@@ -38,6 +35,8 @@ MainWindow::MainWindow(t_mode app_mode) {
     gridLayout->addWidget(convWidget, 1, 1, 1, 1);
     gridLayout->addWidget(console, 1, 0, 1, 1);
     gridLayout->addWidget(visWidget, 0, 2, 2, 1);
+
+    gridLayout->addWidget(desc, 0, 1, 1, 1);
 
     setLayout(gridLayout);
 

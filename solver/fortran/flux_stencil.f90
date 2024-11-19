@@ -8,7 +8,7 @@
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      subroutine sum_fluxes(av,flux_i,flux_j,area,prop,dcell)
+      subroutine sum_fluxes(av,flux_i,flux_j,area,prop,prop_start,dcell)
 
 !     This subroutine sums the fluxes into each cell, calculates the change in 
 !     the cell property inside, distributes the change to the four nodes of the
@@ -19,6 +19,7 @@
       implicit none
       type(t_appvars), intent(in) :: av
       real, intent(in) :: flux_i(:,:), flux_j(:,:), area(:,:)
+      real, intent(in) :: prop_start(:,:)
       real, intent(inout) :: prop(:,:)
       real, intent(out) :: dcell(:,:)
       real, dimension(size(prop,1),size(prop,2)) :: dnode
@@ -64,7 +65,7 @@
 
 !     Update the solution by adding the changes at the nodes "dnode" to the flow
 !     property "prop"
-      prop = prop + dnode
+      prop = prop_start + dnode
 
       end subroutine sum_fluxes
 
