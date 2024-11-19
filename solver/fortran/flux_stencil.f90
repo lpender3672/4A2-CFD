@@ -21,12 +21,15 @@
       real, intent(in) :: flux_i(:,:), flux_j(:,:), area(:,:)
       real, intent(in) :: prop_start(:,:)
       real, intent(inout) :: prop(:,:)
-      real, intent(out) :: dcell(:,:)
+      real, intent(inout) :: dcell(:,:)
+      real, dimension(size(dcell,1),size(dcell,2)) :: dcell_prev
       real, dimension(size(prop,1),size(prop,2)) :: dnode
       integer :: ni, nj
 
 !     Get the block size and store locally for convenience
       ni = size(prop,1); nj = size(prop,2)
+
+      dcell_prev = dcell
 
 !     Use the finite volume method to find the change in the variables "prop"
 !     over the timestep "dt", save it in the array "dprop_cell" !! This is conflicting because dcell is already defined
@@ -35,6 +38,8 @@
       ! The finite volume method relies upon the divergence theorem; the fluxes through the boundaries are summed
 !     to calculate the spatial derivatives in the Euler equations and therefore the time derivative
       dcell = av%dt * (flux_i(1:ni-1,1:nj-1) - flux_i(2:ni,1:nj-1) + flux_j(1:ni-1,1:nj-1) - flux_j(1:ni-1,2:nj)) / area
+
+      dcell = (1 + av%facsec) * dcell - av%facsec * dcell_prev
 
 !     Now distribute the changes equally to the four corners of each cell. Each 
 !     interior grid point receives one quarter of the change from each of the 

@@ -31,7 +31,7 @@
 !         nsteps
 !         ni, nj
       read(5,*) av%rgas, av%gam
-      read(5,*) av%cfl, av%sfac, av%d_max
+      read(5,*) av%cfl, av%sfac, av%d_max, av%d_var, av%facsec
       read(5,*) av%nsteps
       read(5,*) av%ni, av%nj
 

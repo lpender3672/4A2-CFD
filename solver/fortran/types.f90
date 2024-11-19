@@ -22,6 +22,7 @@
 
 !         Timestepping, smoothing and other run options
           real(C_FLOAT) ::  cfl, sfac, dt, dt_total, d_max, d_avg
+          real(C_FLOAT) :: d_var, facsec
           integer(C_INT) :: nsteps, nstep
 
 !         Reference values of the primary flow variables
@@ -43,6 +44,7 @@
 
           real(C_FLOAT) :: rgas, gam, cp, cv, fgam
           real(C_FLOAT) :: cfl, sfac, dt, d_max, d_avg
+          real(C_FLOAT) :: d_var, facsec
           integer(C_INT) :: nsteps, nstep
           real(C_FLOAT) :: ro_ref, roe_ref, rov_ref
           integer(C_INT) :: ni, nj
@@ -288,6 +290,8 @@
             av%dt = av_c%dt
             av%d_max = av_c%d_max
             av%d_avg = av_c%d_avg
+            av%d_var = av_c%d_var
+            av%facsec = av_c%facsec
             av%nsteps = av_c%nsteps
             av%nstep = av_c%nstep
             av%ro_ref = av_c%ro_ref

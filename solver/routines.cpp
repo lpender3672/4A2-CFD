@@ -28,7 +28,7 @@ void read_settings(const std::string& fpath, t_appvars& av, t_bconds& bcs) {
     av.crashed = false;
 
     infile >> av.rgas >> av.gam;
-    infile >> av.cfl >> av.sfac >> av.d_max;
+    infile >> av.cfl >> av.sfac >> av.d_max >> av.d_var >> av.facsec;
     infile >> av.nsteps;
     infile >> av.ni >> av.nj;
 

@@ -172,7 +172,7 @@
 !         Stop marching if converged to the desired tolerance "conlim"
           !if(d_max < av%d_max .and. d_avg < av%d_avg) then
           avg_of_hist = sum(d_avg_hist)/100
-          if (all(abs(d_avg_hist / avg_of_hist - 1) < 0.01)) then
+          if (all(abs(d_avg_hist / avg_of_hist - 1) < av%d_var)) then
             ! this code is modified. The original code is commented out above
             ! the calculation stops when the variation of the average residual is less than 1%
               if(d_max < av%d_max .and. d_avg < av%d_avg) then
