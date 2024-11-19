@@ -24,6 +24,12 @@
 
       !     Primary flow variables at the start of the timestep
       allocate(g%ro_start(ni,nj),g%rovx_start(ni,nj),g%rovy_start(ni,nj),g%roe_start(ni,nj))
+      !     Primary flow correction factors
+      allocate(g%corr_ro(ni,nj),g%corr_rovx(ni,nj),g%corr_rovy(ni,nj),g%corr_roe(ni,nj))
+      g%corr_ro = 0
+      g%corr_rovx = 0
+      g%corr_rovy = 0
+      g%corr_roe = 0
 
 !     Arrays to store static conditions at the inlet plane
       allocate(bcs%ro(nj),bcs%p(nj))

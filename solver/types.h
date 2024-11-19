@@ -51,7 +51,7 @@ extern "C" {
         
         float rgas, gam, cp, cv, fgam;
         float cfl, sfac, dt, d_max, d_avg;
-        float d_var, facsec;
+        float d_var, facsec, fcorr;
         int nsteps, nstep;
         float ro_ref, roe_ref, rov_ref;
         int ni, nj;

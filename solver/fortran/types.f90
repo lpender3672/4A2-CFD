@@ -22,7 +22,7 @@
 
 !         Timestepping, smoothing and other run options
           real(C_FLOAT) ::  cfl, sfac, dt, dt_total, d_max, d_avg
-          real(C_FLOAT) :: d_var, facsec
+          real(C_FLOAT) :: d_var, facsec, fcorr
           integer(C_INT) :: nsteps, nstep
 
 !         Reference values of the primary flow variables
@@ -44,7 +44,7 @@
 
           real(C_FLOAT) :: rgas, gam, cp, cv, fgam
           real(C_FLOAT) :: cfl, sfac, dt, d_max, d_avg
-          real(C_FLOAT) :: d_var, facsec
+          real(C_FLOAT) :: d_var, facsec, fcorr
           integer(C_INT) :: nsteps, nstep
           real(C_FLOAT) :: ro_ref, roe_ref, rov_ref
           integer(C_INT) :: ni, nj
@@ -111,9 +111,16 @@
 
 !         Primary variables at nodes
           real(C_FLOAT), dimension(:,:), pointer :: ro, roe, rovx, rovy
-!         Primary variables at start of each step before runge-kutta
-          ! These arent in the C struct because it is not needed and would block the solver thread for longer
+
+          !!!!!!!!!!!!!!!!!!!!!!!
+          ! These arent in the C struct because it is not needed by main thread
+          ! and would just block the solver thread for longer when copying data
+
+          !         Primary variables at start of each step before runge-kutta
           real(C_FLOAT), dimension(:,:), pointer :: ro_start, roe_start, rovx_start, rovy_start
+          !       Primary correction factors
+          real(C_FLOAT), dimension(:,:), pointer :: corr_ro, corr_roe, corr_rovx, corr_rovy
+          !!!!!!!!!!!!!!!!!!!!!!!
           
 !         Variables to hold cell increments
           real(C_FLOAT), dimension(:,:), pointer :: dro, droe, drovx, drovy
@@ -292,6 +299,7 @@
             av%d_avg = av_c%d_avg
             av%d_var = av_c%d_var
             av%facsec = av_c%facsec
+            av%fcorr = av_c%fcorr
             av%nsteps = av_c%nsteps
             av%nstep = av_c%nstep
             av%ro_ref = av_c%ro_ref
