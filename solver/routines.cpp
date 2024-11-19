@@ -36,17 +36,24 @@ void read_settings(const std::string& fpath, t_appvars& av, t_bconds& bcs) {
     av.cv = av.cp / av.gam;
     av.fgam = (av.gam - 1.0) / av.gam;
 
-    av.sfac *= av.cfl;
-    av.d_max *= av.cfl;
-    av.d_avg = 0.5 * av.d_max;
-
     infile >> bcs.pstag >> bcs.tstag >> bcs.alpha >> bcs.rfin;
-
-    bcs.alpha = bcs.alpha * M_PI / 180.0;
-
-    bcs.rostag = bcs.pstag / (av.rgas * bcs.tstag);
 
     infile >> bcs.p_out;
 
     infile.close();
+}
+
+void write_settings(const std::string& fpath, const t_appvars& av, const t_bconds& bcs) {
+    std::ofstream outfile(fpath);
+
+    outfile << av.casename << std::endl;
+    outfile << av.rgas << " " << av.gam << std::endl;
+    outfile << av.cfl << " " << av.sfac << " " << av.d_max << " " << av.d_var << " " << av.facsec << " " << av.fcorr << std::endl;
+    outfile << av.nsteps << std::endl;
+    outfile << av.ni << " " << av.nj << std::endl;
+    outfile << bcs.pstag << " " << bcs.tstag << " " << bcs.alpha << " " << bcs.rfin << std::endl;
+    outfile << bcs.p_out << std::endl;
+
+    outfile.close();
+
 }

@@ -95,13 +95,14 @@ void MainWindow::startSolver() {
 
 void MainWindow::onSolverStarted() {
     console->outputMessage("Solver has started...");
+    inputWidget->blockInputFields();
 }
 
 void MainWindow::onSolverFinished() {
     console->outputMessage("Solver has finished.");
     solveWorkerThread->quit();
     solveWorkerThread->wait();
-
+    inputWidget->unblockInputFields();
 }
 
 void MainWindow::onPathChanged(const QString &newPath) {

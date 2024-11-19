@@ -5,6 +5,7 @@
 #include <QPushButton>
 #include <QLineEdit>
 #include <QVBoxLayout>
+#include "../types.h"
 
 class InputWidget : public QWidget
 {
@@ -15,20 +16,37 @@ public:
     ~InputWidget();
 
     QString getPath() const;
-    void setPath(const QString &newPath);
+    bool setPath(const QString &newPath);
 
 signals:
     void pathChanged(const QString &newPath);
     void runSolverRequested();
 
+public slots:
+    void blockInputFields();
+    void unblockInputFields();
+
 private slots:
     void choosePath();
+
+    void updateInputFields();
+    void saveInputFields();
 
 private:
     QPushButton *choosePathButton;
     QPushButton *runButton;
     QLineEdit *pathInput;
     QString path;
+
+    t_appvars av;
+    t_bconds bcs;
+
+    QLineEdit *cflInput;
+    QLineEdit *sfacInput;
+    QLineEdit *dMaxInput;
+    QLineEdit *dVarInput;
+    QLineEdit *facSecInput;
+    QLineEdit *fCorrInput;
 };
 
 #endif // INPUTWIDGET_H
