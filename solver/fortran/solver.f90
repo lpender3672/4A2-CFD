@@ -29,14 +29,14 @@
       
       type(t_appvars) :: av
       type(t_bconds) :: bcs
-      type(t_match) :: p
+      type(t_match), pointer :: p(:)
       type(t_geometry) :: geom
-      type(t_grid) :: g
+      type(t_grid), pointer :: g(:)
       type(t_conv_point) :: conv_point
       real :: d_max = 1, d_avg = 1, avg_of_hist = 1
       integer :: nstep, nconv = 50, ncheck = 10
       integer :: nrkuts = 4
-      integer :: nrkut
+      integer :: nrkut, n
 
       real, allocatable :: d_avg_hist(:)
       allocate(d_avg_hist(100))
@@ -56,17 +56,19 @@
 !     it directly from a binary file written in Python
       if(av%ni /= -1) then
 
+          allocate(g(1))
+
           write(msg_bfr,*) 'Generating Mesh'
           call write_to_qt(msg_bfr)
 !         Now the size of the grid is known, the space in memory can be 
 !         allocated within the grid type
-          call allocate_arrays(av,g,bcs)
+          call allocate_arrays(av,g(1),bcs)
 
 !         Read in the case geometry
           call read_geom(av,geom)
 
 !         Set up the mesh coordinates, interpolated between the geometry curves
-          call generate_mesh(geom,g)
+          call generate_mesh(geom,g(1))
 
       else 
           write(msg_bfr,*) 'Reading Mesh from file'
@@ -77,16 +79,18 @@
       end if
 
 !     Calculate cell areas and facet lengths
-      call calc_areas(g)
+      do n = 1, av%nn
+            call calc_areas(g(n))
+      end do
 
       write(msg_bfr,*) 'Minimum mesh size found to be ', g%l_min
       call write_to_qt(msg_bfr)
 
 !     Optional output call to inspect the mesh you have generated
-      call write_output(av,g,1)
+      call write_output(av,g(1),1)
 
 !     Check that the areas and projected lengths are correct
-      call check_mesh(g, av)
+      call check_mesh(g(1), av)
 
 !     Calculate the initial guess of the flowfield in the domain. There are two
 !     options that can be chosen with the input argument "guesstype":
@@ -98,10 +102,10 @@
 !            approximation to the converged flowfield and so the time to
 !            solution will be reduced. You will need to complete this option.
       call flow_guess(av,g,bcs,2)
-      call set_secondary(av,g)
+      call set_secondary(av,g(1))
 
 !     Optional output call to inspect the initial guess of the flowfield
-      call write_output(av,g,2)
+      call write_output(av,g(1),2)
 
       ! print grid y values here
       !write(msg_bfr,*) 'Grid y values:'
@@ -113,7 +117,7 @@
 
 !     Set the length of the timestep, initially this is a constant based on a 
 !     conservative guess of the mach number
-      call set_timestep(av,g,bcs)
+      call set_timestep(av,g(1),bcs)
 
 !     Open file to store the convergence history. This is human readable during
 !     a long run by using "tail -f conv_example.csv" in a terminal window
@@ -137,21 +141,21 @@
 !         Update record of nstep to use in subroutines
           av%nstep = nstep
 
-          g%ro_start = g%ro
-          g%roe_start = g%roe
-          g%rovx_start = g%rovx
-          g%rovy_start = g%rovy
+          g(1)%ro_start = g(1)%ro
+          g(1)%roe_start = g(1)%roe
+          g(1)%rovx_start = g(1)%rovx
+          g(1)%rovy_start = g(1)%rovy
 
           do nrkut = 1,nrkuts
               av%dt = av%dt_total / (1 + nrkuts - nrkut)
-              call set_secondary(av,g)
-              call apply_bconds(av,g,bcs)
-              call euler_iteration(av,g)
+              call set_secondary(av,g(1))
+              call apply_bconds(av,g(1),bcs)
+              call euler_iteration(av,g(1))
           end do
 
 !         Write out summary every "nconv" steps and update "davg" and "dmax" 
           if(mod(av%nstep,nconv) == 0) then
-              call check_conv(av,g,d_avg,d_max)
+              call check_conv(av,g(1),d_avg,d_max)
               conv_point%iters = av%nstep
               conv_point%d_max = d_max
               conv_point%d_avg = d_avg
@@ -166,7 +170,7 @@
 !         Check the solution hasn't diverged or a stop has been requested 
 !         every "ncheck" steps
           if(mod(av%nstep,ncheck) == 0) then
-              call check_stop(av,g)
+              call check_stop(av,g(1))
           end if
 
 !         Stop marching if converged to the desired tolerance "conlim"
@@ -197,9 +201,9 @@
 !     necessarily converged flowfield
       write(msg_bfr,*) 'Calculation completed after', av%nstep,'iterations'
       call write_to_qt(msg_bfr)
-      call write_output(av,g,3)
+      call write_output(av,g(1),3)
 
-      call grid_to_qt(g)
+      call grid_to_qt(g(1))
 
 !
 !     Close open convergence history file
