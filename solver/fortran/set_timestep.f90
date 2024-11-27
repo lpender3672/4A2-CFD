@@ -29,7 +29,7 @@
       av%dt_total = av%cfl * g%l_min / v_max
 
 !     Print the calculated timestep and some intermediate values
-      write(msg_bfr,*) 'Time step set to ', av%dt, ' seconds'
+      write(msg_bfr,*) 'Time step set to ', av%dt_total, ' seconds'
       call write_to_qt(msg_bfr)
 
       end subroutine set_timestep

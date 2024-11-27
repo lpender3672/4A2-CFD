@@ -1,5 +1,10 @@
  
-      subroutine read_mesh(av,g,bcs,p)
+module mesh_io
+      implicit none
+
+      contains
+
+      subroutine read_mesh(g,p, av, bcs)
 
 !     Read a multi-block mesh directly from a binary file, you should not need
 !     to change this subroutine
@@ -7,10 +12,11 @@
 !     Explicitly declare the required variables
       use types
       implicit none
-      type(t_appvars), intent(inout) :: av
       type(t_grid), allocatable, intent(out) :: g(:)
-      type(t_bconds), intent(inout) :: bcs
       type(t_match), allocatable, intent(out) :: p(:)
+      type(t_appvars), intent(inout) :: av
+      type(t_bconds), intent(inout) :: bcs
+      
       integer :: n, ni, nj, m
 
 !     Open the file and assign to unit 2
@@ -48,6 +54,14 @@
               g(n)%drovy(ni-1,nj-1),g(n)%droe(ni-1,nj-1))
           allocate(g(n)%p(ni,nj),g(n)%hstag(ni,nj),g(n)%vx(ni,nj), &
               g(n)%vy(ni,nj))
+            
+          allocate(g(n)%ro_start(ni,nj),g(n)%rovx_start(ni,nj),g(n)%rovy_start(ni,nj),g(n)%roe_start(ni,nj))
+              !     Primary flow correction factors
+          allocate(g(n)%corr_ro(ni,nj),g(n)%corr_rovx(ni,nj),g(n)%corr_rovy(ni,nj),g(n)%corr_roe(ni,nj))
+          g(n)%corr_ro = 0
+          g(n)%corr_rovx = 0
+          g(n)%corr_rovy = 0
+          g(n)%corr_roe = 0
 
       end do
 
@@ -86,4 +100,4 @@
 
       end subroutine read_mesh
 
-
+end module mesh_io

@@ -253,3 +253,13 @@ void VisWidget::outputGrid(const t_grid &grid)
     onTabChanged(tabWidget->currentIndex());
 
 }
+
+void VisWidget::outputGridVector(const QVector<t_grid> &gridVector)
+{
+    
+    if (gridVector.size() == 0) {
+        return;
+    }
+
+    outputGrid(gridVector[0]);
+}

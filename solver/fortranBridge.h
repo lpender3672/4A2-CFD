@@ -8,6 +8,7 @@ extern "C" {
     void emit_console_signal(const char* text, int length);
     void emit_grid_signal(t_grid g);
     void emit_conv_point_signal(t_conv_point cp);
+    void emit_grid_vector_signal(t_grid *g, int length);
 }
 
 void setGlobalConsoleWidget(class ConsoleWidget* widget);

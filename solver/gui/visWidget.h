@@ -123,8 +123,12 @@ public:
 
     void outputGrid(const t_grid &grid);
 
+    void outputGridVector(const QVector<t_grid> &gridVector);
+
 signals:
     void newGrid(const t_grid &message);
+
+    void newGridVector(const QVector<t_grid> &message);
 
 private:
     QVBoxLayout *mainLayout; // No error should occur here now

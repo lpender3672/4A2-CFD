@@ -217,13 +217,13 @@
             grid_c%lx_j = c_loc(grid%lx_j)
             grid_c%ly_j = c_loc(grid%ly_j)
             grid_c%ro = c_loc(grid%ro)
+            grid_c%roe = c_loc(grid%roe)
             grid_c%rovx = c_loc(grid%rovx)
             grid_c%rovy = c_loc(grid%rovy)
-            grid_c%roe = c_loc(grid%roe)
             grid_c%dro = c_loc(grid%dro)
+            grid_c%droe = c_loc(grid%droe)
             grid_c%drovx = c_loc(grid%drovx)
             grid_c%drovy = c_loc(grid%drovy)
-            grid_c%droe = c_loc(grid%droe)
             grid_c%p = c_loc(grid%p)
             grid_c%hstag = c_loc(grid%hstag)
             grid_c%vx = c_loc(grid%vx)
@@ -313,7 +313,6 @@
             
       end subroutine appvars_from_c
 
-      
       end module conversion
 
 

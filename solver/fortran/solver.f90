@@ -15,6 +15,7 @@
       use routines
       use io_module
       use conversion
+      use mesh_io
 
 !     Don't use historical implicit variable naming
       implicit none
@@ -29,14 +30,15 @@
       
       type(t_appvars) :: av
       type(t_bconds) :: bcs
-      type(t_match), pointer :: p(:)
+      type(t_match), allocatable, target :: p(:)
       type(t_geometry) :: geom
-      type(t_grid), pointer :: g(:)
+      type(t_grid), allocatable, target :: g(:)
       type(t_conv_point) :: conv_point
       real :: d_max = 1, d_avg = 1, avg_of_hist = 1
       integer :: nstep, nconv = 50, ncheck = 10
       integer :: nrkuts = 4
       integer :: nrkut, n
+      integer :: ni, nj, m
 
       real, allocatable :: d_avg_hist(:)
       allocate(d_avg_hist(100))
@@ -74,7 +76,7 @@
           write(msg_bfr,*) 'Reading Mesh from file'
           call write_to_qt(msg_bfr)
 !         Read the mesh coordinates directly from file - used for extension
-          call read_mesh(av,g,bcs,p)
+          call read_mesh(g, p, av, bcs)
 
       end if
 
@@ -203,7 +205,7 @@
       call write_to_qt(msg_bfr)
       call write_output(av,g(1),3)
 
-      call grid_to_qt(g(1))
+      call grids_to_qt(g, av%nn)
 
 !
 !     Close open convergence history file

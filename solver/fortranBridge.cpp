@@ -1,6 +1,6 @@
 
 #include "fortranBridge.h"
-
+#include <iostream>
 
 static ConsoleWidget* globalConsoleWidget = nullptr;
 static VisWidget* globalVisWidget = nullptr;
@@ -18,6 +18,9 @@ void setGlobalVisWidget(VisWidget* widget) {
 
     QObject::connect(globalVisWidget, &VisWidget::newGrid,
                      globalVisWidget, &VisWidget::outputGrid, Qt::BlockingQueuedConnection);
+
+    QObject::connect(globalVisWidget, &VisWidget::newGridVector,
+                        globalVisWidget, &VisWidget::outputGridVector, Qt::BlockingQueuedConnection);
 }
 
 void setGlobalConvWidget(ConvWidget* widget) {
@@ -42,6 +45,16 @@ void emit_grid_signal(t_grid g) {
 
     if (globalVisWidget) {
         emit globalVisWidget->newGrid(g);
+    }
+}
+
+void emit_grid_vector_signal(t_grid *g, int length) {
+    if (globalVisWidget) {
+        QVector <t_grid> gridVector;
+        for (int i = 0; i < length; i++) {
+            gridVector.push_back(g[i]);
+        }
+        emit globalVisWidget->newGridVector(gridVector);
     }
 }
 

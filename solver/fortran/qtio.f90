@@ -12,7 +12,7 @@
             subroutine emit_console_signal(text, length) bind(C, name="emit_console_signal")
                 use iso_c_binding, only: c_char, c_int
                 character(kind=c_char), intent(in) :: text(*)  ! Pass the string as an array
-                integer(c_int), value :: length                ! Length of the string
+                integer(c_int), intent(in), value :: length                ! Length of the string
             end subroutine emit_console_signal
 
             subroutine emit_grid_signal(g) bind(C, name="emit_grid_signal")
@@ -24,6 +24,14 @@
                 use types
                 type(t_conv_point), intent(in) :: cp
             end subroutine emit_conv_point_signal
+
+            subroutine emit_grid_vector_signal(g, length) bind(C, name="emit_grid_vector_signal")
+                use iso_c_binding, only: c_ptr, c_int
+                use types
+                ! g is a pointer to an array of t_grid_c
+                type(c_ptr), intent(in), value :: g
+                integer(c_int), intent(in), value :: length
+            end subroutine emit_grid_vector_signal
         end interface
     
     contains
@@ -69,5 +77,27 @@
             call emit_conv_point_signal(cp)
 
         end subroutine conv_point_to_qt
+
+        subroutine grids_to_qt(g, length)
+
+            use iso_c_binding, only: c_loc
+
+            type(t_grid), allocatable, target, intent(in) :: g(:)
+            type(t_grid), pointer :: g_ptr(:)
+            integer, intent(in) :: length
+            type(t_grid_c), pointer :: g_c(:)
+            integer :: i
+
+            allocate(g_c(length))
+
+            g_ptr => g
+
+            do i = 1, length
+                call grid_to_c(g_ptr(i), g_c(i))
+            end do
+
+            call emit_grid_vector_signal(c_loc(g_c), length)
+
+        end subroutine grids_to_qt
     
     end module io_module

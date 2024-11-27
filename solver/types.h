@@ -35,14 +35,7 @@ extern "C" {
         float* vx;
         float* vy;
 
-        // Logical array for wall locations
-
-        float *ro_start;
-        float *roe_start;
-        float *rovx_start;
-        float *rovy_start;
-
-        bool* wall;
+        int* wall;
     };
 
     struct t_appvars {
