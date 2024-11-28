@@ -59,6 +59,7 @@
       if(av%ni /= -1) then
 
           allocate(g(1))
+          av%nn = 1
 
           write(msg_bfr,*) 'Generating Mesh'
           call write_to_qt(msg_bfr)

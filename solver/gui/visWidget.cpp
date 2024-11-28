@@ -7,7 +7,6 @@ VisWidget::VisWidget(QWidget *parent)
     
     mainLayout = new QVBoxLayout(this);
     tabWidget = new QTabWidget(this);
-    currentGrid = nullptr;
 
     mainLayout->addWidget(tabWidget);
     connect(tabWidget, &QTabWidget::currentChanged, this, &VisWidget::onTabChanged);
@@ -18,7 +17,8 @@ VisWidget::VisWidget(QWidget *parent)
 
 VisWidget::~VisWidget()
 {
-    delete currentGrid;
+    // remove currentGrids
+    currentGrids.clear();
 }
 
 void VisWidget::setupTabs()
@@ -83,7 +83,7 @@ void calc_mach(const t_grid *grid, float *mach, const float *temp)
 
 void VisWidget::onTabChanged(int index)
 {
-    if (currentGrid == nullptr)
+    if (currentGrids.size() == 0)
     {
         return;
     }
@@ -91,37 +91,64 @@ void VisWidget::onTabChanged(int index)
     float *mach = nullptr;
     float *temp = nullptr;
 
+    QVector<const float *> dataPointers;
+
     switch (index)
     {
     case 0:
-        updateMeshGraph(customPlots[0], meshPlots[0], colorScales[0], currentGrid, currentGrid->ro, t_data_type::NODE);
+        for (int i = 0; i < currentGrids.size(); ++i) {
+            dataPointers.push_back(currentGrids[i].ro);
+        }
+        updateMeshGraph(customPlots[0], meshPlots[0], colorScales[0], currentGrids, dataPointers, t_data_type::NODE);
         break;
     case 1:
-        updateMeshGraph(customPlots[1], meshPlots[1], colorScales[1], currentGrid, currentGrid->rovx, t_data_type::NODE);
+        for (int i = 0; i < currentGrids.size(); ++i) {
+            dataPointers.push_back(currentGrids[i].rovx);
+        }
+        updateMeshGraph(customPlots[1], meshPlots[1], colorScales[1], currentGrids, dataPointers, t_data_type::NODE);
         break;
     case 2:
-        updateMeshGraph(customPlots[2], meshPlots[2], colorScales[2], currentGrid, currentGrid->rovy, t_data_type::NODE);
+        for (int i = 0; i < currentGrids.size(); ++i) {
+            dataPointers.push_back(currentGrids[i].rovy);
+        }
+        updateMeshGraph(customPlots[2], meshPlots[2], colorScales[2], currentGrids, dataPointers, t_data_type::NODE);
         break;
     case 3:
-        updateMeshGraph(customPlots[3], meshPlots[3], colorScales[3], currentGrid, currentGrid->roe, t_data_type::NODE);
+        for (int i = 0; i < currentGrids.size(); ++i) {
+            dataPointers.push_back(currentGrids[i].roe);
+        }
+        updateMeshGraph(customPlots[3], meshPlots[3], colorScales[3], currentGrids, dataPointers, t_data_type::NODE);
         break;
     case 4:
-        temp = new float[currentGrid->ni * currentGrid->nj];
-        calc_temp(currentGrid, temp);
-        updateMeshGraph(customPlots[4], meshPlots[4], colorScales[4], currentGrid, temp, t_data_type::NODE);
+        // init size of currentGrids.size null pointers
+        for (int i = 0; i < currentGrids.size(); ++i) {
+            temp = new float[currentGrids[i].ni * currentGrids[i].nj];
+            calc_temp(&currentGrids[i], temp);
+            dataPointers.push_back(temp);
+        }
+        updateMeshGraph(customPlots[4], meshPlots[4], colorScales[4], currentGrids, dataPointers, t_data_type::NODE);
         break;
     case 5:
-        updateMeshGraph(customPlots[5], meshPlots[5], colorScales[5], currentGrid, currentGrid->p, t_data_type::NODE);
+        for (int i = 0; i < currentGrids.size(); ++i) {
+            dataPointers.push_back(currentGrids[i].p);
+        }
+        updateMeshGraph(customPlots[5], meshPlots[5], colorScales[5], currentGrids, dataPointers, t_data_type::NODE);
         break;
     case 6:
-        updateMeshGraph(customPlots[6], meshPlots[6], colorScales[6], currentGrid, currentGrid->hstag, t_data_type::NODE);
+        for (int i = 0; i < currentGrids.size(); ++i) {
+            dataPointers.push_back(currentGrids[i].hstag);
+        }
+        updateMeshGraph(customPlots[6], meshPlots[6], colorScales[6], currentGrids, dataPointers, t_data_type::NODE);
         break;
     case 7:
-        mach = new float[currentGrid->ni * currentGrid->nj];
-        temp = new float[currentGrid->ni * currentGrid->nj];
-        calc_temp(currentGrid, temp);
-        calc_mach(currentGrid, mach, temp);
-        updateMeshGraph(customPlots[7], meshPlots[7], colorScales[7], currentGrid, mach, t_data_type::NODE);
+        for (int i = 0; i < currentGrids.size(); ++i) {
+            temp = new float[currentGrids[i].ni * currentGrids[i].nj];
+            mach = new float[currentGrids[i].ni * currentGrids[i].nj];
+            calc_temp(&currentGrids[i], temp);
+            calc_mach(&currentGrids[i], mach, temp);
+            dataPointers.push_back(mach);
+        }
+        updateMeshGraph(customPlots[7], meshPlots[7], colorScales[7], currentGrids, dataPointers, t_data_type::NODE);
         break;
     default:
         break;
@@ -169,68 +196,93 @@ void VisWidget::createMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, 
     customPlot->replot();
 }
 
-void VisWidget::updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const t_grid *grid, const float *mesh_data, t_data_type mesh_data_type)
+void VisWidget::updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const QVector<t_grid> &grids,  const QVector<const float *> &mesh_datas, t_data_type mesh_data_type)
 {
     customPlot->clearItems();
     meshPlot->clearPolygons();
 
-    float minValue, maxValue;
+    float globalMinValue = std::numeric_limits<float>::max();
+    float globalMaxValue = std::numeric_limits<float>::lowest();
+    float globalMinX = std::numeric_limits<float>::max();
+    float globalMaxX = std::numeric_limits<float>::lowest();
+    float globalMinY = std::numeric_limits<float>::max();
+    float globalMaxY = std::numeric_limits<float>::lowest();
 
-    // the averaged nodes cant be less or greater than the respective min and max node values
-    if (mesh_data_type == t_data_type::NODE) {
-        minValue = *std::min_element(mesh_data, mesh_data + grid->ni * grid->nj);
-        maxValue = *std::max_element(mesh_data, mesh_data + grid->ni * grid->nj);
-        // ideally would peform the node averaging here and then pass the averaged data to the meshPlot as cell data
-    } else if (mesh_data_type == t_data_type::CELL) {
-        minValue = *std::min_element(mesh_data, mesh_data + (grid->ni - 1) * (grid->nj - 1));
-        maxValue = *std::max_element(mesh_data, mesh_data + (grid->ni - 1) * (grid->nj - 1));
-    } else {
-        std::cerr << "Invalid data type" << std::endl;
-        return;
+    for (int g = 0; g < grids.size(); ++g){
+
+        const t_grid &grid = grids[g];
+        const float *mesh_data = mesh_datas[g];
+
+        float minValue, maxValue;
+
+        // the averaged nodes cant be less or greater than the respective min and max node values
+        if (mesh_data_type == t_data_type::NODE) {
+            minValue = *std::min_element(mesh_data, mesh_data + grid.ni * grid.nj);
+            maxValue = *std::max_element(mesh_data, mesh_data + grid.ni * grid.nj);
+            // ideally would peform the node averaging here and then pass the averaged data to the meshPlot as cell data
+        } else if (mesh_data_type == t_data_type::CELL) {
+            minValue = *std::min_element(mesh_data, mesh_data + (grid.ni - 1) * (grid.nj - 1));
+            maxValue = *std::max_element(mesh_data, mesh_data + (grid.ni - 1) * (grid.nj - 1));
+        } else {
+            std::cerr << "Invalid data type" << std::endl;
+            return;
+        }
+        globalMinValue = std::min(globalMinValue, minValue);
+        globalMaxValue = std::max(globalMaxValue, maxValue);
+        
+        float minX = *std::min_element(grid.x, grid.x + grid.ni * grid.nj);
+        float maxX = *std::max_element(grid.x, grid.x + grid.ni * grid.nj);
+        float minY = *std::min_element(grid.y, grid.y + grid.ni * grid.nj);
+        float maxY = *std::max_element(grid.y, grid.y + grid.ni * grid.nj);
+
+        globalMinX = std::min(globalMinX, minX);
+        globalMaxX = std::max(globalMaxX, maxX);
+        globalMinY = std::min(globalMinY, minY);
+        globalMaxY = std::max(globalMaxY, maxY);
     }
-    
-    float minX = *std::min_element(grid->x, grid->x + grid->ni * grid->nj);
-    float maxX = *std::max_element(grid->x, grid->x + grid->ni * grid->nj);
-    float minY = *std::min_element(grid->y, grid->y + grid->ni * grid->nj);
-    float maxY = *std::max_element(grid->y, grid->y + grid->ni * grid->nj);
 
     QCPRange dataRange(0, 1);
 
-    for (int i = 0; i < grid->ni - 1; i++)
-    {
-        for (int j = 0; j < grid->nj - 1; j++)
+    for (int g = 0; g < grids.size(); ++g) {
+        const t_grid &grid = grids[g];
+        const float *mesh_data = mesh_datas[g];
+
+        for (int i = 0; i < grid.ni - 1; i++)
         {
-            QPolygonF polygon;
-            float normalizedValue;
+            for (int j = 0; j < grid.nj - 1; j++)
+            {
+                QPolygonF polygon;
+                float normalizedValue;
 
-            // Define the four corners of the quadrilateral (or triangle if needed)
-            polygon << QPointF(grid->x[j * grid->ni + i], grid->y[j * grid->ni + i])        // Bottom-left
-                    << QPointF(grid->x[j * grid->ni + i + 1], grid->y[j * grid->ni + i + 1])  // Bottom-right
-                    << QPointF(grid->x[(j + 1) * grid->ni + i + 1], grid->y[(j + 1) * grid->ni + i + 1]) // Top-right
-                    << QPointF(grid->x[(j + 1) * grid->ni + i], grid->y[(j + 1) * grid->ni + i]);  // Top-left
+                // Define the four corners of the quadrilateral (or triangle if needed)
+                polygon << QPointF(grid.x[j * grid.ni + i], grid.y[j * grid.ni + i])        // Bottom-left
+                        << QPointF(grid.x[j * grid.ni + i + 1], grid.y[j * grid.ni + i + 1])  // Bottom-right
+                        << QPointF(grid.x[(j + 1) * grid.ni + i + 1], grid.y[(j + 1) * grid.ni + i + 1]) // Top-right
+                        << QPointF(grid.x[(j + 1) * grid.ni + i], grid.y[(j + 1) * grid.ni + i]);  // Top-left
 
 
-            if (mesh_data_type == t_data_type::CELL){
-                // value is at the center of the cell
-                normalizedValue = (mesh_data[j * (grid->ni - 1) + i] - minValue) / (maxValue - minValue);
-            } else if (mesh_data_type == t_data_type::NODE){
-                // average four corner nodes to get the value at the center of the cell
-                normalizedValue = ((mesh_data[j * grid->ni + i] +
-                                    mesh_data[j * grid->ni + i + 1] + 
-                                    mesh_data[(j + 1) * grid->ni + i] +
-                                    mesh_data[(j + 1) * grid->ni + i + 1]) / 4 - minValue) / (maxValue - minValue);
+                if (mesh_data_type == t_data_type::CELL){
+                    // value is at the center of the cell
+                    normalizedValue = (mesh_data[j * (grid.ni - 1) + i] - globalMinValue) / (globalMaxValue - globalMinValue);
+                } else if (mesh_data_type == t_data_type::NODE){
+                    // average four corner nodes to get the value at the center of the cell
+                    normalizedValue = ((mesh_data[j * grid.ni + i] +
+                                        mesh_data[j * grid.ni + i + 1] + 
+                                        mesh_data[(j + 1) * grid.ni + i] +
+                                        mesh_data[(j + 1) * grid.ni + i + 1]) / 4 - globalMinValue) / (globalMaxValue - globalMinValue);
+                }
+
+                QColor color = colorScale->gradient().color(normalizedValue, dataRange);
+                meshPlot->addPolygon(polygon, color);
             }
-
-            QColor color = colorScale->gradient().color(normalizedValue, dataRange);
-            meshPlot->addPolygon(polygon, color);
         }
     }
 
-    colorScale->axis()->setRange(minValue, maxValue);
+    colorScale->axis()->setRange(globalMinValue, globalMaxValue);
 
     // reset axis
-    customPlot->xAxis->setRange(minX, maxX);
-    customPlot->yAxis->setRange(minY, maxY);
+    customPlot->xAxis->setRange(globalMinX, globalMaxX);
+    customPlot->yAxis->setRange(globalMinY, globalMaxY);
 
     // set aspect ratio to 1:1
     customPlot->yAxis->setScaleRatio(customPlot->xAxis, 1.0);
@@ -244,11 +296,10 @@ void VisWidget::updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, 
 
 void VisWidget::outputGrid(const t_grid &grid)
 {   
-    if (currentGrid) {
-        *currentGrid = grid; 
-    } else {
-        currentGrid = new t_grid(grid); 
-    }
+
+    // currentGrids pushed back to be of length 1
+    currentGrids.clear();
+    currentGrids.push_back(grid);
 
     onTabChanged(tabWidget->currentIndex());
 
@@ -258,8 +309,12 @@ void VisWidget::outputGridVector(const QVector<t_grid> &gridVector)
 {
     
     if (gridVector.size() == 0) {
+        std::cerr << "Empty grid vector" << std::endl;
         return;
     }
 
-    outputGrid(gridVector[0]);
+    // update currentGrids
+    currentGrids = gridVector;
+
+    onTabChanged(tabWidget->currentIndex());
 }

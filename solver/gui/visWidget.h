@@ -141,12 +141,12 @@ private:
 
     void setupTabs();
 
-    t_grid *currentGrid;
+    QVector<t_grid> currentGrids;
 
     void createScatterGraph(QChartView *chartView, QLineSeries *series, QString title, QString xTitle, QString yTitle);
     void createMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, QString title, QString xTitle, QString yTitle);
 
-    void updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const t_grid *grid, const float *mesh_data, t_data_type type);
+    void updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const QVector<t_grid> &grids,  const QVector<const float *> &mesh_data, t_data_type mesh_data_type);
 
 private slots:
     void onTabChanged(int index);
