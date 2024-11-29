@@ -16,6 +16,9 @@
       use io_module
       use conversion
       use mesh_io
+      use patches
+      use bconds
+      use guess
 
 !     Don't use historical implicit variable naming
       implicit none
@@ -40,6 +43,8 @@
       integer :: nrkut, n
       integer :: ni, nj, m
 
+      integer :: ng, np
+
       real, allocatable :: d_avg_hist(:)
       allocate(d_avg_hist(100))
       d_avg_hist(1:100) = 1
@@ -60,6 +65,8 @@
 
           allocate(g(1))
           av%nn = 1
+          bcs%n_in = 1
+          bcs%n_out = 1
 
           write(msg_bfr,*) 'Generating Mesh'
           call write_to_qt(msg_bfr)
@@ -104,8 +111,10 @@
 !            flow in the i-direction allows a calculation of a better
 !            approximation to the converged flowfield and so the time to
 !            solution will be reduced. You will need to complete this option.
-      call flow_guess(av,g,bcs,2)
-      call set_secondary(av,g(1))
+      do ng = 1, av%nn
+          call flow_guess(av,g(ng),bcs,1)
+          call set_secondary(av,g(ng))
+      end do
 
 !     Optional output call to inspect the initial guess of the flowfield
       call write_output(av,g(1),2)
@@ -151,9 +160,20 @@
 
           do nrkut = 1,nrkuts
               av%dt = av%dt_total / (1 + nrkuts - nrkut)
-              call set_secondary(av,g(1))
-              call apply_bconds(av,g(1),bcs)
-              call euler_iteration(av,g(1))
+
+              do ng = 1, av%nn
+                  call set_secondary(av,g(ng))
+              end do
+
+              call apply_bconds(av,g,bcs)
+
+              do ng = 1, av%nn
+                  call euler_iteration(av,g(ng))
+              end do
+
+              do np = 1, av%nm
+                  call apply_patch(g,p(np))
+              end do
           end do
 
 !         Write out summary every "nconv" steps and update "davg" and "dmax" 

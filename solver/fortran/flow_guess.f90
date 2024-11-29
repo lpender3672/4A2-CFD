@@ -1,14 +1,20 @@
-      
+
+module guess
+
+      use types
+      use routines
+      use io_module
+      implicit none
+
+      contains
+
       subroutine flow_guess(av,g,bcs,guesstype)
 
 !     This calculates an initial guess of the primary flowfield variables and
 !     stores them at the nodes within the mesh dataytype
 
 !     Explicitly declare the required variables
-      use types
-      use routines
-      use io_module
-      implicit none
+
       type(t_appvars), intent(inout) :: av
       type(t_grid), intent(inout) :: g
       type(t_bconds), intent(in) :: bcs
@@ -143,4 +149,5 @@
 
       end subroutine flow_guess
 
+end module guess
 
