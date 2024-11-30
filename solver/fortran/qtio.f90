@@ -96,6 +96,10 @@
                 call grid_to_c(g_ptr(i), g_c(i))
             end do
 
+            !do i = 1, g(1)%nj
+            !    write(6,*) 'x(ni,1) = ', g(1)%x(g(1)%ni, i)
+            !end do
+
             call emit_grid_vector_signal(c_loc(g_c), length)
 
         end subroutine grids_to_qt

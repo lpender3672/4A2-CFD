@@ -19,6 +19,7 @@
       use patches
       use bconds
       use guess
+      use gen_mesh
 
 !     Don't use historical implicit variable naming
       implicit none
@@ -78,7 +79,7 @@
           call read_geom(av,geom)
 
 !         Set up the mesh coordinates, interpolated between the geometry curves
-          call generate_mesh(geom,g(1))
+          call generate_mesh(geom,g)
 
       else 
           write(msg_bfr,*) 'Reading Mesh from file'
