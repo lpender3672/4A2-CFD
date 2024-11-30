@@ -51,8 +51,16 @@ void emit_grid_signal(t_grid g) {
 void emit_grid_vector_signal(t_grid *g, int length) {
     if (globalVisWidget) {
         QVector <t_grid> gridVector;
-        for (int i = 0; i < length; i++) {
-            gridVector.push_back(g[i]);
+        for (int n = 0; n < length; n++) {
+            gridVector.push_back(g[n]);
+
+            /*
+            int i = g[n].ni - 1;
+            for (int j = 0; j < g[n].nj; j++) {
+                int idx = j * g[n].ni + i;
+                std::cout << "x[" << idx << "] = " << g[n].x[idx] << std::endl;
+            }
+            */
         }
         emit globalVisWidget->newGridVector(gridVector);
     }
