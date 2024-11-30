@@ -66,6 +66,7 @@
 
           allocate(g(1))
           av%nn = 1
+          av%nm = 0
           bcs%n_in = 1
           bcs%n_out = 1
 
