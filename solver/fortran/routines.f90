@@ -85,19 +85,25 @@
      
 !     Loop over all new values of x 
       do p = 1,np
-      
-!         Find the index of the interval that the new x value lies within
-          n = 1 
-          do while(x(n+1) < xp(p))
-              n = n + 1
-          end do
-     
-!         Calculate weight between values at the ends of the interval 
-          s = (xp(p) - x(n)) / (x(n+1) - x(n))
 
-!         Interpolated value using weight value
-          yp(p) = (1.0 - s) * y(n) + s * y(n+1)
-      
+            if (xp(p) <= x(1)) then
+                  yp(p) = y(1)
+            elseif (xp(p) >= x(nn)) then
+                  yp(p) = y(nn)
+            else
+            
+            !         Find the index of the interval that the new x value lies within
+                  n = 1 
+                  do while(x(n+1) < xp(p))
+                        n = n + 1
+                  end do
+            
+            !         Calculate weight between values at the ends of the interval 
+                  s = (xp(p) - x(n)) / (x(n+1) - x(n))
+
+            !         Interpolated value using weight value
+                  yp(p) = (1.0 - s) * y(n) + s * y(n+1)
+            end if
       end do
 
       end subroutine interp

@@ -45,9 +45,12 @@ module gen_mesh
       call interp(si_b,geom%x_b,si,g(1)%x(:,nj))
       call interp(si_b,geom%y_b,si,g(1)%y(:,nj))
 
-      do i = 1, g(1)%nj
-            write(6,*) 'x(ni,1) = ', g(1)%x(g(1)%ni, i)
-      end do
+!     This was to debug a painful issue only when the fucking O2 compiler command was added so manual debugging was needed
+!     It was found that the "interp" function was not returning correct values for the last point of the array.
+!     This is believed to be because si was, as far as the computer was concerned, outside the normalised range of si_a
+!      do i = 1, g(1)%nj
+!            write(6,*) 'x(ni,1) = ', g(1)%x(g(1)%ni, i)
+!      end do
 
 !     Calculate the coordinates of all the intermediate points within the mesh.
 !     Create a new vector of non-dimensional spacings in the j-direction using 
@@ -70,7 +73,6 @@ module gen_mesh
             !end do
  
       end do
-
 
 !     In all of the test cases for the basic solver the the "j = 1" and "j = nj"
 !     boundaries are walls, for the extensions you may need to return to this

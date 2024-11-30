@@ -34,8 +34,8 @@ endif()
 
 
 if(WIN32)
-    set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} /O2 /fp:fast")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:12000485760") # 10 MB stack
+    set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} /O2")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:100485760") # 10 MB stack
 
     find_program(WINDEPLOYQT_EXECUTABLE windeployqt
         HINTS "${QT_INSTALL_DIR}/bin"
