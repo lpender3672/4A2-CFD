@@ -1,5 +1,11 @@
-      
-      subroutine apply_bconds(av,g,bcs)
+
+module bconds
+
+      implicit none
+
+      contains
+
+      subroutine apply_bconds(av,gs,bcs)
 
 !     This subroutine applies both the inlet and outlet boundary conditions, as
 !     it modifies both the primary and secondary flow variables they must be
@@ -11,13 +17,19 @@
       use io_module
       implicit none
       type(t_appvars), intent(in) :: av
-      type(t_grid), intent(inout) :: g
+      type(t_grid), allocatable, intent(inout) :: gs(:)
       type(t_bconds), intent(inout) :: bcs
       character(len=64) :: msg_bfr
+      integer :: ni, nj
 
 !     Declare the other variables you need here
       
-      real :: Tstatic(g%nj), Vinlet(g%nj)
+      real, allocatable :: Tstatic(:), Vinlet(:)
+
+      ni = gs(bcs%n_in)%ni
+      nj = gs(bcs%n_in)%nj
+
+      allocate(Tstatic(nj),Vinlet(nj))
 
 !     At the inlet boundary the change in density is driven towards "rostag",
 !     which is then used to obtain the other flow properties to match the
@@ -36,9 +48,9 @@
       !call find_all_NaN(g,msg_bfr)
 
       if(av%nstep == 1) then
-          bcs%ro = g%ro(1,:)
+          bcs%ro = gs(bcs%n_in)%ro(1,:)
       else
-          bcs%ro = bcs%rfin * g%ro(1,:) + (1 - bcs%rfin) * bcs%ro
+          bcs%ro = bcs%rfin * gs(bcs%n_in)%ro(1,:) + (1 - bcs%rfin) * bcs%ro
       endif
       bcs%ro = min(bcs%ro,0.9999 * bcs%rostag)
 
@@ -49,13 +61,13 @@
       Tstatic = bcs%tstag * (bcs%ro / bcs%rostag)**(av%gam - 1)
       Vinlet = sqrt(2 * av%cp * (bcs%tstag - Tstatic))
 
-      g%vx(1,:) = Vinlet * cos(bcs%alpha)
-      g%vy(1,:) = Vinlet * sin(bcs%alpha)
-      g%rovx(1,:) = bcs%ro * g%vx(1,:)
-      g%rovy(1,:) = bcs%ro * g%vy(1,:)
-      g%p(1,:) = bcs%pstag * (bcs%ro / bcs%rostag ) ** av%gam
-      g%roe(1,:) = bcs%ro * ( av%cv * Tstatic + 0.5 * Vinlet**2 )
-      g%hstag(1,:) = av%cp * bcs%tstag
+      gs(bcs%n_in)%vx(1,:) = Vinlet * cos(bcs%alpha)
+      gs(bcs%n_in)%vy(1,:) = Vinlet * sin(bcs%alpha)
+      gs(bcs%n_in)%rovx(1,:) = bcs%ro * gs(bcs%n_in)%vx(1,:)
+      gs(bcs%n_in)%rovy(1,:) = bcs%ro * gs(bcs%n_in)%vy(1,:)
+      gs(bcs%n_in)%p(1,:) = bcs%pstag * (bcs%ro / bcs%rostag ) ** av%gam
+      gs(bcs%n_in)%roe(1,:) = bcs%ro * ( av%cv * Tstatic + 0.5 * Vinlet**2 )
+      gs(bcs%n_in)%hstag(1,:) = av%cp * bcs%tstag
       ! CHECK AGAIN
 
       !write(msg_bfr,*) 'after applying bcs'
@@ -64,8 +76,9 @@
       
 !     For the outlet boundary condition set the value of "p(ni,:)" to the
 !     specified value of static pressure "p_out" in "bcs"
-      g%p(g%ni,1:g%nj) = bcs%p_out
+      gs(bcs%n_out)%p(ni,1:nj) = bcs%p_out
 
       end subroutine apply_bconds
 
 
+end module bconds

@@ -13,4 +13,4 @@ extern "C" {
 
 void setGlobalConsoleWidget(class ConsoleWidget* widget);
 void setGlobalVisWidget(class VisWidget* widget);
-void setGlobalConvWidget(ConvWidget* widget);
+void setGlobalConvWidget(class ConvWidget* widget);
