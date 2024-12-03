@@ -1,42 +1,86 @@
 
+module check_conv_mod
+      
+      use types
+      use routines
+      use io_module
+
+      implicit none
+      
+      contains
+
       subroutine check_conv(av,g,d_avg,d_max)
 
 !     This subroutine checks the residuals in all primary flow variables and
 !     prints their values, you should not need to change this subroutine
 
 !     Explicitly declare the required variables
-      use types
-      use routines
-      use io_module
-      implicit none
+
       type(t_appvars), intent(in) :: av
-      type(t_grid), intent(in) :: g
+      type(t_grid), allocatable, intent(in) :: g(:)
       real, intent(out) :: d_avg, d_max
-      real, dimension(g%ni-1,g%nj-1) :: dro, droe, drovx, drovy
+      real, allocatable, dimension(:,:) :: dro, droe, drovx, drovy
       integer :: ijx_max(2), ijy_max(2), ij_max(2), ncells
+      integer :: ijx_max_grid(2), ijy_max_grid(2)
+      integer :: ng, ncells_sum
       real :: dro_max, drovx_max, drovy_max, droe_max, dro_avg, drovx_avg, &
           drovy_avg, droe_avg, flow_ratio
+      real :: dro_sum, droe_sum, drovx_sum, drovy_sum, drovx_max_grid, drovy_max_grid
       character(len=100) :: fmt_step
       character(len=128) :: msg_bfr
 
 !     Get the number of cells from the size of the residual arrays
-      ncells = size(g%dro)
+
+      dro_max = 0
+      droe_max = 0
+      drovx_max = 0
+      drovy_max = 0
+
+      dro_sum = 0
+      drovx_sum = 0
+      drovy_sum = 0
+      droe_sum = 0
+
+      ncells_sum = 0
+
+      do ng = 1, av%nn
+
+            ncells_sum = ncells_sum + size(g(ng)%dro)
 
 !     Use "abs" to make all residual values positive and store locally
-      dro = abs(g%dro); droe = abs(g%droe);
-      drovx = abs(g%drovx); drovy = abs(g%drovy);
+            dro = abs(g(ng)%dro);
+            droe = abs(g(ng)%droe);
+            drovx = abs(g(ng)%drovx); 
+            drovy = abs(g(ng)%drovy);
 
 !     Calculate the mean changes for each variable
-      dro_avg = sum(abs(dro)) / (ncells * av%ro_ref)
-      droe_avg = sum(abs(droe)) / (ncells * av%roe_ref)
-      drovx_avg = sum(abs(drovx)) / (ncells * av%rov_ref)
-      drovy_avg = sum(abs(drovy)) / (ncells * av%rov_ref)
+            dro_sum = dro_sum + sum(abs(dro))
+            droe_sum = droe_sum + sum(abs(droe))
+            drovx_sum = drovx_sum + sum(abs(drovx))
+            drovy_sum = drovy_sum + sum(abs(drovy))
 
 !     Find the maximum value of change for the momenta and the positions
-      dro_max = maxval(dro) / av%ro_ref; droe_max = maxval(droe) / av%roe_ref;
-      ijx_max = maxloc(drovx); ijy_max = maxloc(drovy);
-      drovx_max = drovx(ijx_max(1),ijx_max(2)) / av%rov_ref
-      drovy_max = drovy(ijy_max(1),ijy_max(2)) / av%rov_ref
+            dro_max = max(dro_max, maxval(dro) / av%ro_ref)
+            droe_max = max(droe_max, maxval(droe) / av%roe_ref)
+            ijx_max_grid = maxloc(drovx);
+            drovx_max_grid = drovx(ijx_max(1),ijx_max(2)) / av%rov_ref
+            if (drovx_max_grid > drovx_max) then
+                drovx_max = drovx_max_grid
+                ijx_max = ijx_max_grid
+            end if
+            ijy_max_grid = maxloc(drovy);
+            drovy_max_grid = drovy(ijy_max(1),ijy_max(2)) / av%rov_ref
+            if (drovy_max_grid > drovy_max) then
+                drovy_max = drovy_max_grid
+                ijy_max = ijy_max_grid
+            end if
+
+      end do 
+
+      dro_avg = dro_sum / (ncells_sum * av%ro_ref)
+      droe_avg = droe_sum / (ncells_sum * av%roe_ref)
+      drovx_avg = drovx_sum / (ncells_sum * av%rov_ref)
+      drovy_avg = drovy_sum / (ncells_sum * av%rov_ref)
 
 !     Store single values as the maximum of either the x or y-momentum
       if(drovx_avg > drovy_avg) then
@@ -60,3 +104,4 @@
       end subroutine check_conv
 
 
+end module check_conv_mod

@@ -20,6 +20,7 @@
       use bconds
       use guess
       use gen_mesh
+      use check_conv_mod
 
 !     Don't use historical implicit variable naming
       implicit none
@@ -114,7 +115,7 @@
 !            approximation to the converged flowfield and so the time to
 !            solution will be reduced. You will need to complete this option.
       do ng = 1, av%nn
-          call flow_guess(av,g(ng),bcs,1)
+          call flow_guess(av,g(ng),bcs,2)
           call set_secondary(av,g(ng))
       end do
 
@@ -150,15 +151,19 @@
 !     program, you should aim to program anything inside this loop to operate as
 !     efficiently as you can.
 
+      call grids_to_qt(g, av%nn)
+
       do nstep = 1, av%nsteps
 
 !         Update record of nstep to use in subroutines
           av%nstep = nstep
 
-          g(1)%ro_start = g(1)%ro
-          g(1)%roe_start = g(1)%roe
-          g(1)%rovx_start = g(1)%rovx
-          g(1)%rovy_start = g(1)%rovy
+          do ng = 1, av%nn
+            g(ng)%ro_start = g(ng)%ro
+            g(ng)%roe_start = g(ng)%roe
+            g(ng)%rovx_start = g(ng)%rovx
+            g(ng)%rovy_start = g(ng)%rovy
+          end do          
 
           do nrkut = 1,nrkuts
               av%dt = av%dt_total / (1 + nrkuts - nrkut)
@@ -180,7 +185,7 @@
 
 !         Write out summary every "nconv" steps and update "davg" and "dmax" 
           if(mod(av%nstep,nconv) == 0) then
-              call check_conv(av,g(1),d_avg,d_max)
+              call check_conv(av,g,d_avg,d_max)
               conv_point%iters = av%nstep
               conv_point%d_max = d_max
               conv_point%d_avg = d_avg
@@ -228,7 +233,7 @@
       call write_to_qt(msg_bfr)
       call write_output(av,g(1),3)
 
-      call grids_to_qt(g, av%nn)
+      !call grids_to_qt(g, av%nn)
 
 !
 !     Close open convergence history file
