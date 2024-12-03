@@ -47,6 +47,8 @@ private:
     QLineEdit *dVarInput;
     QLineEdit *facSecInput;
     QLineEdit *fCorrInput;
+    QLineEdit *nstepsInput;
+
 };
 
 #endif // INPUTWIDGET_H

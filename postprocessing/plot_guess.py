@@ -29,10 +29,17 @@ def main():
     # Plot the primary flow variables to show the guess
     fieldnames = ['ro','roe','rovx','rovy']
     for n,name in enumerate(fieldnames):
+
+        min_col = np.inf
+        max_col = -np.inf
+
+        for g in gs:
+            min_col = min(min_col, np.min(g[name]))
+            max_col = max(max_col, np.max(g[name]))
  
         # Plot filled contour levels
         for g in gs:
-            hc = ax[n].pcolormesh(g['x'],g['y'],g[name],shading='gouraud')
+            hc = ax[n].pcolormesh(g['x'],g['y'],g[name],shading='gouraud', vmax = max_col, vmin = min_col)
 
   	# Add colorbar with variable name
         colorbar(hc,name)

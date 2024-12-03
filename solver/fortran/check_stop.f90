@@ -33,6 +33,7 @@ module check_stop_mod
             ifstop = 2
             write(msg_bfr,*) 'NaN detected, stopping the solver'
             call write_to_qt(msg_bfr)
+            exit
             end if
       end do
      

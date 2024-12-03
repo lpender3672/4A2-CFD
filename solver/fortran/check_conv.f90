@@ -63,13 +63,13 @@ module check_conv_mod
             dro_max = max(dro_max, maxval(dro) / av%ro_ref)
             droe_max = max(droe_max, maxval(droe) / av%roe_ref)
             ijx_max_grid = maxloc(drovx);
-            drovx_max_grid = drovx(ijx_max(1),ijx_max(2)) / av%rov_ref
+            drovx_max_grid = drovx(ijx_max_grid(1),ijx_max_grid(2)) / av%rov_ref
             if (drovx_max_grid > drovx_max) then
                 drovx_max = drovx_max_grid
                 ijx_max = ijx_max_grid
             end if
             ijy_max_grid = maxloc(drovy);
-            drovy_max_grid = drovy(ijy_max(1),ijy_max(2)) / av%rov_ref
+            drovy_max_grid = drovy(ijy_max_grid(1),ijy_max_grid(2)) / av%rov_ref
             if (drovy_max_grid > drovy_max) then
                 drovy_max = drovy_max_grid
                 ijy_max = ijy_max_grid

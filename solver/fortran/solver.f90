@@ -117,7 +117,7 @@
 !            approximation to the converged flowfield and so the time to
 !            solution will be reduced. You will need to complete this option.
       do ng = 1, av%nn
-          call flow_guess(av,g(ng),bcs,2)
+          call flow_guess(av,g(ng),bcs,1)
           call set_secondary(av,g(ng))
       end do
 
@@ -235,8 +235,7 @@
       call write_to_qt(msg_bfr)
       call write_output(av,g,3)
 
-      !call grids_to_qt(g, av%nn)
-
+      call grids_to_qt(g, av%nn)
 !
 !     Close open convergence history file
       close(3)

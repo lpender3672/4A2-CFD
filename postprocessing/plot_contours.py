@@ -38,8 +38,8 @@ def main():
         gs[i]['cp'] = (gs[i]['p'] - p_ref) / (pstag_ref - p_ref)
 
     # Specify the parameters to plot
-    fieldnames = ['cp', 'mach']; 
-    colnames = ['Static pressure coefficient','Mach number']
+    fieldnames = ['cp', 'mach', 'rovy']; 
+    colnames = ['Static pressure coefficient','Mach number', 'rovy']
 
     # Plot the calculated non-dimensional parameters to show the flow solution
     for n,name in enumerate(fieldnames):
@@ -49,10 +49,17 @@ def main():
     
         # Set aspect ratio as equal and remove axes labels
         ax.set_aspect('equal',adjustable='box'); ax.axis('off')
+
+        min_col = np.inf
+        max_col = -np.inf
+
+        for g in gs:
+            min_col = min(min_col, np.min(g[name]))
+            max_col = max(max_col, np.max(g[name]))
  
         # Plot filled contour levels
         for g in gs:
-            hc = ax.pcolormesh(g['x'],g['y'],g[name],shading='gouraud')
+            hc = ax.pcolormesh(g['x'],g['y'],g[name],shading='gouraud', vmax = max_col, vmin = min_col)        
 
         # Add colorbar with variable name
         colorbar(hc,colnames[n])

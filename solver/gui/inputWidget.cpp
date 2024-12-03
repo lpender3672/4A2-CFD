@@ -20,7 +20,7 @@ InputWidget::InputWidget(QWidget *parent) : QWidget(parent)
     layout->addWidget(runButton);
 
     QGridLayout *gridLayout = new QGridLayout();
-    QStringList labels = {"CFL", "SFAC", "D_MAX", "D_VAR", "FACSEC", "FCORR"};
+    QStringList labels = {"CFL", "SFAC", "D_MAX", "D_VAR", "FACSEC", "FCORR", "NSTEPS"};
 
     cflInput = new QLineEdit(this);
     sfacInput = new QLineEdit(this);
@@ -28,8 +28,9 @@ InputWidget::InputWidget(QWidget *parent) : QWidget(parent)
     dVarInput = new QLineEdit(this);
     facSecInput = new QLineEdit(this);
     fCorrInput = new QLineEdit(this);
+    nstepsInput = new QLineEdit(this);
 
-    QLineEdit *inputs[] = {cflInput, sfacInput, dMaxInput, dVarInput, facSecInput, fCorrInput};
+    QLineEdit *inputs[] = {cflInput, sfacInput, dMaxInput, dVarInput, facSecInput, fCorrInput, nstepsInput};
 
     for (int i = 0; i < labels.size(); ++i) {
         QLabel *label = new QLabel(labels[i], this);
@@ -84,6 +85,7 @@ void InputWidget::updateInputFields() {
     dVarInput->setText(QString::number(av.d_var, 'f'));
     facSecInput->setText(QString::number(av.facsec, 'f'));
     fCorrInput->setText(QString::number(av.fcorr, 'f'));
+    nstepsInput->setText(QString::number(av.nsteps));
 }
 
 void InputWidget::blockInputFields() {
@@ -93,6 +95,7 @@ void InputWidget::blockInputFields() {
     dVarInput->setReadOnly(true);
     facSecInput->setReadOnly(true);
     fCorrInput->setReadOnly(true);
+    nstepsInput->setReadOnly(true);
 
     choosePathButton->setEnabled(false);
 }
@@ -104,6 +107,7 @@ void InputWidget::unblockInputFields() {
     dVarInput->setReadOnly(false);
     facSecInput->setReadOnly(false);
     fCorrInput->setReadOnly(false);
+    nstepsInput->setReadOnly(false);
     
     choosePathButton->setEnabled(true);
 }
@@ -116,6 +120,7 @@ void InputWidget::saveInputFields() {
         av.d_var = dVarInput->text().toFloat();
         av.facsec = facSecInput->text().toFloat();
         av.fcorr = fCorrInput->text().toFloat();
+        av.nsteps = nstepsInput->text().toInt();
 
     } catch (const std::exception &e) {
         qDebug() << e.what();

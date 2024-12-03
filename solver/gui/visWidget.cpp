@@ -313,8 +313,11 @@ void VisWidget::outputGridVector(const QVector<t_grid> &gridVector)
         return;
     }
 
+    currentGrids.clear();
     // update currentGrids
-    currentGrids = gridVector;
+    for (int i = 0; i < gridVector.size(); ++i) {
+        currentGrids.push_back(gridVector[i]);
+    }
 
     onTabChanged(tabWidget->currentIndex());
 }
