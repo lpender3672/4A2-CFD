@@ -608,54 +608,60 @@ def read_case(filename):
         outtype = 3
 
     # Initialise the dictionary to store the data
-    g = {}
 
     # Open the file to read
     f = open(filename,'r')
+    nn = np.fromfile(f,dtype=np.int32,count=1).item()
+    outlist = []
 
-    # Read the size of the mesh
-    g['ni'] = np.fromfile(f,dtype=np.int32,count=1).item()
-    g['nj'] = np.fromfile(f,dtype=np.int32,count=1).item()
-    ni = g['ni']; nj = g['nj'];
-    
-    # Define the names and sizes of the mesh coordinate fields to read
-    fieldnames = ['x','y','area','lx_i','ly_i','lx_j','ly_j']
-    ni_mesh = np.array([0,0,-1,0,0,-1,-1]) + g['ni']
-    nj_mesh = np.array([0,0,-1,-1,-1,0,0]) + g['nj']
+    for i in range(nn):
+        g = {}
 
-    # Always read the mesh coordinates and projected lengths etc.
-    for n,name in enumerate(fieldnames):
+        # Read the size of the mesh
+        g['ni'] = np.fromfile(f,dtype=np.int32,count=1).item()
+        g['nj'] = np.fromfile(f,dtype=np.int32,count=1).item()
+        ni = g['ni']; nj = g['nj'];
+        
+        # Define the names and sizes of the mesh coordinate fields to read
+        fieldnames = ['x','y','area','lx_i','ly_i','lx_j','ly_j']
+        ni_mesh = np.array([0,0,-1,0,0,-1,-1]) + g['ni']
+        nj_mesh = np.array([0,0,-1,-1,-1,0,0]) + g['nj']
 
-        # Read the data elementwise and keep 1D temporarily
-        g[name] = np.fromfile(f,dtype=np.float32,count=ni_mesh[n]*nj_mesh[n]) 
-
-        # Reshape the data into the correct numpy array shape, note Fortran
-        # writes the data with the dimensions in the reverse order
-        g[name] = np.reshape(g[name],[ni_mesh[n],nj_mesh[n]],order='F')
-
-    # Always read the logical array describing the wall position
-    g['wall'] = np.fromfile(f,dtype=np.int32,count=ni*nj) == 1
-    g['wall'] = np.reshape(g['wall'],[ni,nj],order='F')
-
-    # Read the flowfield data if written as an initial guess or full solution
-    if outtype > 1:
-        fieldnames = ['ro','roe','rovx','rovy']
+        # Always read the mesh coordinates and projected lengths etc.
         for n,name in enumerate(fieldnames):
-            g[name] = np.fromfile(f,dtype=np.float32,count=ni*nj)
-            g[name] = np.reshape(g[name],[ni,nj],order='F')
 
-    # Read the cell increment only if the file is a full solution
-    if outtype > 2:
-        fieldnames = ['dro','droe','drovx','drovy']
-        ni = g['ni']-1; nj = g['nj']-1;
-        for n,name in enumerate(fieldnames):
-            g[name] = np.fromfile(f,dtype=np.float32,count=ni*nj)
-            g[name] = np.reshape(g[name],[ni,nj],order='F')
+            # Read the data elementwise and keep 1D temporarily
+            g[name] = np.fromfile(f,dtype=np.float32,count=ni_mesh[n]*nj_mesh[n]) 
+
+            # Reshape the data into the correct numpy array shape, note Fortran
+            # writes the data with the dimensions in the reverse order
+            g[name] = np.reshape(g[name],[ni_mesh[n],nj_mesh[n]],order='F')
+
+        # Always read the logical array describing the wall position
+        g['wall'] = np.fromfile(f,dtype=np.int32,count=ni*nj) == 1
+        g['wall'] = np.reshape(g['wall'],[ni,nj],order='F')
+
+        # Read the flowfield data if written as an initial guess or full solution
+        if outtype > 1:
+            fieldnames = ['ro','roe','rovx','rovy']
+            for n,name in enumerate(fieldnames):
+                g[name] = np.fromfile(f,dtype=np.float32,count=ni*nj)
+                g[name] = np.reshape(g[name],[ni,nj],order='F')
+
+        # Read the cell increment only if the file is a full solution
+        if outtype > 2:
+            fieldnames = ['dro','droe','drovx','drovy']
+            ni = g['ni']-1; nj = g['nj']-1;
+            for n,name in enumerate(fieldnames):
+                g[name] = np.fromfile(f,dtype=np.float32,count=ni*nj)
+                g[name] = np.reshape(g[name],[ni,nj],order='F')
+
+        outlist.append(g)
 
     # Close the file
     f.close()
 
-    return(g)
+    return(outlist)
    
 ################################################################################
 

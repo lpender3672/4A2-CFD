@@ -35,6 +35,8 @@ module write_output_mod
       open(unit=7,file= trim(av%casefolder) // '/out_' // outname // '_' // trim(av%casename) // '.bin', &
           form='unformatted',access='stream',status='replace')
 
+      write(7) av%nn
+
       do ng = 1, av%nn
 !     Write the size of the mesh
             write(7) [g(ng)%ni, g(ng)%nj]

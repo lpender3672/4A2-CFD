@@ -24,7 +24,7 @@ module check_conv_mod
       integer :: ijx_max_grid(2), ijy_max_grid(2)
       integer :: ng, ncells_sum
       real :: dro_max, drovx_max, drovy_max, droe_max, dro_avg, drovx_avg, &
-          drovy_avg, droe_avg, flow_ratio
+          drovy_avg, droe_avg
       real :: dro_sum, droe_sum, drovx_sum, drovy_sum, drovx_max_grid, drovy_max_grid
       character(len=100) :: fmt_step
       character(len=128) :: msg_bfr

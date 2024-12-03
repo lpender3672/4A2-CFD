@@ -15,7 +15,7 @@ def main():
     filename = 'cases/' + sys.argv[-1] + '/out_guess_' + sys.argv[-1] + '.bin'
 
     # Read the case from file
-    g = read_case(filename)
+    gs = read_case(filename)
 
     # Open figure window and open four subplots
     fig,ax = plt.subplots(2,2,sharex=True,sharey=True,figsize=[14.4,7.2]); 
@@ -31,13 +31,15 @@ def main():
     for n,name in enumerate(fieldnames):
  
         # Plot filled contour levels
-        hc = ax[n].pcolormesh(g['x'],g['y'],g[name],shading='gouraud')
+        for g in gs:
+            hc = ax[n].pcolormesh(g['x'],g['y'],g[name],shading='gouraud')
 
   	# Add colorbar with variable name
         colorbar(hc,name)
 
         # Draw the walls of the block
-        plot_wall(ax[n],g)
+        for g in gs:
+            plot_wall(ax[n],g)
 
     # Show all the plots
     plt.show()

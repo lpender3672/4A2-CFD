@@ -17,7 +17,7 @@ def main():
 
     # Read the settings and the case from file
     av = read_settings(inname)
-    g = read_case(outname)
+    gs = read_case(outname)
 
     # When presenting results all values should be non-dimensionalised. Two
     # variables of interest might be:
@@ -26,15 +26,16 @@ def main():
 
     # First complete the "calc_secondary" function within "routines.py" to
     # calculate static pressure and Mach number, and any others you want!
-    g = calc_secondary(av,g)    
+    for i in range(len(gs)):
+        gs[i] = calc_secondary(av,gs[i])    
 
     # Use the "cut_i", "mass_av" AND "area_av" functions to calculate the
     # reference pressures at the inlet plane and therefore the static pressure
     # coefficient
-    pstag_ref = mass_av(cut_i(g, 0), 'pstag')[0]
-    p_ref = area_av(cut_i(g, 0), 'p')[0]
+        pstag_ref = mass_av(cut_i(gs[i], 0), 'pstag')[0]
+        p_ref = area_av(cut_i(gs[i], 0), 'p')[0]
 
-    g['cp'] = (g['p'] - p_ref) / (pstag_ref - p_ref)
+        gs[i]['cp'] = (gs[i]['p'] - p_ref) / (pstag_ref - p_ref)
 
     # Specify the parameters to plot
     fieldnames = ['cp', 'mach']; 
@@ -50,18 +51,21 @@ def main():
         ax.set_aspect('equal',adjustable='box'); ax.axis('off')
  
         # Plot filled contour levels
-        hc = ax.pcolormesh(g['x'],g['y'],g[name],shading='gouraud')
+        for g in gs:
+            hc = ax.pcolormesh(g['x'],g['y'],g[name],shading='gouraud')
 
         # Add colorbar with variable name
         colorbar(hc,colnames[n])
 
         # Add Mach = 1 contours
         if name == 'mach':
-            ax.contour(g['x'],g['y'],g['mach'],[1.0],colors='w',
-                linewidths=0.5) 
+            for g in gs:
+                ax.contour(g['x'],g['y'],g['mach'],[1.0],colors='w',
+                    linewidths=0.5) 
 
         # Draw the walls of the block
-        plot_wall(ax,g)
+        for g in gs:
+            plot_wall(ax,g)
 
         fig.tight_layout()
 
