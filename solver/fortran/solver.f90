@@ -21,6 +21,8 @@
       use guess
       use gen_mesh
       use check_conv_mod
+      use check_stop_mod
+      use write_output_mod
 
 !     Don't use historical implicit variable naming
       implicit none
@@ -100,7 +102,7 @@
       call write_to_qt(msg_bfr)
 
 !     Optional output call to inspect the mesh you have generated
-      call write_output(av,g(1),1)
+      call write_output(av,g,1)
 
 !     Check that the areas and projected lengths are correct
       call check_mesh(g(1), av)
@@ -120,7 +122,7 @@
       end do
 
 !     Optional output call to inspect the initial guess of the flowfield
-      call write_output(av,g(1),2)
+      call write_output(av,g,2)
 
       ! print grid y values here
       !write(msg_bfr,*) 'Grid y values:'
@@ -200,7 +202,7 @@
 !         Check the solution hasn't diverged or a stop has been requested 
 !         every "ncheck" steps
           if(mod(av%nstep,ncheck) == 0) then
-              call check_stop(av,g(1))
+              call check_stop(av,g)
           end if
 
 !         Stop marching if converged to the desired tolerance "conlim"
@@ -231,7 +233,7 @@
 !     necessarily converged flowfield
       write(msg_bfr,*) 'Calculation completed after', av%nstep,'iterations'
       call write_to_qt(msg_bfr)
-      call write_output(av,g(1),3)
+      call write_output(av,g,3)
 
       !call grids_to_qt(g, av%nn)
 
