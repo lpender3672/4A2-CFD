@@ -24,6 +24,8 @@
       use check_stop_mod
       use write_output_mod
 
+      use debug
+
 !     Don't use historical implicit variable naming
       implicit none
 
@@ -105,7 +107,9 @@
       call write_output(av,g,1)
 
 !     Check that the areas and projected lengths are correct
-      call check_mesh(g(1), av)
+      do ng = 1, av%nn
+          call check_mesh(g(ng), av)
+      end do
 
 !     Calculate the initial guess of the flowfield in the domain. There are two
 !     options that can be chosen with the input argument "guesstype":
