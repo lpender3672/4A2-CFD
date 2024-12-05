@@ -31,6 +31,9 @@
       g%corr_rovy = 0
       g%corr_roe = 0
 
+      allocate(g%l_min(ni-1,nj-1))
+      allocate(g%dt(ni-1,nj-1), g%dt_total(ni-1,nj-1))
+
 !     Arrays to store static conditions at the inlet plane
       allocate(bcs%ro(nj),bcs%p(nj))
 

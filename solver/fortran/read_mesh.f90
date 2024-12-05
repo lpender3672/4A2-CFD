@@ -63,6 +63,9 @@ module mesh_io
           g(n)%corr_rovy = 0
           g(n)%corr_roe = 0
 
+          allocate(g(n)%l_min(ni-1,nj-1))
+          allocate(g(n)%dt(ni-1,nj-1), g(n)%dt_total(ni-1,nj-1))
+
       end do
 
 !     Read which blocks the inlet and outlets are on
