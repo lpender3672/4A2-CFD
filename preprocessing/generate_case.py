@@ -422,7 +422,7 @@ def gen_multi(casename):
 
 ################################################################################
 
-def generate_case(casename):
+def generate_case(casename, fname = None):
     # Create the curves for the desired case and set the boundary conditions
     if casename == 'bend':
         av,geom = gen_bend(casename)
@@ -444,42 +444,44 @@ def generate_case(casename):
         av,geom = gen_multi(casename)
 
     # Save the settings and curves to their input files
-    write_settings(av)
-    write_geom(av,geom)
+    write_settings(av, fname)
+    write_geom(av,geom, fname)
 
     # Open figure window to plot the curves
-    plt.figure(figsize=[9.6,7.2]); ax = plt.axes(); cols = gen_cols();
-    ax.set_xlabel('x / m'); ax.set_ylabel('y / m');
-    ax.set_aspect('equal',adjustable='box'); ax.tick_params(direction='in')
-    ax.grid(linestyle='-',color=[0.6,0.6,0.6],linewidth=0.5)
+    if not fname:
+        plt.figure(figsize=[9.6,7.2]); ax = plt.axes(); cols = gen_cols();
+        ax.set_xlabel('x / m'); ax.set_ylabel('y / m');
+        ax.set_aspect('equal',adjustable='box'); ax.tick_params(direction='in')
+        ax.grid(linestyle='-',color=[0.6,0.6,0.6],linewidth=0.5)
 
-    # Plot the geometry curves
-    ax.plot(geom['x_a'],geom['y_a'],'.-',color=cols[0,:])
-    ax.plot(geom['x_b'],geom['y_b'],'.-',color=cols[1,:])
+        # Plot the geometry curves
+        ax.plot(geom['x_a'],geom['y_a'],'.-',color=cols[0,:])
+        ax.plot(geom['x_b'],geom['y_b'],'.-',color=cols[1,:])
 
-    # Plot the domain curves if present
-    if 'x_c' in geom:
-        ax.plot(geom['x_c'],geom['y_c'],'.-',color=cols[2,:])
-        ax.plot(geom['x_d'],geom['y_d'],'.-',color=cols[3,:])
-    
+        # Plot the domain curves if present
+        if 'x_c' in geom:
+            ax.plot(geom['x_c'],geom['y_c'],'.-',color=cols[2,:])
+            ax.plot(geom['x_d'],geom['y_d'],'.-',color=cols[3,:])
+        
     # Plot the mesh coordinates and patches if present
     if 'g' in locals():
         
         # Open a new figure window
-        plt.figure(figsize=[9.6,7.2]); ax = plt.axes(); cols = gen_cols();
-        ax.set_xlabel('x / m'); ax.set_ylabel('y / m');
-        ax.set_aspect('equal',adjustable='box'); ax.tick_params(direction='in')
+        if not fname:
+            plt.figure(figsize=[9.6,7.2]); ax = plt.axes(); cols = gen_cols();
+            ax.set_xlabel('x / m'); ax.set_ylabel('y / m');
+            ax.set_aspect('equal',adjustable='box'); ax.tick_params(direction='in')
 
-        # Plot the mesh coordinates and walls
-        for n in range(g['nn']):
+            # Plot the mesh coordinates and walls
+            for n in range(g['nn']):
 
-            # Mesh in both i and j-directions
-            ax.plot(g['x'][n],g['y'][n],color=cols[n,:],linewidth=0.5)
-            ax.plot(np.transpose(g['x'][n]),np.transpose(g['y'][n]),
-                color=cols[n,:],linewidth=0.5)
+                # Mesh in both i and j-directions
+                ax.plot(g['x'][n],g['y'][n],color=cols[n,:],linewidth=0.5)
+                ax.plot(np.transpose(g['x'][n]),np.transpose(g['y'][n]),
+                    color=cols[n,:],linewidth=0.5)
 
-            # Extract the block and plot the walls
-            plot_wall(ax,cut_block(g,n),False);
+                # Extract the block and plot the walls
+                plot_wall(ax,cut_block(g,n),False);
 
         # Plot the patch matching data
         for m in range(g['nm']):
@@ -494,8 +496,9 @@ def generate_case(casename):
             x_2 = g['x'][n_2][i_2,j_2]; y_2 = g['y'][n_2][i_2,j_2];
 
             # Plot both sides of the patch with different symbols
-            ax.plot(x_1,y_1,'+',color=cols[m,:])
-            ax.plot(x_2,y_2,'x',color=cols[m,:])
+            if not fname:
+                ax.plot(x_1,y_1,'+',color=cols[m,:])
+                ax.plot(x_2,y_2,'x',color=cols[m,:])
 
             # Calculate and print the error
             d_max = np.max(np.hypot(x_2 - x_1,y_2 - y_1))
@@ -504,13 +507,14 @@ def generate_case(casename):
         # Plot the inlet and outlets, these are assumed to be at i = 1 and i = ni
         x_in = np.squeeze(g['x'][g['n_in']-1][0,:])
         y_in = np.squeeze(g['y'][g['n_in']-1][0,:])
-        ax.plot(x_in,y_in,color=[0.8,0.8,0.8])
         x_out = np.squeeze(g['x'][g['n_out']-1][-1,:])
         y_out = np.squeeze(g['y'][g['n_out']-1][-1,:])
-        ax.plot(x_out,y_out,color=[0.8,0.8,0.8])
+        if not fname:
+            ax.plot(x_in,y_in,color=[0.8,0.8,0.8])
+            ax.plot(x_out,y_out,color=[0.8,0.8,0.8])
 
         # Write the entire grid definition to file
-        write_mesh(av,g)
+        write_mesh(av,g, fname)
 
 def generate_all():
 
