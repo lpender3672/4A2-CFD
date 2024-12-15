@@ -566,7 +566,7 @@ def read_settings(filename):
     f = open(filename,'r')
 
     # Read the casename
-    av['casename'] = f.readline()
+    av['casename'] = f.readline().strip()
 
     # Read two gas constants and calculate the rest
     av['rgas'], av['gam'] = [float(x) for x in f.readline().split()]
@@ -577,7 +577,7 @@ def read_settings(filename):
     av['cfl'],av['sfac'],av['d_max'],av['d_var'],av['facsec'],av['fcorr'] = [float(x) for x in f.readline().split()]
 
     # Read the number of steps
-    av['nsteps'] = [int(x) for x in f.readline().split()]
+    av['nsteps'] = [int(x) for x in f.readline().split()][0]
 
     # Read the grid size
     av['ni'],av['nj'] = [int(x) for x in f.readline().split()]
@@ -587,7 +587,7 @@ def read_settings(filename):
         [float(x) for x in f.readline().split()]
  
     # Read the outlet boundary condition
-    av['p'] = [float(x) for x in f.readline().split()]
+    av['p'] = [float(x) for x in f.readline().split()][0]
 
     # Close the file 
     f.close()

@@ -24,13 +24,13 @@ module check_stop_mod
       character(len=64) :: msg_bfr
 
 !     Check the stop file
-      open(unit=11,file='stopit')
-      read(11,*) ifstop; close(11);
+      !open(unit=11,file='stopit')
+      !read(11,*) ifstop; close(11);
 
 !     Check for NaNs in the density
       do ng = 1, av%nn
             if(isnan(sum(g(ng)%ro))) then
-            ifstop = 2
+            av%crashed = .true.
             write(msg_bfr,*) 'NaN detected, stopping the solver'
             call write_to_qt(msg_bfr)
             exit
@@ -38,14 +38,15 @@ module check_stop_mod
       end do
      
 !     Write output file if stop file is not zero
-      if(ifstop > 1) then
-          write(msg_bfr,*) '"ifstop" modified, writing an output'
-          call write_to_qt(msg_bfr)
-          call write_output(av,g,3)
-      end if
+      !if(ifstop > 1) then
+!      if (av%crashed) then
+!          write(msg_bfr,*) '"av%crashed" modified, writing an output'
+!          call write_to_qt(msg_bfr)
+!          call write_output(av,g,3)
+!      end if
  
 !     Finish the calculation if stop file equals 2
-      if(ifstop == 2) then
+      if(av%crashed) then
           write(msg_bfr,*) 'Solver stopped prematurely'
           call write_to_qt(msg_bfr)
           !stop
@@ -53,9 +54,9 @@ module check_stop_mod
       end if
 
 !     Reset the stop file      
-      ifstop = 0
-      open(unit=11,file='stopit')      
-      write(11,*) ifstop; close(11);
+      !ifstop = 0
+      !open(unit=11,file='stopit')      
+      !write(11,*) ifstop; close(11);
 
       end subroutine check_stop
 

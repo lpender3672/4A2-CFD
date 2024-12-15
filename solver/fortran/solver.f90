@@ -150,8 +150,9 @@
 !     Initialise the "stopit" file, during long runs you can request an output
 !     is written by setting the value to 1, or to terminate the calculation if
 !     set to 2
-      open(unit=11,file='stopit')
-      write(11,*) 0; close(11);
+      ! This is a horrible way to do this so its getting removed
+      !open(unit=11,file= av%casefolder // '/../stopit')
+      !write(11,*) 0; close(11);
 
 
       write(msg_bfr,*) 'Calculation started'
