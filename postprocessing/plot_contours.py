@@ -26,15 +26,19 @@ def main():
 
     # First complete the "calc_secondary" function within "routines.py" to
     # calculate static pressure and Mach number, and any others you want!
+
+
     for i in range(len(gs)):
         gs[i] = calc_secondary(av,gs[i])    
 
     # Use the "cut_i", "mass_av" AND "area_av" functions to calculate the
     # reference pressures at the inlet plane and therefore the static pressure
     # coefficient
-        pstag_ref = mass_av(cut_i(gs[i], 0), 'pstag')[0]
-        p_ref = area_av(cut_i(gs[i], 0), 'p')[0]
+    cut = cut_i(gs[0], 0)
+    pstag_ref = mass_av(cut, 'pstag')[0]
+    p_ref = area_av(cut, 'p')[0]
 
+    for i in range(len(gs)):
         gs[i]['cp'] = (gs[i]['p'] - p_ref) / (pstag_ref - p_ref)
 
     # Specify the parameters to plot

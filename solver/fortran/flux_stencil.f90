@@ -8,7 +8,7 @@
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      subroutine sum_fluxes(av,flux_i,flux_j,area,prop,prop_start,dcell)
+      subroutine sum_fluxes(av,flux_i,flux_j,dt_over_area,prop,prop_start,dcell)
 
 !     This subroutine sums the fluxes into each cell, calculates the change in 
 !     the cell property inside, distributes the change to the four nodes of the
@@ -18,7 +18,7 @@
       use types
       implicit none
       type(t_appvars), intent(in) :: av
-      real, intent(in) :: flux_i(:,:), flux_j(:,:), area(:,:)
+      real, intent(in) :: flux_i(:,:), flux_j(:,:), dt_over_area(:,:)
       real, intent(in) :: prop_start(:,:)
       real, intent(inout) :: prop(:,:)
       real, intent(inout) :: dcell(:,:)
@@ -37,7 +37,7 @@
 !     over the timestep "dt", save it in the array "dcell"
       ! The finite volume method relies upon the divergence theorem; the fluxes through the boundaries are summed
 !     to calculate the spatial derivatives in the Euler equations and therefore the time derivative
-      dcell = av%dt * (flux_i(1:ni-1,1:nj-1) - flux_i(2:ni,1:nj-1) + flux_j(1:ni-1,1:nj-1) - flux_j(1:ni-1,2:nj)) / area
+      dcell = dt_over_area * (flux_i(1:ni-1,1:nj-1) - flux_i(2:ni,1:nj-1) + flux_j(1:ni-1,1:nj-1) - flux_j(1:ni-1,2:nj))
 
       dcell = (1 + av%facsec) * dcell - av%facsec * dcell_prev
 

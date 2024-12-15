@@ -23,6 +23,9 @@
       use check_conv_mod
       use check_stop_mod
       use write_output_mod
+      use timestep
+
+      use debug
 
 !     Don't use historical implicit variable naming
       implicit none
@@ -42,7 +45,7 @@
       type(t_grid), allocatable, target :: g(:)
       type(t_conv_point) :: conv_point
       real :: d_max = 1, d_avg = 1, avg_of_hist = 1
-      integer :: nstep, nconv = 50, ncheck = 10
+      integer :: nstep, nconv = 50, ncheck = 10, ncalcdt = 10
       integer :: nrkuts = 4
       integer :: nrkut, n
       integer :: ni, nj, m
@@ -98,14 +101,16 @@
             call calc_areas(g(n))
       end do
 
-      write(msg_bfr,*) 'Minimum mesh size found to be ', g%l_min
+      write(msg_bfr,*) 'Minimum mesh size found to be ', minval(g(1)%l_min)
       call write_to_qt(msg_bfr)
 
 !     Optional output call to inspect the mesh you have generated
       call write_output(av,g,1)
 
 !     Check that the areas and projected lengths are correct
-      call check_mesh(g(1), av)
+      do ng = 1, av%nn
+          call check_mesh(g(ng), av)
+      end do
 
 !     Calculate the initial guess of the flowfield in the domain. There are two
 !     options that can be chosen with the input argument "guesstype":
@@ -134,7 +139,9 @@
 
 !     Set the length of the timestep, initially this is a constant based on a 
 !     conservative guess of the mach number
-      call set_timestep(av,g(1),bcs)
+      do ng = 1, av%nn
+            call set_timestep(av,g(ng),bcs)
+      end do
 
 !     Open file to store the convergence history. This is human readable during
 !     a long run by using "tail -f conv_example.csv" in a terminal window
@@ -168,7 +175,10 @@
           end do          
 
           do nrkut = 1,nrkuts
-              av%dt = av%dt_total / (1 + nrkuts - nrkut)
+
+              do ng = 1, av%nn
+                  g(ng)%dt = g(ng)%dt_total / (1 + nrkuts - nrkut)
+              end do
 
               do ng = 1, av%nn
                   call set_secondary(av,g(ng))
@@ -184,6 +194,12 @@
                   call apply_patch(g,p(np))
               end do
           end do
+
+          if(mod(av%nstep,ncalcdt) == 0) then
+              do ng = 1, av%nn
+                  call set_timestep(av,g(ng),bcs)
+              end do
+          end if
 
 !         Write out summary every "nconv" steps and update "davg" and "dmax" 
           if(mod(av%nstep,nconv) == 0) then
