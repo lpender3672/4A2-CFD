@@ -10,6 +10,7 @@ import re
 import numpy as np
 import matplotlib.pyplot as plt 
 import scipy.interpolate as interp
+import pathlib
 
 # Set default directory to save figures in, plot resolution and font sizes
 plt.rcParams["savefig.directory"] = '.'; plt.rcParams['savefig.dpi'] = 600;
@@ -723,7 +724,9 @@ def write_settings(av, casedir = 'cases/'):
     # Create an input file with settings and boundary conditions
 
     # Open the file to write
-    filename = casedir / (av['casename'] +  '/input_' + av['casename'] + '.txt')
+    filename = str(casedir) + av['casename'] +  '/input_' + av['casename'] + '.txt'
+    casepath = pathlib.Path(str(casedir) + av['casename'])
+    casepath.mkdir(exist_ok=True)
 
     f = open(filename,'w')
 
@@ -759,7 +762,7 @@ def write_geom(av,geom, casedir = 'cases/'):
     # Create an input file with settings and boundary conditions
 
     # Open the file to write
-    filename = casedir / (av['casename'] + '/geom_' + av['casename'] + '.txt')
+    filename = str(casedir) + av['casename'] + '/geom_' + av['casename'] + '.txt'
     
     f = open(filename,'w')
 
@@ -788,7 +791,7 @@ def write_mesh(av,g, casedir = 'cases/'):
     # Write grid coordinates and connectivity data to file directly
 
     # Open the file to write
-    filename = casedir / (av['casename'] + '/geom_' + av['casename'] + '.txt')
+    filename = str(casedir) + av['casename'] + '/mesh_' + av['casename'] + '.bin'
 
     f = open(filename,'w')
 
