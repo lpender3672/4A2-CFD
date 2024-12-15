@@ -82,7 +82,7 @@
 !
 !     Print the overall minimum length size that has been calculated
       write(6,*) 'Calculated cell areas and facet lengths'
-      write(6,*) '  Overall minimum element size = ', g%l_min
+      write(6,*) '  Overall minimum element size = ', minval(g%l_min)
       write(6,*)
 
       end subroutine calc_areas
