@@ -7,6 +7,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import csv
 
 from postprocessing.routines import (
     write_settings,
@@ -26,6 +27,7 @@ class CFDWorker:
         self.shared_lock = shared_lock
 
         self.av = av
+        self.dt = np.nan
 
     def setup_environment(self):
         self.worker_folder = self.base_folder / str(self.worker_id)
@@ -47,8 +49,7 @@ class CFDWorker:
 
     def parse_results(self):
 
-        convpath = self.target_folder / str("convergence_history.txt")
-
+        convpath = self.target_folder / f"conv_{av['casename']}.csv"
         conv_hist = read_conv(convpath)
         
         if conv_hist['nstep'].shape[0] > 0:
@@ -65,9 +66,12 @@ class CFDWorker:
                 f.readlines()
                 )
 
-        newrow = np.array([
-            cfl, sfac, time, converged, iterations, dro_max, dro_avg, av['ni'], av['nj']
-        ])
+        newrow = []
+        for _, val in self.av.items():
+            newrow.append(val)
+
+        newrow = newrow + [self.dt, converged, iterations, dro_max, dro_avg]
+        return newrow
 
     def run(self):
 
@@ -75,19 +79,23 @@ class CFDWorker:
         with open(self.log_file, "w") as log:
             try:
                 parsed_file = str(self.target_file).replace("\\", "/")
+                t1 = time.time()
                 subprocess.run([self.cfd_executable, "--path", parsed_file],
                                 check=True,
                                 stdout=log)
+                t2 = time.time()
             except subprocess.CalledProcessError as e:
                 print(f"Worker {self.worker_id} failed with error: {e}")
                 return
 
-        results = f"Worker {self.worker_id} results: Success\n"
+        self.dt = t2 - t1
+        results = self.parse_results()
 
         # Write results to the shared file in a thread-safe way
         with self.shared_lock:
-            with open(self.shared_file, "a") as f:
-                f.write(results)
+            with open(self.shared_file, "a", newline="") as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(results)
 
         print(f"Worker {self.worker_id} finished.")
 
@@ -105,6 +113,16 @@ class CFDManager:
     def clear_shared_file(self):
         if self.shared_file.exists():
             self.shared_file.unlink()
+
+        headers = []
+        for key in self.avs[0].keys():
+            headers.append(key)
+        
+        headers = headers + ['dt', 'converged', 'iterations', 'dro_max', 'dro_avg']
+        
+        with open(self.shared_file, "w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(headers)
 
     def clear_worker_folders(self):
         # recursion is dangerous
