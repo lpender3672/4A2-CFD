@@ -2,6 +2,13 @@
 ! This file handles some input and output functions for the solver
 ! the big one being  console output to the GUI which can be seen below
 
+
+    module solver_flags
+        use iso_c_binding
+        implicit none
+        logical(C_BOOL), bind(C, name="stopit") :: stopit
+    end module solver_flags
+
     module io_module
         use iso_c_binding
         use types

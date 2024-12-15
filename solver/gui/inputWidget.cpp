@@ -12,12 +12,14 @@ InputWidget::InputWidget(QWidget *parent) : QWidget(parent)
 
     choosePathButton = new QPushButton("Choose Path", this);
     runButton = new QPushButton("Run Solver", this);
+    stopButton = new QPushButton("Stop Solver", this);
     pathInput = new QLineEdit(this);
     pathInput->setReadOnly(true);
 
     layout->addWidget(pathInput);
     layout->addWidget(choosePathButton);
     layout->addWidget(runButton);
+    layout->addWidget(stopButton);
 
     QGridLayout *gridLayout = new QGridLayout();
     QStringList labels = {"CFL", "SFAC", "D_MAX", "D_VAR", "FACSEC", "FCORR", "NSTEPS"};
@@ -46,6 +48,7 @@ InputWidget::InputWidget(QWidget *parent) : QWidget(parent)
 
     connect(choosePathButton, &QPushButton::clicked, this, &InputWidget::choosePath);
     connect(runButton, &QPushButton::clicked, this, &InputWidget::runSolverRequested);
+    connect(stopButton, &QPushButton::clicked, this, &InputWidget::stopSolver);
 }
 
 InputWidget::~InputWidget() {}
@@ -76,6 +79,10 @@ void InputWidget::choosePath() {
     if (setPath(chosenPath)) {
         emit pathChanged(chosenPath);
     }
+}
+
+void InputWidget::stopSolver() {
+    set_stopit_flag(true);
 }
 
 void InputWidget::updateInputFields() {

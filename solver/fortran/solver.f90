@@ -25,6 +25,7 @@
       use write_output_mod
       use timestep
 
+      use solver_flags, only: stopit
       use debug
 
 !     Don't use historical implicit variable naming
@@ -241,6 +242,11 @@
           
 
           if (av%crashed) then
+              exit
+          end if
+          if (stopit) then
+              write(msg_bfr,*) 'Solver stopped manually'
+              call write_to_qt(msg_bfr)
               exit
           end if
 
