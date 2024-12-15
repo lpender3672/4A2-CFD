@@ -178,7 +178,7 @@
           do nrkut = 1,av%nrkuts
 
               do ng = 1, av%nn
-                  g(ng)%dt = g(ng)%dt_total / (1 + nrkuts - nrkut)
+                  g(ng)%dt = g(ng)%dt_total / (1 + av%nrkuts - nrkut)
               end do
 
               do ng = 1, av%nn
