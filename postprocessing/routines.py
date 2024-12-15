@@ -61,6 +61,20 @@ def cut_i(b,i):
 
     return c
 
+def cut_j(b, j):
+    c = {}
+    for var in b:
+        if isinstance(b[var],np.ndarray):
+            if j < np.shape(b[var])[1]:
+                c[var] = np.squeeze(b[var][:,j])
+        else:
+            c[var] = b[var]
+
+    # Store the projected lengths in the j-direction
+    c['lx'] = b['lx_j'][:,j]; c['ly'] = b['ly_j'][:,j];
+
+    return c
+
 ################################################################################
 
 def cut_block(g,n):
