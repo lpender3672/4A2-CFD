@@ -32,7 +32,7 @@
 !         ni, nj
       read(5,*) av%rgas, av%gam
       read(5,*) av%cfl, av%sfac, av%d_max, av%d_var, av%facsec, av%fcorr
-      read(5,*) av%nsteps
+      read(5,*) av%nsteps, av%nrkuts, av%guess_method
       read(5,*) av%ni, av%nj
 
 !     Calculate other gas constants used throughout the calculation

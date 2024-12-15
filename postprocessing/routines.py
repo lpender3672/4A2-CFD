@@ -577,7 +577,7 @@ def read_settings(filename):
     av['cfl'],av['sfac'],av['d_max'],av['d_var'],av['facsec'],av['fcorr'] = [float(x) for x in f.readline().split()]
 
     # Read the number of steps
-    av['nsteps'] = [int(x) for x in f.readline().split()][0]
+    av['nsteps'], av['nrkuts'], av['guess_method'] = [int(x) for x in f.readline().split()]
 
     # Read the grid size
     av['ni'],av['nj'] = [int(x) for x in f.readline().split()]
@@ -704,7 +704,9 @@ def default_settings(casename):
     av['facsec'] = 0.5
 
     # Number of steps
-    av['nsteps'] = 5000; 
+    av['nsteps'] = 5000;
+    av['nrkuts'] = 4
+    av['guess_method'] = 1
 
     # Grid size
     av['ni'] = 53; av['nj'] = 37;
@@ -737,7 +739,7 @@ def write_settings(av, casedir = 'cases/'):
     f.write('%f %f %f %f %f %f\n' % (av['cfl'],av['sfac'],av['d_max'], av['d_var'], av['facsec'], av['fcorr']))
 
     # Write the number of steps
-    f.write('%d\n' % (av['nsteps']))
+    f.write('%d %d %d\n' % (av['nsteps'], av['nrkuts'], av['guess_method']))
 
     # Write the grid size
     f.write('%d %d\n' % (av['ni'],av['nj']))
