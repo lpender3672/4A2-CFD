@@ -16,6 +16,8 @@ InputWidget::InputWidget(QWidget *parent) : QWidget(parent)
     pathInput = new QLineEdit(this);
     pathInput->setReadOnly(true);
 
+    stopButton->setEnabled(false);
+
     layout->addWidget(pathInput);
     layout->addWidget(choosePathButton);
     layout->addWidget(runButton);
@@ -48,7 +50,7 @@ InputWidget::InputWidget(QWidget *parent) : QWidget(parent)
 
     connect(choosePathButton, &QPushButton::clicked, this, &InputWidget::choosePath);
     connect(runButton, &QPushButton::clicked, this, &InputWidget::runSolverRequested);
-    connect(stopButton, &QPushButton::clicked, this, &InputWidget::stopSolver);
+    connect(stopButton, &QPushButton::clicked, this, &InputWidget::stopButtonPressed);
 }
 
 InputWidget::~InputWidget() {}
@@ -81,7 +83,7 @@ void InputWidget::choosePath() {
     }
 }
 
-void InputWidget::stopSolver() {
+void InputWidget::stopButtonPressed() {
     set_stopit_flag(true);
 }
 
@@ -105,6 +107,8 @@ void InputWidget::blockInputFields() {
     nstepsInput->setReadOnly(true);
 
     choosePathButton->setEnabled(false);
+    stopButton->setEnabled(true);
+    runButton->setEnabled(false);
 }
 
 void InputWidget::unblockInputFields() {
@@ -117,6 +121,8 @@ void InputWidget::unblockInputFields() {
     nstepsInput->setReadOnly(false);
     
     choosePathButton->setEnabled(true);
+    stopButton->setEnabled(false);
+    runButton->setEnabled(true);
 }
 
 void InputWidget::saveInputFields() {

@@ -18,11 +18,12 @@ extern "C" {
     void emit_grid_vector_signal(t_grid *g, int length);
 
     void set_stopit_flag(bool value);
-    extern std::atomic<bool> stopit;
 }
 
 void setGlobalConsoleWidget(class ConsoleWidget* widget);
 void setGlobalVisWidget(class VisWidget* widget);
 void setGlobalConvWidget(class ConvWidget* widget);
+
+void set_stopit_flag_c(bool value);
 
 #endif // FORTRAN_BRIDGE_H

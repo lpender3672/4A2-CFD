@@ -29,7 +29,7 @@ public slots:
 
 private slots:
     void choosePath();
-    void stopSolver();
+    void stopButtonPressed();
 
     void updateInputFields();
     void saveInputFields();

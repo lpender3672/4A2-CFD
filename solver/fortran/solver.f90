@@ -46,7 +46,7 @@
       type(t_grid), allocatable, target :: g(:)
       type(t_conv_point) :: conv_point
       real :: d_max = 1, d_avg = 1, avg_of_hist = 1
-      integer :: nstep, nconv = 50, ncheck = 10, ncalcdt = 10
+      integer :: nstep, nconv = 50, ncheck = 10, ncalcdt = 10, nsend = 500
       integer :: nrkuts = 4
       integer :: nrkut, n
       integer :: ni, nj, m
@@ -223,6 +223,10 @@
               call check_stop(av,g)
           end if
 
+          if (mod(av%nstep,nsend) == 0) then
+              call grids_to_qt(g, av%nn)
+          end if
+
 !         Stop marching if converged to the desired tolerance "conlim"
           !if(d_max < av%d_max .and. d_avg < av%d_avg) then
           avg_of_hist = sum(d_avg_hist)/100
@@ -257,6 +261,9 @@
       write(msg_bfr,*) 'Calculation completed after', av%nstep,'iterations'
       call write_to_qt(msg_bfr)
       call write_output(av,g,3)
+
+      stopit = .false. ! reset stopit flag in a not thread safe way
+      ! should be ok because nobody can click the buttons fast enough
 
       call grids_to_qt(g, av%nn)
 !

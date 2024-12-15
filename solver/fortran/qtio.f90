@@ -6,8 +6,23 @@
     module solver_flags
         use iso_c_binding
         implicit none
-        logical(C_BOOL), bind(C, name="stopit") :: stopit
+        logical(C_BOOL) :: stopit
     end module solver_flags
+
+    subroutine set_stopit_flag(val) bind(C, name="set_stopit_flag")
+        use iso_c_binding
+        use solver_flags
+        implicit none
+        logical(C_BOOL), intent(in) :: val
+
+        ! Update the stopit flag in Fortran
+        stopit = val
+        if (stopit) then
+            print *, "Stopit flag set to true in Fortran."
+        else
+            print *, "Stopit flag set to false in Fortran."
+        end if
+    end subroutine set_stopit_flag
 
     module io_module
         use iso_c_binding
