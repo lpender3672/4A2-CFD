@@ -5,11 +5,15 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
+
 from postprocessing.routines import (
     write_settings,
     default_settings,
     read_settings,
     read_conv,
+    check_run_converged
 )
 from preprocessing.generate_case import generate_case
 
@@ -56,7 +60,10 @@ class CFDWorker:
             dro_max = np.inf
             dro_avg = np.inf
 
-        converged = check_run_converged(lines)
+        with open(self.log_file, 'r') as f:
+            converged = check_run_converged(
+                f.readlines()
+                )
 
         newrow = np.array([
             cfl, sfac, time, converged, iterations, dro_max, dro_avg, av['ni'], av['nj']
@@ -85,12 +92,12 @@ class CFDWorker:
         print(f"Worker {self.worker_id} finished.")
 
 class CFDManager:
-    def __init__(self, n_workers, base_folder, cfd_executable, avs):
+    def __init__(self, n_workers, base_folder, data_file, cfd_executable, avs):
         self.n_workers = n_workers
         self.base_folder = Path(base_folder)
         self.base_folder.mkdir(exist_ok=True)
         self.cfd_executable = cfd_executable
-        self.shared_file = self.base_folder / "results.txt"
+        self.shared_file = data_file
         self.shared_lock = threading.Lock()
 
         self.avs = avs
@@ -100,13 +107,21 @@ class CFDManager:
             self.shared_file.unlink()
 
     def clear_worker_folders(self):
+        # recursion is dangerous
+        
+        # check basefolder does not contain drive letters
+        if len(self.base_folder.parts) == 1:
+            raise ValueError("Base folder cannot be a drive letter.")
 
         for folder in self.base_folder.iterdir():
             if folder.is_dir():
                 for subfolder in folder.iterdir():
-                    for file in subfolder.iterdir():
-                        file.unlink()
-                    subfolder.rmdir()
+                    if subfolder.is_dir():
+                        for file in subfolder.iterdir():
+                            file.unlink()
+                        subfolder.rmdir()
+                    else:
+                        subfolder.unlink()
                 folder.rmdir()
 
     def start_workers(self):
@@ -124,15 +139,16 @@ class CFDManager:
 if __name__ == "__main__":
 
     n_workers = 2
-    base_folder = "case_env"
+    base_folder = Path(os.getcwd()) / "case_env"
+    data_file = Path(os.getcwd()) / "report" / "final" / "data" / "results.csv"
     cfd_executable = 'build/solverApp.exe'
 
     av = read_settings('cases/bump/input_bump.txt')
     av['nsteps'] = 500
-    avs = [av for _ in range(10)]
+    avs = [av for _ in range(4)]
 
-    manager = CFDManager(n_workers, base_folder, cfd_executable, avs)
+    manager = CFDManager(n_workers, base_folder, data_file, cfd_executable, avs)
     
     manager.clear_worker_folders()
-    #manager.start_workers()
+    manager.start_workers()
 
