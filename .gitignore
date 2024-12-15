@@ -1,4 +1,5 @@
 build/
+case_env/
 postprocessing/__pycache__/
 preprocessing/__pycache__/
 

@@ -58,6 +58,7 @@ class CFDManager:
     def __init__(self, n_workers, base_folder, cfd_executable, avs):
         self.n_workers = n_workers
         self.base_folder = Path(base_folder)
+        self.base_folder.mkdir(exist_ok=True)
         self.cfd_executable = cfd_executable
         self.shared_file = self.base_folder / "results.txt"
         self.shared_lock = threading.Lock()
