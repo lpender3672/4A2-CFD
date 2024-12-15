@@ -49,7 +49,7 @@ class CFDWorker:
 
     def parse_results(self):
 
-        convpath = self.target_folder / f"conv_{av['casename']}.csv"
+        convpath = self.target_folder / f"conv_{self.av['casename']}.csv"
         conv_hist = read_conv(convpath)
         
         if conv_hist['nstep'].shape[0] > 0:
