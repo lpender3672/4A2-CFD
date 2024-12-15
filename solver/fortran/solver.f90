@@ -47,7 +47,6 @@
       type(t_conv_point) :: conv_point
       real :: d_max = 1, d_avg = 1, avg_of_hist = 1
       integer :: nstep, nconv = 50, ncheck = 10, ncalcdt = 10, nsend = 500
-      integer :: nrkuts = 4
       integer :: nrkut, n
       integer :: ni, nj, m
 
@@ -123,7 +122,7 @@
 !            approximation to the converged flowfield and so the time to
 !            solution will be reduced. You will need to complete this option.
       do ng = 1, av%nn
-          call flow_guess(av,g(ng),bcs,1)
+          call flow_guess(av,g(ng),bcs,av%guess_method)
           call set_secondary(av,g(ng))
       end do
 
@@ -176,7 +175,7 @@
             g(ng)%rovy_start = g(ng)%rovy
           end do          
 
-          do nrkut = 1,nrkuts
+          do nrkut = 1,av%nrkuts
 
               do ng = 1, av%nn
                   g(ng)%dt = g(ng)%dt_total / (1 + nrkuts - nrkut)

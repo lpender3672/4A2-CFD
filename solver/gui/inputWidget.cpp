@@ -84,7 +84,7 @@ void InputWidget::choosePath() {
 }
 
 void InputWidget::stopButtonPressed() {
-    set_stopit_flag(true);
+    set_stopit_flag();
 }
 
 void InputWidget::updateInputFields() {

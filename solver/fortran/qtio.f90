@@ -9,14 +9,12 @@
         logical(C_BOOL) :: stopit
     end module solver_flags
 
-    subroutine set_stopit_flag(val) bind(C, name="set_stopit_flag")
+    subroutine set_stopit_flag() bind(C, name="set_stopit_flag")
         use iso_c_binding
         use solver_flags
         implicit none
-        logical(C_BOOL), intent(in) :: val
-
         ! Update the stopit flag in Fortran
-        stopit = val
+        stopit = .true.
         if (stopit) then
             print *, "Stopit flag set to true in Fortran."
         else

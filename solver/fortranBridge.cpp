@@ -76,16 +76,3 @@ void emit_conv_point_signal(t_conv_point cp) {
 }
 
 }
-
-void set_stopit_flag_c(bool value) {
-    stopit.store(value, std::memory_order_relaxed); // Update the atomic flag
-
-    // Call the Fortran function
-    set_stopit_flag(value);
-
-    if (value) {
-        qDebug() << "Stopit flag set to true.";
-    } else {
-        qDebug() << "Stopit flag set to false.";
-    }
-}
