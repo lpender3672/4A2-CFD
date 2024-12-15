@@ -10,6 +10,14 @@ import os
 # Import modules and functions
 from postprocessing.routines import *
 
+
+def separate(arr):
+
+    npts = arr.shape[0] // 2
+    up_var = np.flip(arr[:npts+1], axis=0)
+    low_var = arr[npts:]
+    return up_var, low_var
+
 def main():
 
     # Construct full filenames to read the run data
@@ -41,17 +49,29 @@ def main():
     for i in range(len(gs)):
         gs[i]['cp'] = (gs[i]['p'] - p_ref) / (pstag_ref - p_ref)
 
+    cut = cut_j(gs[0], 0)
+
     fig = plt.figure(figsize=[9.6,3.8]); ax = plt.axes();
 
-    cut = cut_j(gs[0], 0)
-    slen = np.sqrt(cut['lx']**2 + cut['ly']**2)
-    n = slen.shape[0] // 2
-    slo = np.cumsum(slen[:n][::-1])
-    sup = np.cumsum(slen[n:])
-    ax.plot(slo, cut['cp'][:n][::-1])
-    ax.plot(sup, cut['cp'][n+1:])
-    #ax.plot(cut['x'][:10], cut['y'][:10])
-    
+    xs_u, xs_l = separate(cut['x'])
+    ys_u, ys_l = separate(cut['y'])
+
+    lens_u = np.cumsum(np.sqrt(np.diff(xs_u)**2 + np.diff(ys_u)**2))
+    lens_l = np.cumsum(np.sqrt(np.diff(xs_l)**2 + np.diff(ys_l)**2))
+    lens_u = np.insert(lens_u, 0, 0)
+    lens_l = np.insert(lens_l, 0, 0)
+
+    cpup, cplo = separate(cut['cp'])
+
+    ax.plot(lens_u, cpup)
+    ax.plot(lens_l, cplo)
+
+    # flip y
+    ax.invert_yaxis()
+    ax.grid()
+
+    ax.set_xlabel('Upper surface [m]')
+    ax.set_ylabel('Cp [-]')
 
     fig.tight_layout()
 
