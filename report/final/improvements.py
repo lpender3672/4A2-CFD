@@ -174,7 +174,7 @@ def plot_improvement_cfl():
             avt['cfl'] = cfl
             avs.append(avt.copy())
 
-    manager = create_cfd_env(avs, 'improve_comparison.csv')
+    manager = create_cfd_env(avs, 'improve_comparison_cfl.csv')
     manager.clear_worker_folders()
     manager.start_workers()
 
@@ -207,7 +207,7 @@ def plot_improvement_cfl():
     ax.loglog(
         df_tinac['cfl'].to_numpy(),
         df_tinac['dro_avg'].to_numpy(),
-        label = 'Variable $\Delta t$'
+        label = '$\Delta t_{i,j}$'
     )
 
     default_headers = ['facsec', 'fcorr', 'nrkuts', 'guess_method', 'tstep_method']
@@ -276,6 +276,123 @@ def plot_improvement_cfl():
 
     plt.show()
 
+def plot_improvement_ni():
+
+    templates = get_improvement_setting_templates()
+
+    nis = np.logspace(1, 3, 10, endpoint = True).astype(int)
+    nis = np.insert(nis, 0, [5, 8])
+
+    avs = []
+    for avt in templates:
+        for ni in nis:
+            avt['ni'] = ni
+            avs.append(avt.copy())
+
+    manager = create_cfd_env(avs, 'improve_comparison_ni.csv')
+    manager.clear_worker_folders()
+    manager.start_workers()
+
+    df = pd.read_csv(manager.shared_file)
+
+    fig, ax = plt.subplots()
+
+    df = df[df['converged'] < 2]
+
+    df_rk4 = df[df['nrkuts'] == 4].sort_values('ni')
+    df_facsec = df[df['facsec'] == 0.5].sort_values('ni')
+    df_fcorr = df[df['fcorr'] == 0.8].sort_values('ni')
+    df_tinac = df[df['tstep_method'] == 2].sort_values('ni')
+
+    ax.loglog(
+        df_rk4['ni'].to_numpy(),
+        df_rk4['dro_avg'].to_numpy(),
+        label = 'RK4'
+    )
+    """ax.loglog(
+        df_facsec['ni'].to_numpy(),
+        df_facsec['dro_avg'].to_numpy(),
+        label = 'Facsec'
+    )"""
+    ax.loglog(
+        df_fcorr['ni'].to_numpy(),
+        df_fcorr['dro_avg'].to_numpy(),
+        label = '$f_{corr}$'
+    )
+    ax.loglog(
+        df_tinac['ni'].to_numpy(),
+        df_tinac['dro_avg'].to_numpy(),
+        label = '$\Delta t_{i,j}$'
+    )
+
+    default_headers = ['facsec', 'fcorr', 'nrkuts', 'guess_method', 'tstep_method']
+    default_items = [0, 0, 1, 2, 1]
+    default_df = df.groupby(default_headers, as_index=False).get_group(tuple(default_items))
+    default_df = default_df.sort_values('ni')
+
+    ax.loglog(
+        default_df['ni'].to_numpy(),
+        default_df['dro_avg'].to_numpy(),
+        label = 'Default'
+    )
+
+    # perform averaging
+    default_df = default_df.groupby('ni', as_index=False).agg({'dt': 'mean'})
+    df_rk4 = df_rk4.groupby('ni', as_index=False).agg({'dt': 'mean'})
+    df_facsec = df_facsec.groupby('ni', as_index=False).agg({'dt': 'mean'})
+    df_fcorr = df_fcorr.groupby('ni', as_index=False).agg({'dt': 'mean'})
+    df_tinac = df_tinac.groupby('ni', as_index=False).agg({'dt': 'mean'})
+
+    ax.grid( which='both', linestyle='--', linewidth=0.5)
+    ax.set_xlabel('Number of i cells')
+    ax.set_ylabel('Average residual')
+
+    ax.legend()
+
+    fig.tight_layout()
+    fig.savefig('report/final/figures/improvements_ni_residual.png', dpi=300)
+
+
+    fig, ax = plt.subplots()
+
+    ax.loglog(
+        df_rk4['ni'].to_numpy(),
+        df_rk4['dt'].to_numpy(),
+        label = 'RK4'
+    )
+    """ax.loglog(
+        df_facsec['ni'].to_numpy(),
+        df_facsec['dt'].to_numpy(),
+        label = 'Facsec'
+    )"""
+    ax.loglog(
+        df_fcorr['ni'].to_numpy(),
+        df_fcorr['dt'].to_numpy(),
+        label = '$f_{corr}$'
+    )
+    ax.loglog(
+        df_tinac['ni'].to_numpy(),
+        df_tinac['dt'].to_numpy(),
+        label = '$\Delta t_{i,j}$'
+    )
+    ax.loglog(
+        default_df['ni'].to_numpy(),
+        default_df['dt'].to_numpy(),
+        label = 'Default'
+    )
+
+    ax.grid( which='both', linestyle='--', linewidth=0.5)
+    ax.set_xlabel('Number of i cells')
+    ax.set_ylabel('Run time (s)')
+    ax.legend()
+
+    fig.tight_layout()
+    fig.savefig('report/final/figures/improvements_ni_time.png', dpi=300)
+
+    plt.show()
+
+
 if __name__ == "__main__":
 
     plot_improvement_cfl()
+    plot_improvement_ni()
