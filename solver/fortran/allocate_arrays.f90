@@ -50,6 +50,9 @@
 !     Cell centred primary increments
       allocate(g%dro(ni-1,nj-1),g%drovx(ni-1,nj-1), &
           g%drovy(ni-1,nj-1),g%droe(ni-1,nj-1))
+      allocate(g%dro_1(ni-1,nj-1),g%drovx_1(ni-1,nj-1), &
+          g%drovy_1(ni-1,nj-1),g%droe_1(ni-1,nj-1))
+      g%dro_1 = 0; g%drovx_1 = 0; g%drovy_1 = 0; g%droe_1 = 0
 
           
 !     Secondary variables stored at the nodes for convenience

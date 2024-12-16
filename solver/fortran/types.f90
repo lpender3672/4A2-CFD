@@ -124,6 +124,7 @@
           
 !         Variables to hold cell increments
           real(C_FLOAT), dimension(:,:), pointer :: dro, droe, drovx, drovy
+          real(C_FLOAT), dimension(:,:), pointer :: dro_1, droe_1, drovx_1, drovy_1
 !         Secondary variables at nodes
           real(C_FLOAT), dimension(:,:), pointer :: p, hstag, vx, vy 
           

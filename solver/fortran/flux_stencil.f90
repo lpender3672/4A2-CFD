@@ -8,7 +8,7 @@
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      subroutine sum_fluxes(av,flux_i,flux_j,dt_over_area,prop,prop_start,dcell)
+      subroutine sum_fluxes(av,flux_i,flux_j,dt_over_area,prop,prop_start,dcell_1,dcell)
 
 !     This subroutine sums the fluxes into each cell, calculates the change in 
 !     the cell property inside, distributes the change to the four nodes of the
@@ -21,15 +21,16 @@
       real, intent(in) :: flux_i(:,:), flux_j(:,:), dt_over_area(:,:)
       real, intent(in) :: prop_start(:,:)
       real, intent(inout) :: prop(:,:)
-      real, intent(inout) :: dcell(:,:)
-      real, dimension(size(dcell,1),size(dcell,2)) :: dcell_prev
+      real, intent(inout) :: dcell_1(:,:)
+      real, intent(out) :: dcell(:,:)
+      real, dimension(size(dcell_1,1),size(dcell_1,2)) :: dcell_prev
       real, dimension(size(prop,1),size(prop,2)) :: dnode
       integer :: ni, nj
 
 !     Get the block size and store locally for convenience
       ni = size(prop,1); nj = size(prop,2)
 
-      dcell_prev = dcell
+      dcell_prev = dcell_1
 
 !     Use the finite volume method to find the change in the variables "prop"
 !     over the timestep "dt", save it in the array "dprop_cell" !! This is conflicting because dcell is already defined
@@ -37,9 +38,9 @@
 !     over the timestep "dt", save it in the array "dcell"
       ! The finite volume method relies upon the divergence theorem; the fluxes through the boundaries are summed
 !     to calculate the spatial derivatives in the Euler equations and therefore the time derivative
-      dcell = dt_over_area * (flux_i(1:ni-1,1:nj-1) - flux_i(2:ni,1:nj-1) + flux_j(1:ni-1,1:nj-1) - flux_j(1:ni-1,2:nj))
+      dcell_1 = dt_over_area * (flux_i(1:ni-1,1:nj-1) - flux_i(2:ni,1:nj-1) + flux_j(1:ni-1,1:nj-1) - flux_j(1:ni-1,2:nj))
 
-      dcell = (1 + av%facsec) * dcell - av%facsec * dcell_prev
+      dcell = (1 + av%facsec) * dcell_1 - av%facsec * dcell_prev
 
 !     Now distribute the changes equally to the four corners of each cell. Each 
 !     interior grid point receives one quarter of the change from each of the 

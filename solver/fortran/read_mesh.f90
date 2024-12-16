@@ -52,6 +52,9 @@ module mesh_io
               g(n)%roe(ni,nj))
           allocate(g(n)%dro(ni-1,nj-1),g(n)%drovx(ni-1,nj-1), &
               g(n)%drovy(ni-1,nj-1),g(n)%droe(ni-1,nj-1))
+            allocate(g(n)%dro_1(ni-1,nj-1),g(n)%drovx_1(ni-1,nj-1), &
+              g(n)%drovy_1(ni-1,nj-1),g(n)%droe_1(ni-1,nj-1))
+          g(n)%dro_1 = 0; g(n)%drovx_1 = 0; g(n)%drovy_1 = 0; g(n)%droe_1 = 0
           allocate(g(n)%p(ni,nj),g(n)%hstag(ni,nj),g(n)%vx(ni,nj), &
               g(n)%vy(ni,nj))
             
