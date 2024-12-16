@@ -75,11 +75,23 @@
 % interpolate
 % write_settings python
 
+Some corrections were made to the code supplied by the course.
+The first correction was to the \texttt{interpolate} fortran function which only presented when compiling the program outside of debug mode and so was difficult to identify.
+It was found that the "interp" function was returning unset memory values for the last point of the array. This is believed to be due to more relaxed precision in \texttt{si} which left it outside the normalised range of \texttt{si\_a}
+The fix was to add a check to see if \texttt{si} is outside the input range, and if so return the boundary value.
+A mistake in the python function \texttt{write\_settings} was also found where the gas constants were being written in the incorrect order.
 \subsection{Improvements}
 % runge kutta
 % deferred correction
 % residual averaging
 % spatially varying timestep
+\subsubsection{Runge-Kutta}
+
+\subsubsection{Deferred Correction}
+
+\subsubsection{Residual Averaging}
+
+\subsubsection{Spatially Varying Timestep}
 
 % need to cherry pick commits
 % and create 4 branches of individual improvements

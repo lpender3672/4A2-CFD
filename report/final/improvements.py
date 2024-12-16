@@ -79,7 +79,6 @@ def plot_rkn_accuracy():
         )
 
     print(df['dro_avg'])
-    plt.show()
 
 def plot_rkn_time():
 
@@ -115,7 +114,6 @@ def plot_rkn_time():
 
     fig.tight_layout()
     fig.savefig('report/final/figures/rk4_time.png', dpi=300)
-    plt.show()
 
 
 def get_improvement_setting_templates():
@@ -274,8 +272,6 @@ def plot_improvement_cfl():
 
     fig.savefig('report/final/figures/improvements_cfl_time.png', dpi=300)
 
-    plt.show()
-
 def plot_improvement_ni():
 
     templates = get_improvement_setting_templates()
@@ -389,20 +385,18 @@ def plot_improvement_ni():
     fig.tight_layout()
     fig.savefig('report/final/figures/improvements_ni_time.png', dpi=300)
 
-    plt.show()
-
-def plot_smoothing_cfl_residual(av_template):
+def plot_smoothing_cfl_residual(av_template, data):
     
     # keep sfac = 0.8
 
-    fcorrs = np.linspace(0.1, 0.9, 9)
-    cfls = np.logspace(-2, np.log10(0.5), 10, endpoint = True)
+    sfacs = np.linspace(0.05, 0.8, 10, endpoint = True)
+    cfls = np.logspace(-2, np.log10(1.2), 10, endpoint = True)
 
     avs = []
     for cfl in cfls:
-        for fcorr in fcorrs:
+        for sfac in sfacs:
             av_template['cfl'] = cfl
-            av_template['fcorr'] = fcorr
+            av_template['sfac'] = sfac
             avs.append(av_template.copy())
 
     manager = create_cfd_env(avs, 'smoothing_cfl.csv')
@@ -419,40 +413,67 @@ def plot_smoothing_cfl_residual(av_template):
     df_max_iter = df[df['converged'] == 3]
 
     # scatter
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=[12,9])
+
+    fig.subplots_adjust(
+        top=0.872,
+        bottom=0.087,
+        left=0.073,
+        right=0.983,
+        hspace=0.2,
+        wspace=0.2
+    )
 
     ax.scatter(
         df_converged_within['cfl'].to_numpy(),
-        df_converged_within['fcorr'].to_numpy(),
+        df_converged_within['sfac'].to_numpy(),
+        c =  np.log10(df_converged_within[data]),
+        s = 100,
         label = 'Converged within',
-        marker = 'o'
+        marker = 'o',
+        cmap = 'jet'
     )
-    ax.scatter(
+    conout = ax.scatter(
         df_converged_outside['cfl'].to_numpy(),
-        df_converged_outside['fcorr'].to_numpy(),
+        df_converged_outside['sfac'].to_numpy(),
+        c = np.log10(df_converged_outside[data]),
+        s = 100,
         label = 'Converged outside',
-        marker = 'd'
+        marker = 'd',
+        cmap = 'jet'
     )
     ax.scatter(
         df_diverged['cfl'].to_numpy(),
-        df_diverged['fcorr'].to_numpy(),
+        df_diverged['sfac'].to_numpy(),
+        s = 100,
+        color = 'red',
         label = 'Diverged',
         marker = 'x'
     )
     ax.scatter(
         df_max_iter['cfl'].to_numpy(),
-        df_max_iter['fcorr'].to_numpy(),
+        df_max_iter['sfac'].to_numpy(),
+        s = 100,
+        color = 'black',
         label = 'Max iterations',
         marker = 's'
     )
+    cbar = plt.colorbar(conout)
+    if data == 'dro_avg':
+        cbar.set_label('Log10 average residual density error')
+    elif data == 'dt':
+        cbar.set_label('Log10 run time')
 
     ax.set_xlabel('CFL')
-    ax.set_ylabel('$f_{corr}$')
+    ax.set_ylabel('$s_{fac}$')
+    ax.set_xscale('log')
 
-    ax.legend()
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15),
+          ncol=2, fancybox=True, shadow=True)
     fig.tight_layout()
 
-    fig.savefig('report/final/figures/smoothing_cfl_residual.png', dpi=300)
+    fig.savefig(f'report/final/figures/smoothing_cfl_{data}.png', dpi=300)
+
 
 
 if __name__ == "__main__":
@@ -461,4 +482,10 @@ if __name__ == "__main__":
     #plot_improvement_ni()
 
     av_template = read_settings('cases/bump/input_bump.txt')
-    plot_smoothing_cfl_residual(av_template)
+    av_template['fcorr'] = 0.8
+    print(av_template)
+    plot_smoothing_cfl_residual(av_template, 'dro_avg')
+    plot_smoothing_cfl_residual(av_template, 'dt')
+
+    plt.show()
+
