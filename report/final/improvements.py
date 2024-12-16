@@ -391,8 +391,74 @@ def plot_improvement_ni():
 
     plt.show()
 
+def plot_smoothing_cfl_residual(av_template):
+    
+    # keep sfac = 0.8
+
+    fcorrs = np.linspace(0.1, 0.9, 9)
+    cfls = np.logspace(-2, np.log10(0.5), 10, endpoint = True)
+
+    avs = []
+    for cfl in cfls:
+        for fcorr in fcorrs:
+            av_template['cfl'] = cfl
+            av_template['fcorr'] = fcorr
+            avs.append(av_template.copy())
+
+    manager = create_cfd_env(avs, 'smoothing_cfl.csv')
+    manager.clear_worker_folders()
+    manager.start_workers()
+
+    df = pd.read_csv(manager.shared_file)
+
+    df_agg = df.groupby(['cfl', 'fcorr'], as_index=False).agg({'dt': 'mean'})
+
+    df_converged_within = df[df['converged'] == 0]
+    df_converged_outside = df[df['converged'] == 1]
+    df_diverged = df[df['converged'] == 2]
+    df_max_iter = df[df['converged'] == 3]
+
+    # scatter
+    fig, ax = plt.subplots()
+
+    ax.scatter(
+        df_converged_within['cfl'].to_numpy(),
+        df_converged_within['fcorr'].to_numpy(),
+        label = 'Converged within',
+        marker = 'o'
+    )
+    ax.scatter(
+        df_converged_outside['cfl'].to_numpy(),
+        df_converged_outside['fcorr'].to_numpy(),
+        label = 'Converged outside',
+        marker = 'd'
+    )
+    ax.scatter(
+        df_diverged['cfl'].to_numpy(),
+        df_diverged['fcorr'].to_numpy(),
+        label = 'Diverged',
+        marker = 'x'
+    )
+    ax.scatter(
+        df_max_iter['cfl'].to_numpy(),
+        df_max_iter['fcorr'].to_numpy(),
+        label = 'Max iterations',
+        marker = 's'
+    )
+
+    ax.set_xlabel('CFL')
+    ax.set_ylabel('$f_{corr}$')
+
+    ax.legend()
+    fig.tight_layout()
+
+    fig.savefig('report/final/figures/smoothing_cfl_residual.png', dpi=300)
+
 
 if __name__ == "__main__":
 
-    plot_improvement_cfl()
-    plot_improvement_ni()
+    #plot_improvement_cfl()
+    #plot_improvement_ni()
+
+    av_template = read_settings('cases/bump/input_bump.txt')
+    plot_smoothing_cfl_residual(av_template)
