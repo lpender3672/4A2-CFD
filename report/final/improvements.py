@@ -190,24 +190,24 @@ def plot_improvement_cfl():
     df_tinac = df[df['tstep_method'] == 2].sort_values('cfl')
 
     ax.loglog(
-        df_rk4['cfl'],
-        df_rk4['dro_avg'],
+        df_rk4['cfl'].to_numpy(),
+        df_rk4['dro_avg'].to_numpy(),
         label = 'RK4'
     )
     ax.loglog(
-        df_facsec['cfl'],
-        df_facsec['dro_avg'],
+        df_facsec['cfl'].to_numpy(),
+        df_facsec['dro_avg'].to_numpy(),
         label = 'Facsec'
     )
     ax.loglog(
-        df_fcorr['cfl'],
-        df_fcorr['dro_avg'],
+        df_fcorr['cfl'].to_numpy(),
+        df_fcorr['dro_avg'].to_numpy(),
         label = '$f_{corr}$'
     )
     ax.loglog(
-        df_tinac['cfl'],
-        df_tinac['dro_avg'],
-        label = 'TINAC'
+        df_tinac['cfl'].to_numpy(),
+        df_tinac['dro_avg'].to_numpy(),
+        label = 'Variable $\Delta t$'
     )
 
     default_headers = ['facsec', 'fcorr', 'nrkuts', 'guess_method', 'tstep_method']
@@ -215,8 +215,8 @@ def plot_improvement_cfl():
     default_df = df.groupby(default_headers, as_index=False).get_group(tuple(default_items))
     default_df = default_df.sort_values('cfl')
     ax.loglog(
-        default_df['cfl'],
-        default_df['dro_avg'],
+        default_df['cfl'].to_numpy(),
+        default_df['dro_avg'].to_numpy(),
         label = 'Default'
     )
 
@@ -241,28 +241,28 @@ def plot_improvement_cfl():
     # perform averaging
 
     ax.loglog(
-        df_rk4['cfl'],
-        df_rk4['dt'],
+        df_rk4['cfl'].to_numpy(),
+        df_rk4['dt'].to_numpy(),
         label = 'RK4'
     )
     ax.loglog(
-        df_facsec['cfl'],
-        df_facsec['dt'],
+        df_facsec['cfl'].to_numpy(),
+        df_facsec['dt'].to_numpy(),
         label = 'Facsec'
     )
     ax.loglog(
-        df_fcorr['cfl'],
-        df_fcorr['dt'],
-        label = 'Fcorr'
+        df_fcorr['cfl'].to_numpy(),
+        df_fcorr['dt'].to_numpy(),
+        label = '$f_{corr}$'
     )
     ax.loglog(
-        df_tinac['cfl'],
-        df_tinac['dt'],
-        label = 'TINAC'
+        df_tinac['cfl'].to_numpy(),
+        df_tinac['dt'].to_numpy(),
+        label = '$\Delta t_{i,j}$'
     )
     ax.loglog(
-        default_df['cfl'],
-        default_df['dt'],
+        default_df['cfl'].to_numpy(),
+        default_df['dt'].to_numpy(),
         label = 'Default'
     )
 
