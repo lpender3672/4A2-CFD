@@ -740,7 +740,7 @@ def write_settings(av, casedir = 'cases/'):
     f.write('%f %f\n' % (av['rgas'], av['gam']))
 
     # Write the CFL, smoothing factor and convergence limit
-    f.write('%f %f %f %f %f %f\n' % (av['cfl'],av['sfac'],av['d_max'], av['d_var'], av['facsec'], av['fcorr']))
+    f.write('%f %f %f %f %f %f %f\n' % (av['cfl'],av['sfac'],av['sfac_res'],av['d_max'], av['d_var'], av['facsec'], av['fcorr']))
 
     # Write the number of steps
     f.write('%d %d %d %d\n' % (av['nsteps'], av['nrkuts'], av['guess_method'], av['tstep_method']))
