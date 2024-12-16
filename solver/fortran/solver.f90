@@ -98,7 +98,7 @@
 
 !     Calculate cell areas and facet lengths
       do n = 1, av%nn
-            call calc_areas(g(n))
+            call calc_areas(av, g(n))
       end do
 
       write(msg_bfr,*) 'Minimum mesh size found to be ', minval(g(1)%l_min)

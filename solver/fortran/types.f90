@@ -22,8 +22,8 @@
 
 !         Timestepping, smoothing and other run options
           real(C_FLOAT) ::  cfl, sfac, dt, dt_total, d_max, d_avg
-          real(C_FLOAT) :: d_var, facsec, fcorr
-          integer(C_INT) :: nsteps, nstep, nrkuts, guess_method
+          real(C_FLOAT) :: d_var, facsec, fcorr, l_min
+          integer(C_INT) :: nsteps, nstep, nrkuts, guess_method, tstep_method
 
 !         Reference values of the primary flow variables
           real(C_FLOAT) :: ro_ref, roe_ref, rov_ref

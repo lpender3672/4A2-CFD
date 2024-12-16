@@ -33,11 +33,18 @@ module timestep
 !     be pessimistic for subsonic flows but may be optimistic for supersonic 
 !     flows. In the latter case the length of the time step as determined by 
 !     may need to be reduced by improving this routine or varying the CFL number
-      vx = 0.25 * (g%vx(1:ni-1,1:nj) + g%vx(2:ni,1:nj) + g%vx(1:ni-1,2:nj) + g%vx(2:ni,2:nj))
-      vy = 0.25 * (g%vy(1:ni-1,1:nj) + g%vy(2:ni,1:nj) + g%vy(1:ni-1,2:nj) + g%vy(2:ni,2:nj))
 
-!     Calculate the timestep using the CFL number and store it in "av%dt"
-      g%dt_total = av%cfl * g%l_min / (astag + sqrt(vx**2 + vy**2))
+      if (av%tstep_method == 1) then
+            !     Calculate the timestep using the CFL number and store it in "av%dt"
+            g%dt_total = av%cfl * av%l_min / (2 * astag)
+      else
+            vx = 0.25 * (g%vx(1:ni-1,1:nj) + g%vx(2:ni,1:nj) + g%vx(1:ni-1,2:nj) + g%vx(2:ni,2:nj))
+            vy = 0.25 * (g%vy(1:ni-1,1:nj) + g%vy(2:ni,1:nj) + g%vy(1:ni-1,2:nj) + g%vy(2:ni,2:nj))
+
+      !     Calculate the timestep using the CFL number and store it in "av%dt"
+            g%dt_total = av%cfl * g%l_min / (astag + sqrt(vx**2 + vy**2))
+      
+      end if
 
 !     Print the calculated timestep and some intermediate values
       ! Dont print anymore this is run in a loop
