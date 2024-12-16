@@ -119,6 +119,8 @@ def plot_rkn_time():
 def get_improvement_setting_templates():
 
     av_default = read_settings('cases/bump/input_bump.txt')
+    av_default['cfl'] = 0.2
+    av_default['sfac'] = 0.5
 
     av_default['sfac_res'] = 0
     av_default['facsec'] = 0
@@ -127,7 +129,7 @@ def get_improvement_setting_templates():
     av_default['guess_method'] = 2
     av_default['tstep_method'] = 1
 
-    av_rk4 = read_settings('cases/bump/input_bump.txt')
+    av_rk4 = av_default.copy()
 
     av_rk4['sfac_res'] = 0
     av_rk4['facsec'] = 0
@@ -136,16 +138,16 @@ def get_improvement_setting_templates():
     av_rk4['guess_method'] = 2
     av_rk4['tstep_method'] = 1
 
-    av_rsfac = read_settings('cases/bump/input_bump.txt')
+    av_rsfac = av_default.copy()
     
     av_rsfac['sfac_res'] = 0.5
-    av_rsfac['facsec'] = 0.5
+    av_rsfac['facsec'] = 0
     av_rsfac['fcorr'] = 0
     av_rsfac['nrkuts'] = 1
     av_rsfac['guess_method'] = 2
     av_rsfac['tstep_method'] = 1
 
-    av_fcorr = read_settings('cases/bump/input_bump.txt')
+    av_fcorr = av_default.copy()
 
     av_fcorr['sfac_res'] = 0
     av_fcorr['facsec'] = 0
@@ -154,7 +156,7 @@ def get_improvement_setting_templates():
     av_fcorr['guess_method'] = 2
     av_fcorr['tstep_method'] = 1
 
-    av_tinac = read_settings('cases/bump/input_bump.txt')
+    av_tinac = av_default.copy()
 
     av_tinac['sfac_res'] = 0
     av_tinac['facsec'] = 0
@@ -200,7 +202,7 @@ def plot_improvement_cfl():
     ax.loglog(
         df_rsfac['cfl'].to_numpy(),
         df_rsfac['dro_avg'].to_numpy(),
-        label = 'Facsec'
+        label = 'sfac_res'
     )
     ax.loglog(
         df_fcorr['cfl'].to_numpy(),
@@ -251,7 +253,7 @@ def plot_improvement_cfl():
     ax.loglog(
         df_rsfac['cfl'].to_numpy(),
         df_rsfac['dt'].to_numpy(),
-        label = 'Facsec'
+        label = 'sfac_res'
     )
     ax.loglog(
         df_fcorr['cfl'].to_numpy(),
@@ -481,14 +483,14 @@ def plot_smoothing_cfl_residual(av_template, data):
 
 if __name__ == "__main__":
 
-    #plot_improvement_cfl()
+    plot_improvement_cfl()
     #plot_improvement_ni()
 
     av_template = read_settings('cases/bump/input_bump.txt')
     av_template['fcorr'] = 0.8
     print(av_template)
-    plot_smoothing_cfl_residual(av_template, 'dro_avg')
-    plot_smoothing_cfl_residual(av_template, 'dt')
+    #plot_smoothing_cfl_residual(av_template, 'dro_avg')
+    #plot_smoothing_cfl_residual(av_template, 'dt')
 
     plt.show()
 

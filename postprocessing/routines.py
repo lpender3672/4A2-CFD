@@ -574,7 +574,7 @@ def read_settings(filename):
     av['cv'] = av['cp'] / av['gam']
 
     # Read the CFL, smoothing factor and convergence limit
-    av['cfl'],av['sfac'],av['d_max'],av['d_var'],av['facsec'],av['fcorr'] = [float(x) for x in f.readline().split()]
+    av['cfl'],av['sfac'],av['sfac_res'],av['d_max'],av['d_var'],av['facsec'],av['fcorr'] = [float(x) for x in f.readline().split()]
 
     # Read the number of steps
     av['nsteps'], av['nrkuts'], av['guess_method'], av['tstep_method'] = [int(x) for x in f.readline().split()]
@@ -700,7 +700,7 @@ def default_settings(casename):
     av['rgas'] = 287; av['gam'] = 1.4
 
     # CFL, smoothing factor and convergence limit
-    av['cfl'] = 0.4; av['sfac'] = 0.5; av['d_max'] = 0.0001;
+    av['cfl'] = 0.4; av['sfac'] = 0.5; av['sfac_res'] = 0.5; av['d_max'] = 0.0001;
     av['d_var'] = 0.01; av['facsec'] = 0.0; av['fcorr'] = 0.0
     # added variables
     av['d_var'] = 0.01
