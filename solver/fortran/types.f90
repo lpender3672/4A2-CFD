@@ -21,7 +21,7 @@
           real(C_FLOAT) :: rgas, gam, cp, cv, fgam
 
 !         Timestepping, smoothing and other run options
-          real(C_FLOAT) ::  cfl, sfac, dt, dt_total, d_max, d_avg
+          real(C_FLOAT) ::  cfl, sfac, sfac_res, dt, dt_total, d_max, d_avg
           real(C_FLOAT) :: d_var, facsec, fcorr, l_min
           integer(C_INT) :: nsteps, nstep, nrkuts, guess_method, tstep_method
 
@@ -43,7 +43,7 @@
           character(kind = C_CHAR, len=128) :: casefolder
 
           real(C_FLOAT) :: rgas, gam, cp, cv, fgam
-          real(C_FLOAT) :: cfl, sfac, dt, d_max, d_avg
+          real(C_FLOAT) :: cfl, sfac, sfac_res, dt, d_max, d_avg
           real(C_FLOAT) :: d_var, facsec, fcorr
           integer(C_INT) :: nsteps, nstep
           real(C_FLOAT) :: ro_ref, roe_ref, rov_ref

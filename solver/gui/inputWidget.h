@@ -46,6 +46,7 @@ private:
 
     QLineEdit *cflInput;
     QLineEdit *sfacInput;
+    QLineEdit *sfacResInput;
     QLineEdit *dMaxInput;
     QLineEdit *dVarInput;
     QLineEdit *facSecInput;
