@@ -139,6 +139,12 @@ private:
     QVector<QCPColorScale*> colorScales;
     QVector<QMeshPlot*> meshPlots;
 
+    QCPRange sharedXAxisRange;
+    QCPRange sharedYAxisRange;
+
+    int lastTabIndex = 0;
+    bool resetAxis = true;
+
     void setupTabs();
 
     QVector<t_grid> currentGrids;

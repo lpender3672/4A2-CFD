@@ -13,6 +13,9 @@ VisWidget::VisWidget(QWidget *parent)
 
     setupTabs();
 
+    sharedXAxisRange = QCPRange(-1, 1);
+    sharedYAxisRange = QCPRange(-1, 1);
+
 }
 
 VisWidget::~VisWidget()
@@ -83,6 +86,7 @@ void calc_mach(const t_grid *grid, float *mach, const float *temp)
 
 void VisWidget::onTabChanged(int index)
 {
+
     if (currentGrids.size() == 0)
     {
         return;
@@ -92,6 +96,9 @@ void VisWidget::onTabChanged(int index)
     float *temp = nullptr;
 
     QVector<const float *> dataPointers;
+
+    sharedXAxisRange = customPlots[lastTabIndex]->xAxis->range();
+    sharedYAxisRange = customPlots[lastTabIndex]->yAxis->range();
 
     switch (index)
     {
@@ -153,6 +160,8 @@ void VisWidget::onTabChanged(int index)
     default:
         break;
     }
+
+    lastTabIndex = index;
 }
 
 void VisWidget::createScatterGraph(QChartView *chartView, QLineSeries *series, QString title, QString xTitle, QString yTitle)
@@ -281,15 +290,24 @@ void VisWidget::updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, 
     colorScale->axis()->setRange(globalMinValue, globalMaxValue);
 
     // reset axis
-    customPlot->xAxis->setRange(globalMinX, globalMaxX);
-    customPlot->yAxis->setRange(globalMinY, globalMaxY);
-
-    // set aspect ratio to 1:1
-    customPlot->yAxis->setScaleRatio(customPlot->xAxis, 1.0);
+        // set aspect ratio to 1:1
 
     customPlot->setInteractions(QCP::iRangeZoom | QCP::iRangeDrag);
     customPlot->axisRect()->setRangeZoom(Qt::Horizontal | Qt::Vertical);
     customPlot->axisRect()->setRangeDrag(Qt::Horizontal | Qt::Vertical);
+
+    if (resetAxis)
+    {
+        customPlot->xAxis->setRange(globalMinX, globalMaxX);
+        customPlot->yAxis->setRange(globalMinY, globalMaxY);
+        customPlot->yAxis->setScaleRatio(customPlot->xAxis, 1.0);
+        resetAxis = false;
+    }
+    else
+    {
+        customPlot->xAxis->setRange(sharedXAxisRange);
+        customPlot->yAxis->setRange(sharedYAxisRange);
+    }
 
     customPlot->replot(); // replot
 }
