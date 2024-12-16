@@ -194,11 +194,11 @@ def plot_improvement_cfl():
         df_rk4['dro_avg'].to_numpy(),
         label = 'RK4'
     )
-    ax.loglog(
+    """ax.loglog(
         df_facsec['cfl'].to_numpy(),
         df_facsec['dro_avg'].to_numpy(),
         label = 'Facsec'
-    )
+    )"""
     ax.loglog(
         df_fcorr['cfl'].to_numpy(),
         df_fcorr['dro_avg'].to_numpy(),
@@ -245,11 +245,11 @@ def plot_improvement_cfl():
         df_rk4['dt'].to_numpy(),
         label = 'RK4'
     )
-    ax.loglog(
+    """ax.loglog(
         df_facsec['cfl'].to_numpy(),
         df_facsec['dt'].to_numpy(),
         label = 'Facsec'
-    )
+    )"""
     ax.loglog(
         df_fcorr['cfl'].to_numpy(),
         df_fcorr['dt'].to_numpy(),
