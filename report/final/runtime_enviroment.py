@@ -41,7 +41,6 @@ class CFDWorker:
         self.log_file = self.worker_folder / f"worker_{self.worker_id}.log"
         
         generate_case(self.av['casename'], self.worker_folder)
-        print(self.av)
         write_settings(self.av, self.worker_folder) # overwrite default settings
 
         # sleep
@@ -50,16 +49,22 @@ class CFDWorker:
     def parse_results(self):
 
         convpath = self.target_folder / f"conv_{self.av['casename']}.csv"
-        conv_hist = read_conv(convpath)
-        
-        if conv_hist['nstep'].shape[0] > 0:
-            iterations = conv_hist['nstep'][-1]
-            dro_max = conv_hist['dro_max'][-1]
-            dro_avg = conv_hist['dro_avg'][-1]
-        else:
+        try:
+            conv_hist = read_conv(convpath)
+        except AssertionError:
             iterations = 1
             dro_max = np.inf
             dro_avg = np.inf
+
+        else:
+            if conv_hist['nstep'].shape[0] > 0:
+                iterations = conv_hist['nstep'][-1]
+                dro_max = conv_hist['dro_max'][-1]
+                dro_avg = conv_hist['dro_avg'][-1]
+            else:
+                iterations = 1
+                dro_max = np.inf
+                dro_avg = np.inf
 
         with open(self.log_file, 'r') as f:
             converged = check_run_converged(
@@ -144,9 +149,48 @@ class CFDManager:
 
     def start_workers(self):
 
-        self.clear_shared_file()
-        workers = [CFDWorker(i, self.base_folder, self.cfd_executable, self.avs[i-1], self.shared_file, self.shared_lock) for i in range(1, len(self.avs) + 1)]
+        time_averages = 3
+        precision = 8
 
+        #self.clear_shared_file()
+        workers = []
+        df = pd.read_csv(self.shared_file)
+
+        for i in range(len(self.avs)):
+            group_headers = list(self.avs[i].keys())
+            group_items = list(self.avs[i].values())
+            
+            # handle conversion to correct dtype
+            for col, value in zip(group_headers, group_items):
+                col_dtype = df[col].dtype
+                if not pd.isnull(value):  # keep NaN values
+                    value = col_dtype.type(value)
+
+            # handle float precision
+            df = df[group_headers].round(precision)
+            group_items = [np.round(item, precision) if isinstance(item, float) else item for item in group_items]
+
+            # try group df headers contain the group items
+            try:
+                group_df = df.groupby(group_headers).get_group(tuple(group_items))
+            except KeyError:
+                runs = time_averages
+            else:
+                runs = time_averages - group_df.shape[0]
+
+            # add workers to the list
+            for _ in range(runs):
+                workers.append(
+                    CFDWorker(
+                        len(workers), 
+                        self.base_folder, 
+                        self.cfd_executable, 
+                        self.avs[i], 
+                        self.shared_file, 
+                        self.shared_lock)
+                    )
+
+        # run workers
         with ThreadPoolExecutor(max_workers=self.n_workers) as executor:
             futures = [executor.submit(worker.run) for worker in workers]
             for future in futures:

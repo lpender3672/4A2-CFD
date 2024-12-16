@@ -677,6 +677,9 @@ def read_conv(filename):
     # Store the columns in the log dictionary
     fieldnames = ['nstep', 'dro_avg', 'droe_avg', 'drovx_avg', 'drovy_avg', 
         'dro_max', 'droe_max', 'drovx_max', 'drovy_max']
+    
+    assert arr.shape[1] == len(fieldnames), 'Number of columns in file does not match expected'
+    
     for n,name in enumerate(fieldnames):
         l[name] = arr[:,n]
 
