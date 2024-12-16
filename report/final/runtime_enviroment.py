@@ -154,29 +154,40 @@ class CFDManager:
 
         #self.clear_shared_file()
         workers = []
-        df = pd.read_csv(self.shared_file)
+        skip_search = False
+        try:
+            df = pd.read_csv(self.shared_file)
+        except FileNotFoundError:
+            skip_search = True
+            self.clear_shared_file()
+        else:
+            skip_search = False
 
         for i in range(len(self.avs)):
-            group_headers = list(self.avs[i].keys())
-            group_items = list(self.avs[i].values())
-            
-            # handle conversion to correct dtype
-            for col, value in zip(group_headers, group_items):
-                col_dtype = df[col].dtype
-                if not pd.isnull(value):  # keep NaN values
-                    value = col_dtype.type(value)
 
-            # handle float precision
-            df = df[group_headers].round(precision)
-            group_items = [np.round(item, precision) if isinstance(item, float) else item for item in group_items]
+            if not skip_search:
+                group_headers = list(self.avs[i].keys())
+                group_items = list(self.avs[i].values())
+                
+                # handle conversion to correct dtype
+                for col, value in zip(group_headers, group_items):
+                    col_dtype = df[col].dtype
+                    if not pd.isnull(value):  # keep NaN values
+                        value = col_dtype.type(value)
 
-            # try group df headers contain the group items
-            try:
-                group_df = df.groupby(group_headers).get_group(tuple(group_items))
-            except KeyError:
-                runs = time_averages
+                # handle float precision
+                df = df[group_headers].round(precision)
+                group_items = [np.round(item, precision) if isinstance(item, float) else item for item in group_items]
+
+                # try group df headers contain the group items
+                try:
+                    group_df = df.groupby(group_headers).get_group(tuple(group_items))
+                except KeyError:
+                    runs = time_averages
+                else:
+                    runs = time_averages - group_df.shape[0]
             else:
-                runs = time_averages - group_df.shape[0]
+                runs = time_averages
 
             # add workers to the list
             for _ in range(runs):
