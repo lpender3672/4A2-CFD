@@ -121,6 +121,50 @@ A worker creates the directory and generates case files
 
 \section{Results}
 
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\textwidth]{figures/software.png}
+    \caption{Software GUI}
+    \label{fig:software}
+\end{figure}
+
+\subsection{Comparison of Improvements}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/improvements_cfl_residual.png}
+        \caption{improvements\_cfl\_residual}
+        \label{fig:improvements_cfl_residual}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/improvements_ni_residual.png}
+        \caption{improvements\_ni\_residual}
+        \label{fig:improvements_ni_residual}
+    \end{subfigure}
+    \caption{Comparison of improvements}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/improvements_cfl_time.png}
+        \caption{improvements\_cfl\_time}
+        \label{fig:improvements_cfl_time}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/improvements_ni_time.png}
+        \caption{improvements\_ni\_time}
+        \label{fig:improvements_ni_time}
+    \end{subfigure}
+    \caption{Comparison of improvements}
+\end{figure}
+
+
 \subsection{Naca airfoils}
 
 \begin{figure}[H]
@@ -195,23 +239,35 @@ A worker creates the directory and generates case files
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{figures/turbine_c_surface_cp.png}
-    \caption{Turbine\_c test case results}
-    \label{fig:turbine_c_surface_cp}
+    \begin{subfigure}{0.46\textwidth}
+        \includegraphics[width=0.99\textwidth]{figures/turbine_c_surface_cp.png}
+        \caption{Turbine\_c test case results}
+        \label{fig:turbine_c_surface_cp}
+    \end{subfigure}
+    \begin{subfigure}{0.5\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/turbine_real.png}
+        \caption{Real turbine data \cite{4A3_lab}}
+        \label{fig:turbine_real}
+    \end{subfigure}
+    \caption{Comparison of CFD to experimental data}
 \end{figure}
-\begin{figure}
-    \centering
-    \includegraphics[width=0.7\textwidth]{figures/real_turbine_data.png}
-    \caption{Real turbine data \cite{4A3_lab}}
-    \label{fig:real_turbine_data}
-\end{figure}
-
-\subsection{Comparison of Improvements}
 
 \subsection{Effort vs Accuracy}
 
 \section{Discussion}
 % two pages that doesnt repeat interim
+
+\subsection{Naca airfoils}
+
+Figure \ref{fig:cl_alpha} shows the lift coefficient against angle of attack for the Naca0012 and Naca2412 airfoils.
+From invicid theory, these lift coefficient should be linear with angle of attack with gradient $ 2\pi $. ( our algorithm can now compute PI !)
+The actual gradient observed is 4.5\% higher than $2/\pi$ for the Naca0012 and 10.9\% lower for the Naca2412.
+Why?
+
+\subsection{Turbine}
+
+The turbine case had very similar mesh geometry to 
 
 \section{Summary}
 
@@ -221,7 +277,7 @@ A worker creates the directory and generates case files
 
     \bibitem{handout}
     J. V. Taylor
-    \emph{4A2 COMPUTATIONAL FLUID DYNAMICS: WRITING AN EULER SOLVER}
+    \emph{4A2 Computational Fluid Dynamics: Writing an Euler Solver}
     University of Cambridge,
     2024.
 
@@ -283,5 +339,14 @@ def run(self):
 
     print(f"Worker {self.worker_id} finished.")
 \end{lstlisting}
+
+\subsection{Identical turbine geometry}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{figures/turbine_geometry.png}
+    \caption{Comparison of turbine geometry}
+    \label{fig:turbine_geometry}
+\end{figure}
 
 \end{document}

@@ -11,6 +11,7 @@ import os
 from postprocessing.routines import *
 
 from scipy.signal import find_peaks
+import mat73
 
 def separate(arr):
 
@@ -65,6 +66,93 @@ def calc_lift(av, gs):
 
     return Cl, Cd
 
+
+def plot_blades(av, gs):
+
+    fig, ax = plt.subplots()
+
+    # plot turbine blade
+    data_dir = '../MEng-CW/IIB/4A3/turbine_cascade/data/'
+    filename = '4A3_cascade_lwp26_jrt66_30-Oct-2024_1.mat'
+    e = mat73.loadmat(data_dir + filename); e = e['e'];
+
+    # Plot the suction surface
+    xys = np.array(e['xy_ss'])
+    xyp =  np.array(e['xy_ps'])
+    # concate the two arrays but reverse the second one
+    all_xy = np.concatenate((xys,xyp[::-1,:]),axis=0)
+    all_xy = np.append(all_xy, [xys[0]], axis=0) # close the loop
+    all_xy[:,1] *= -1 # flip y axis
+    # offset all points by pos
+    Cx = 1 # mm
+    all_xy = Cx * all_xy
+    
+    # plot the blade as closed plot
+    ax.plot(all_xy[:,0],all_xy[:,1], label = 'Experimental blade')
+
+    # plot CFD blade
+    assert av['casename'] == 'turbine_c'
+
+    cut = cut_j(gs[0], 0)
+    max_x = np.max(cut['x'])
+    scaled_x = cut['x'] / max_x
+    scaled_y =  cut['y'] / max_x
+    _,yup = separate(scaled_y)
+    plt.plot(scaled_x,scaled_y - yup[0], label = 'CFD blade')
+
+    ax.legend()
+
+def channels(N):
+    # Convert all channel numbers to python indices
+
+    # Loop over all keys, minus 1 and convert to integers
+    for instr in N.keys():
+        for chan in N[instr]:
+            N[instr][chan] = N[instr][chan] - 1
+            N[instr][chan] = N[instr][chan].astype(int)
+
+    return(N)
+
+def plot_experimental_cp(ax):
+    # Use manometer data for detailed calculations on pressure distribution
+
+    data_dir = '../MEng-CW/IIB/4A3/turbine_cascade/data/'
+    filename = '4A3_cascade_lwp26_jrt66_30-Oct-2024_1.mat'
+
+    e = mat73.loadmat(data_dir + filename); e = e['e'];
+    b = mat73.loadmat(data_dir + 'cascade.mat'); b = b['b']['cfd'];
+    N = channels(e['N'])
+
+    # Initialise dictionary for processed data
+    s = {}
+
+    # Figure window for lift distribution
+
+    cols = gen_cols()
+
+    # Plot the CFD velocity distribution
+    b['Vs_V2s'] = b['v'] * np.cos(np.deg2rad(b['alpha_2']))
+    b['x_cx'] = (b['x'] - np.min(b['x'])) / (np.max(b['x']) - np.min(b['x'])) 
+
+    # Concatenate the SS and PS measurements in a single complete loop
+    iss = N['h2o']['Pss']; ips = N['h2o']['Pps'];
+    leng = e['xy_ss'].shape[0]
+    P = np.concatenate((e['P_h2o'][iss],np.flip(e['P_h2o'][ips]),
+        np.expand_dims(e['P_h2o'][iss][0],axis=0)))
+
+    # Join coordinates from both sides together
+    s['xy'] = np.concatenate((e['xy_ss'],np.flip(e['xy_ps'],axis=0),
+        np.expand_dims(e['xy_ss'][0],axis=0)))
+
+    # Blade surface pressure coefficients
+    
+    Po_1 = e['P_h2o'][N['h2o']['Po_1']]; P_2 = 0;
+    s['Cp'] = (Po_1 - P) / (Po_1 - P_2)
+
+    ax.plot(s['xy'][:,0], s['Cp'], label='Experimental blade')
+
+    return ax
+
 def main():
 
     # Construct full filenames to read the run data
@@ -115,23 +203,30 @@ def main():
 
     lens_u = np.cumsum(np.sqrt(np.diff(xs_u)**2 + np.diff(ys_u)**2))
     lens_l = np.cumsum(np.sqrt(np.diff(xs_l)**2 + np.diff(ys_l)**2))
-    lens_u = np.insert(lens_u, 0, 0)
-    lens_l = np.insert(lens_l, 0, 0)
+    lens_u = np.insert(lens_u, 0, 0) / np.max(lens_u)
+    lens_l = np.insert(lens_l, 0, 0) / np.max(lens_l)
 
     Cl, _ = calc_lift(av, gs)
     print(f'Cl: {Cl}')
+
+    if av['casename'] == 'turbine_c':
+        plot_blades(av, gs)
 
     fig = plt.figure(figsize=[8,5.4]); ax = plt.axes();
 
     ax.plot(lens_u, cpup, label='Upper surface')
     ax.plot(lens_l, cplo, label='Lower surface')
 
+    # these are uncomparable
+    #if av['casename'] == 'turbine_c':
+    #    ax = plot_experimental_cp(ax)
+
     # flip y
     ax.invert_yaxis()
     ax.grid()
     ax.legend()
 
-    ax.set_xlabel('Upper surface [m]')
+    ax.set_xlabel('Normalised surface path length [-]')
     ax.set_ylabel('Cp [-]')
 
     fig.tight_layout()

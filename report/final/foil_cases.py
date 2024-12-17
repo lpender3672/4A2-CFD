@@ -12,6 +12,7 @@ import pandas as pd
 import copy
 
 import matplotlib.pyplot as plt
+import mat73
 
 
 def create_cfd_env(avs, name):
@@ -31,7 +32,8 @@ def plot_clcd_alpha():
     av_2412 = read_settings('cases/naca2412/input_naca2412.txt')
 
     av_templates = [av_0012, av_2412]
-    alphas = np.linspace(-5, 15, 9)
+    alphas = np.linspace(-10, 20, 13)
+    print(alphas)
 
     avs = []
     for av in av_templates:
@@ -84,17 +86,19 @@ def plot_clcd_alpha():
 
     ax.plot(df_naca0012['alpha'].to_numpy(),
             df_naca0012['cd'].to_numpy(),
+            '-o',
             label='NACA0012')
     ax.plot(df_naca2412['alpha'].to_numpy(),
             df_naca2412['cd'].to_numpy(),
+            '-o',
             label='NACA2412')
     
     theoretical_gradient = 2 / np.pi
     gradient_0012 =  np.diff(df_naca0012['cl']) / np.diff(np.deg2rad(df_naca0012['alpha']))
-    gradient_0012 = np.mean(gradient_0012)
+    gradient_0012 = np.mean(gradient_0012[:-1])
     print(f'raw gradient {gradient_0012}, difference {(gradient_0012 - theoretical_gradient) / theoretical_gradient}')
     gradient_2412 =  np.diff(df_naca2412['cl']) / np.diff(np.deg2rad(df_naca2412['alpha']))
-    gradient_2412 = np.mean(gradient_2412)
+    gradient_2412 = np.mean(gradient_2412[:-1])
     print(f'raw gradient {gradient_2412}, difference {(gradient_2412 - theoretical_gradient) / theoretical_gradient}')
 
     ax.grid( linestyle='--', linewidth=0.5)
