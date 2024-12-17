@@ -18,6 +18,36 @@ def separate(arr):
     low_var = arr[npts:]
     return up_var, low_var
 
+def calc_lift(av, gs):
+
+    for i in range(len(gs)):
+        gs[i] = calc_secondary(av,gs[i])
+
+    cut = cut_i(gs[0], 0)
+    pstag_ref = mass_av(cut, 'pstag')[0]
+    p_ref = area_av(cut, 'p')[0]
+
+    for i in range(len(gs)):
+        gs[i]['cp'] = (gs[i]['p'] - p_ref) / (pstag_ref - p_ref)
+
+    cut = cut_j(gs[0], 0) 
+
+    xs_u, xs_l = separate(cut['x'])
+    ys_u, ys_l = separate(cut['y'])
+
+    cpup, cplo = separate(cut['cp'])
+
+    alpha = av['alpha'] * np.pi / 180
+    dtheta_u = np.arctan2(np.diff(ys_u), np.diff(xs_u))
+    dtheta_l = np.arctan2(np.diff(ys_l), np.diff(xs_l))
+
+    cl_upper = -cpup[:-1] * np.sin(dtheta_u - alpha) * np.diff(xs_u)
+    cl_lower = -cplo[:-1] * np.sin(dtheta_l - alpha) * np.diff(xs_l)
+
+    Cl = np.sum(cl_upper) + np.sum(cl_lower)
+
+    return Cl
+
 def main():
 
     # Construct full filenames to read the run data
