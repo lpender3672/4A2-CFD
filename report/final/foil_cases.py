@@ -64,9 +64,11 @@ def plot_clcd_alpha():
 
     ax.plot(df_naca0012['alpha'].to_numpy(), 
             df_naca0012['cl'].to_numpy(), 
+            '-o',
             label='NACA0012')
     ax.plot(df_naca2412['alpha'].to_numpy(), 
-            df_naca2412['cl'].to_numpy(), 
+            df_naca2412['cl'].to_numpy(),
+            '-o',
             label='NACA2412')
 
     ax.grid( linestyle='--', linewidth=0.5)
@@ -86,6 +88,14 @@ def plot_clcd_alpha():
     ax.plot(df_naca2412['alpha'].to_numpy(),
             df_naca2412['cd'].to_numpy(),
             label='NACA2412')
+    
+    theoretical_gradient = 2 / np.pi
+    gradient_0012 =  np.diff(df_naca0012['cl']) / np.diff(np.deg2rad(df_naca0012['alpha']))
+    gradient_0012 = np.mean(gradient_0012)
+    print(f'raw gradient {gradient_0012}, difference {(gradient_0012 - theoretical_gradient) / theoretical_gradient}')
+    gradient_2412 =  np.diff(df_naca2412['cl']) / np.diff(np.deg2rad(df_naca2412['alpha']))
+    gradient_2412 = np.mean(gradient_2412)
+    print(f'raw gradient {gradient_2412}, difference {(gradient_2412 - theoretical_gradient) / theoretical_gradient}')
 
     ax.grid( linestyle='--', linewidth=0.5)
     ax.legend()
@@ -95,8 +105,6 @@ def plot_clcd_alpha():
 
     fig.tight_layout()
     fig.savefig('report/final/figures/cd_alpha.png', dpi=300)
-
-    ax.plot
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ import os
 # Import modules and functions
 from postprocessing.routines import *
 
+from scipy.signal import find_peaks
 
 def separate(arr):
 
@@ -17,6 +18,17 @@ def separate(arr):
     up_var = np.flip(arr[:npts+1], axis=0)
     low_var = arr[npts:]
     return up_var, low_var
+
+def gradient_seperate(arr, gradarr):
+
+    # take middle array between highest 2nd gradient points
+    ddarr = np.abs(np.diff(gradarr, 3))
+    # get indicies of two highest points
+    idxs = np.argsort(ddarr)[-2:]
+    idxs = np.sort(idxs)
+    slic = arr[idxs[0]:idxs[1]]
+
+    return slic
 
 def calc_lift(av, gs):
 
@@ -84,38 +96,47 @@ def main():
     for i in range(len(gs)):
         gs[i]['cp'] = (gs[i]['p'] - p_ref) / (pstag_ref - p_ref)
 
-    cut = cut_j(gs[0], 0)
 
-    fig = plt.figure(figsize=[9.6,3.8]); ax = plt.axes();
-
-    xs_u, xs_l = separate(cut['x'])
-    ys_u, ys_l = separate(cut['y'])
+    if av['casename'] == 'turbine_h':
+        topcut = cut_j(gs[0], 0)
+        botcut = cut_j(gs[0], -1)
+        xs_u = gradient_seperate(topcut['x'], topcut['y'])
+        ys_u = gradient_seperate(topcut['y'], topcut['y'])
+        xs_l = gradient_seperate(botcut['x'], botcut['x'])
+        ys_l = gradient_seperate(botcut['y'], botcut['x'])
+        cpup = gradient_seperate(topcut['cp'], topcut['y'])
+        cplo = gradient_seperate(botcut['cp'], botcut['x'])
+    
+    else:
+        cut = cut_j(gs[0], 0)
+        xs_u, xs_l = separate(cut['x'])
+        ys_u, ys_l = separate(cut['y'])
+        cpup, cplo = separate(cut['cp'])
 
     lens_u = np.cumsum(np.sqrt(np.diff(xs_u)**2 + np.diff(ys_u)**2))
     lens_l = np.cumsum(np.sqrt(np.diff(xs_l)**2 + np.diff(ys_l)**2))
     lens_u = np.insert(lens_u, 0, 0)
     lens_l = np.insert(lens_l, 0, 0)
 
-    cpup, cplo = separate(cut['cp'])
-
     Cl, _ = calc_lift(av, gs)
     print(f'Cl: {Cl}')
 
-    ax.plot(lens_u, cpup)
-    ax.plot(lens_l, cplo)
+    fig = plt.figure(figsize=[8,5.4]); ax = plt.axes();
 
-    
+    ax.plot(lens_u, cpup, label='Upper surface')
+    ax.plot(lens_l, cplo, label='Lower surface')
 
     # flip y
     ax.invert_yaxis()
     ax.grid()
+    ax.legend()
 
     ax.set_xlabel('Upper surface [m]')
     ax.set_ylabel('Cp [-]')
 
     fig.tight_layout()
 
-#    fig.savefig(f'report/final/figures/{sys.argv[-1]}_{name}.png', dpi=300)
+    fig.savefig(f'report/final/figures/{sys.argv[-1]}_surface_cp.png', dpi=300)
 
     # Show all the plots
     plt.show()

@@ -16,6 +16,9 @@ import pathlib
 plt.rcParams["savefig.directory"] = '.'; plt.rcParams['savefig.dpi'] = 600;
 plt.rc('font',size=14); plt.rc('axes',titlesize=16); plt.rc('axes',labelsize=16)
 
+plt.rcParams["text.usetex"] = True
+plt.rcParams["font.family"] = "serif"
+
 ################################################################################
 
 def calc_secondary(av,b):

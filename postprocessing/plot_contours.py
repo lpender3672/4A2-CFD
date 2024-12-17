@@ -42,14 +42,28 @@ def main():
         gs[i]['cp'] = (gs[i]['p'] - p_ref) / (pstag_ref - p_ref)
 
     # Specify the parameters to plot
-    fieldnames = ['cp', 'mach', 'rovy']; 
-    colnames = ['Static pressure coefficient','Mach number', 'rovy']
+    fieldnames = ['cp', 'mach']; 
+    colnames = ['Static pressure coefficient','Mach number']
+
+    sizedict = {
+        "bump" : [9.6,3.8],
+        "bend" : [9.6,3.8],
+        "tube" : [9.6,3.8],
+        "tunnel" : [9.6,3.8],
+        "waves" : [9.6,3.8],
+        "turbine_h" : [6,6],
+        "turbine_c" : [6,6],
+    }
+    if "naca" in sys.argv[-1]:
+        figsize = [8,5.4]
+    else:
+        figsize = sizedict[sys.argv[-1]]
 
     # Plot the calculated non-dimensional parameters to show the flow solution
     for n,name in enumerate(fieldnames):
 
         # Open figure window
-        fig = plt.figure(figsize=[9.6,3.8]); ax = plt.axes();
+        fig = plt.figure(figsize=figsize); ax = plt.axes();
     
         # Set aspect ratio as equal and remove axes labels
         ax.set_aspect('equal',adjustable='box'); ax.axis('off')
@@ -72,15 +86,20 @@ def main():
         if name == 'mach':
             for g in gs:
                 ax.contour(g['x'],g['y'],g['mach'],[1.0],colors='w',
-                    linewidths=0.5) 
+                    linewidths=0.5)
 
         # Draw the walls of the block
         for g in gs:
             plot_wall(ax,g)
 
+        if "naca" in sys.argv[-1]:
+            # zoom in on the airfoil
+            ax.set_xlim([-0.5, 1.5])
+            ax.set_ylim([-0.6, 0.6])
+
         fig.tight_layout()
 
-        fig.savefig(f'report/interim/figures/{sys.argv[-1]}_{name}.png', dpi=300)
+        fig.savefig(f'report/final/figures/{sys.argv[-1]}_{name}.png', dpi=300)
 
     # Show all the plots
     plt.show()

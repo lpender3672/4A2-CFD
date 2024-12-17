@@ -20,6 +20,7 @@
 \usepackage{textgreek}
 \usepackage{mathrsfs}
 \usepackage{savetrees}
+\usepackage{dirtree}
 
 
 \usetikzlibrary{calc}
@@ -81,8 +82,10 @@ It was found that the "interp" function was returning unset memory values for th
 The fix was to add a check to see if \texttt{si} is outside the input range, and if so return the boundary value.
 A mistake in the python function \texttt{write\_settings} was also found where the gas constants were being written in the incorrect order.
 
-The stopit file was removed and replaced with the variable \texttt{av\%crashed} which is set to true if \texttt{NaN} is detected, or if the user interrupts the program.
-
+The general program stopit file was removed and replaced with the variable \texttt{av\%crashed} which is set to true if \texttt{NaN} is detected, or if the user interrupts the program.
+Not only is this more elegant, but also allows the program to be run in parallel without writing to the same file.
+This was imporant to accelerate the testing and a custom python thread pool manager was written for this purpose.
+A worker creates the directory and generates case files 
 \subsection{Improvements}
 % runge kutta
 % deferred correction
@@ -118,9 +121,92 @@ The stopit file was removed and replaced with the variable \texttt{av\%crashed} 
 
 \section{Results}
 
-\subsection{Comparison of Improvements}
+\subsection{Naca airfoils}
 
-\subsection{Case Results}
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/naca0012_cp.png}
+        \caption{}
+        \label{fig:naca0012_cp}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/naca0012_surface_cp.png}
+        \caption{}
+        \label{fig:naca0012_mach}
+    \end{subfigure}
+    \caption{Naca0012 test case results}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/naca2412_cp.png}
+        \caption{}
+        \label{fig:naca2412_cp}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/naca0012_surface_cp.png}
+        \caption{}
+        \label{fig:naca2412_mach}
+    \end{subfigure}
+    \caption{Naca2412 test case results}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/cl_alpha.png}
+        \caption{}
+        \label{fig:cl_alpha}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/cd_alpha.png}
+        \caption{}
+        \label{fig:cd_alpha}
+    \end{subfigure}
+    \caption{Naca2412 test case results}
+\end{figure}
+
+\subsection{Turbine}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/turbine_c_cp.png}
+        \caption{}
+        \label{fig:turbine_c_cp}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/turbine_c_mach.png}
+        \caption{}
+        \label{fig:turbine_c_mach}
+    \end{subfigure}
+    \caption{Turbine\_c test case results}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/turbine_c_surface_cp.png}
+    \caption{Turbine\_c test case results}
+    \label{fig:turbine_c_surface_cp}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/real_turbine_data.png}
+    \caption{Real turbine data \cite{4A3_lab}}
+    \label{fig:real_turbine_data}
+\end{figure}
+
+\subsection{Comparison of Improvements}
 
 \subsection{Effort vs Accuracy}
 
@@ -128,5 +214,74 @@ The stopit file was removed and replaced with the variable \texttt{av\%crashed} 
 % two pages that doesnt repeat interim
 
 \section{Summary}
+
+\section{References}
+
+\begin{thebibliography}{9}
+
+    \bibitem{handout}
+    J. V. Taylor
+    \emph{4A2 COMPUTATIONAL FLUID DYNAMICS: WRITING AN EULER SOLVER}
+    University of Cambridge,
+    2024.
+
+    \bibitem{4A3_lab}
+    L. W. Pender
+    \emph{4A3 Turbomachinary Laboratory Report}
+    University of Cambridge,
+    2024.
+  
+\end{thebibliography}
+
+\section{Appendix}
+
+\subsection{Worker runtime enviroment}
+
+A worker directory folder is created in the following format:
+% directory tree for bump worker
+\begin{figure}[H]
+    \dirtree{%
+    .1 1.
+    .2 bump.
+    .3 input\_bump.txt.
+    .3 conv\_bump.csv.
+    .3 out\_coord\_bump.bin.
+    .3 out\_final\_bump.bin.
+    .3 geom\_bump.txt.
+    .3 out\_guess\_bump.bin.
+    .2 log.txt.
+    }
+\end{figure}
+
+During setup \texttt{generate\_case} is called and the settings and geometry files are written to the case folder.
+During runtime the \texttt{log.txt} acts as \texttt{stdout} for the program.
+When the solver finishes then the out files are saved and processed using the postprocessing python functions.
+
+\begin{lstlisting}[language=Python]
+def run(self):
+    self.setup_environment()
+    with open(self.log_file, "w") as log:
+        try:
+            parsed_file = str(self.in_file).replace("\\", "/")
+            t1 = time.time()
+            subprocess.run([self.cfd_executable, "--path", parsed_file],
+                            check=True,
+                            stdout=log)
+            t2 = time.time()
+        except subprocess.CalledProcessError as e:
+            print(f"Worker {self.worker_id} failed with error: {e}")
+            return
+
+    self.dt = t2 - t1
+    results = self.parse_results()
+
+    # Write results to the shared file in a thread-safe way
+    with self.shared_lock:
+        with open(self.shared_file, "a", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(results)
+
+    print(f"Worker {self.worker_id} finished.")
+\end{lstlisting}
 
 \end{document}
