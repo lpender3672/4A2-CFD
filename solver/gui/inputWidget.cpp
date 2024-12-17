@@ -24,17 +24,18 @@ InputWidget::InputWidget(QWidget *parent) : QWidget(parent)
     layout->addWidget(stopButton);
 
     QGridLayout *gridLayout = new QGridLayout();
-    QStringList labels = {"CFL", "SFAC", "D_MAX", "D_VAR", "FACSEC", "FCORR", "NSTEPS"};
+    QStringList labels = {"CFL", "SFAC", "SFAC_RES", "D_MAX", "D_VAR", "FACSEC", "FCORR", "NSTEPS"};
 
     cflInput = new QLineEdit(this);
     sfacInput = new QLineEdit(this);
+    sfacResInput = new QLineEdit(this);
     dMaxInput = new QLineEdit(this);
     dVarInput = new QLineEdit(this);
     facSecInput = new QLineEdit(this);
     fCorrInput = new QLineEdit(this);
     nstepsInput = new QLineEdit(this);
 
-    QLineEdit *inputs[] = {cflInput, sfacInput, dMaxInput, dVarInput, facSecInput, fCorrInput, nstepsInput};
+    QLineEdit *inputs[] = {cflInput, sfacInput, sfacResInput, dMaxInput, dVarInput, facSecInput, fCorrInput, nstepsInput};
 
     for (int i = 0; i < labels.size(); ++i) {
         QLabel *label = new QLabel(labels[i], this);
@@ -90,6 +91,7 @@ void InputWidget::stopButtonPressed() {
 void InputWidget::updateInputFields() {
     cflInput->setText(QString::number(av.cfl, 'f'));
     sfacInput->setText(QString::number(av.sfac, 'f'));
+    sfacResInput->setText(QString::number(av.sfac_res, 'f'));
     dMaxInput->setText(QString::number(av.d_max, 'f'));
     dVarInput->setText(QString::number(av.d_var, 'f'));
     facSecInput->setText(QString::number(av.facsec, 'f'));
@@ -100,6 +102,7 @@ void InputWidget::updateInputFields() {
 void InputWidget::blockInputFields() {
     cflInput->setReadOnly(true);
     sfacInput->setReadOnly(true);
+    sfacResInput->setReadOnly(true);
     dMaxInput->setReadOnly(true);
     dVarInput->setReadOnly(true);
     facSecInput->setReadOnly(true);
@@ -114,6 +117,7 @@ void InputWidget::blockInputFields() {
 void InputWidget::unblockInputFields() {
     cflInput->setReadOnly(false);
     sfacInput->setReadOnly(false);
+    sfacResInput->setReadOnly(false);
     dMaxInput->setReadOnly(false);
     dVarInput->setReadOnly(false);
     facSecInput->setReadOnly(false);
@@ -129,6 +133,7 @@ void InputWidget::saveInputFields() {
     try {
         av.cfl = cflInput->text().toFloat();
         av.sfac = sfacInput->text().toFloat();
+        av.sfac_res = sfacResInput->text().toFloat();
         av.d_max = dMaxInput->text().toFloat();
         av.d_var = dVarInput->text().toFloat();
         av.facsec = facSecInput->text().toFloat();

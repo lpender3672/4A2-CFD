@@ -45,7 +45,7 @@ extern "C" {
         char casefolder[128];
         
         float rgas, gam, cp, cv, fgam;
-        float cfl, sfac, dt, d_max, d_avg;
+        float cfl, sfac, sfac_res, dt, d_max, d_avg;
         float d_var, facsec, fcorr;
         int nsteps, nstep, nkruts, guess_method, tstep_method;
         float ro_ref, roe_ref, rov_ref;

@@ -79,7 +79,6 @@ def plot_rkn_accuracy():
         )
 
     print(df['dro_avg'])
-    plt.show()
 
 def plot_rkn_time():
 
@@ -115,52 +114,58 @@ def plot_rkn_time():
 
     fig.tight_layout()
     fig.savefig('report/final/figures/rk4_time.png', dpi=300)
-    plt.show()
 
 
 def get_improvement_setting_templates():
 
     av_default = read_settings('cases/bump/input_bump.txt')
+    av_default['cfl'] = 0.2
+    av_default['sfac'] = 0.5
 
+    av_default['sfac_res'] = 0
     av_default['facsec'] = 0
     av_default['fcorr'] = 0
     av_default['nrkuts'] = 1
     av_default['guess_method'] = 2
     av_default['tstep_method'] = 1
 
-    av_rk4 = read_settings('cases/bump/input_bump.txt')
+    av_rk4 = av_default.copy()
 
+    av_rk4['sfac_res'] = 0
     av_rk4['facsec'] = 0
     av_rk4['fcorr'] = 0
     av_rk4['nrkuts'] = 4
     av_rk4['guess_method'] = 2
     av_rk4['tstep_method'] = 1
 
-    av_facsec = read_settings('cases/bump/input_bump.txt')
+    av_rsfac = av_default.copy()
     
-    av_facsec['facsec'] = 0.5
-    av_facsec['fcorr'] = 0
-    av_facsec['nrkuts'] = 1
-    av_facsec['guess_method'] = 2
-    av_facsec['tstep_method'] = 1
+    av_rsfac['sfac_res'] = 0.5
+    av_rsfac['facsec'] = 0
+    av_rsfac['fcorr'] = 0
+    av_rsfac['nrkuts'] = 1
+    av_rsfac['guess_method'] = 2
+    av_rsfac['tstep_method'] = 1
 
-    av_fcorr = read_settings('cases/bump/input_bump.txt')
+    av_fcorr = av_default.copy()
 
+    av_fcorr['sfac_res'] = 0
     av_fcorr['facsec'] = 0
     av_fcorr['fcorr'] = 0.8
     av_fcorr['nrkuts'] = 1
     av_fcorr['guess_method'] = 2
     av_fcorr['tstep_method'] = 1
 
-    av_tinac = read_settings('cases/bump/input_bump.txt')
+    av_tinac = av_default.copy()
 
+    av_tinac['sfac_res'] = 0
     av_tinac['facsec'] = 0
     av_tinac['fcorr'] = 0
     av_tinac['nrkuts'] = 1
     av_tinac['guess_method'] = 2
     av_tinac['tstep_method'] = 2
 
-    templates = [av_default, av_rk4, av_facsec, av_fcorr, av_tinac]
+    templates = [av_default, av_rk4, av_rsfac, av_fcorr, av_tinac]
     return templates
 
 def plot_improvement_cfl():
@@ -185,7 +190,7 @@ def plot_improvement_cfl():
     df = df[df['converged'] < 2]
     
     df_rk4 = df[df['nrkuts'] == 4].sort_values('cfl')
-    df_facsec = df[df['facsec'] == 0.5].sort_values('cfl')
+    df_rsfac = df[df['sfac_res'] == 0.5].sort_values('cfl')
     df_fcorr = df[df['fcorr'] == 0.8].sort_values('cfl')
     df_tinac = df[df['tstep_method'] == 2].sort_values('cfl')
 
@@ -194,11 +199,11 @@ def plot_improvement_cfl():
         df_rk4['dro_avg'].to_numpy(),
         label = 'RK4'
     )
-    """ax.loglog(
-        df_facsec['cfl'].to_numpy(),
-        df_facsec['dro_avg'].to_numpy(),
-        label = 'Facsec'
-    )"""
+    ax.loglog(
+        df_rsfac['cfl'].to_numpy(),
+        df_rsfac['dro_avg'].to_numpy(),
+        label = 'sfac_res'
+    )
     ax.loglog(
         df_fcorr['cfl'].to_numpy(),
         df_fcorr['dro_avg'].to_numpy(),
@@ -223,7 +228,7 @@ def plot_improvement_cfl():
     # perform averaging
     default_df = default_df.groupby('cfl', as_index=False).agg({'dt': 'mean'})
     df_rk4 = df_rk4.groupby('cfl', as_index=False).agg({'dt': 'mean'})
-    df_facsec = df_facsec.groupby('cfl', as_index=False).agg({'dt': 'mean'})
+    df_rsfac = df_rsfac.groupby('cfl', as_index=False).agg({'dt': 'mean'})
     df_fcorr = df_fcorr.groupby('cfl', as_index=False).agg({'dt': 'mean'})
     df_tinac = df_tinac.groupby('cfl', as_index=False).agg({'dt': 'mean'})
 
@@ -245,11 +250,11 @@ def plot_improvement_cfl():
         df_rk4['dt'].to_numpy(),
         label = 'RK4'
     )
-    """ax.loglog(
-        df_facsec['cfl'].to_numpy(),
-        df_facsec['dt'].to_numpy(),
-        label = 'Facsec'
-    )"""
+    ax.loglog(
+        df_rsfac['cfl'].to_numpy(),
+        df_rsfac['dt'].to_numpy(),
+        label = 'sfac_res'
+    )
     ax.loglog(
         df_fcorr['cfl'].to_numpy(),
         df_fcorr['dt'].to_numpy(),
@@ -273,8 +278,6 @@ def plot_improvement_cfl():
     fig.tight_layout()
 
     fig.savefig('report/final/figures/improvements_cfl_time.png', dpi=300)
-
-    plt.show()
 
 def plot_improvement_ni():
 
@@ -300,7 +303,7 @@ def plot_improvement_ni():
     df = df[df['converged'] < 2]
 
     df_rk4 = df[df['nrkuts'] == 4].sort_values('ni')
-    df_facsec = df[df['facsec'] == 0.5].sort_values('ni')
+    df_rsfac = df[df['sfac_res'] == 0.5].sort_values('ni')
     df_fcorr = df[df['fcorr'] == 0.8].sort_values('ni')
     df_tinac = df[df['tstep_method'] == 2].sort_values('ni')
 
@@ -309,11 +312,11 @@ def plot_improvement_ni():
         df_rk4['dro_avg'].to_numpy(),
         label = 'RK4'
     )
-    """ax.loglog(
-        df_facsec['ni'].to_numpy(),
-        df_facsec['dro_avg'].to_numpy(),
-        label = 'Facsec'
-    )"""
+    ax.loglog(
+        df_rsfac['ni'].to_numpy(),
+        df_rsfac['dro_avg'].to_numpy(),
+        label = '$s_{fac,res}$'
+    )
     ax.loglog(
         df_fcorr['ni'].to_numpy(),
         df_fcorr['dro_avg'].to_numpy(),
@@ -339,7 +342,7 @@ def plot_improvement_ni():
     # perform averaging
     default_df = default_df.groupby('ni', as_index=False).agg({'dt': 'mean'})
     df_rk4 = df_rk4.groupby('ni', as_index=False).agg({'dt': 'mean'})
-    df_facsec = df_facsec.groupby('ni', as_index=False).agg({'dt': 'mean'})
+    df_rsfac = df_rsfac.groupby('ni', as_index=False).agg({'dt': 'mean'})
     df_fcorr = df_fcorr.groupby('ni', as_index=False).agg({'dt': 'mean'})
     df_tinac = df_tinac.groupby('ni', as_index=False).agg({'dt': 'mean'})
 
@@ -360,11 +363,11 @@ def plot_improvement_ni():
         df_rk4['dt'].to_numpy(),
         label = 'RK4'
     )
-    """ax.loglog(
-        df_facsec['ni'].to_numpy(),
-        df_facsec['dt'].to_numpy(),
-        label = 'Facsec'
-    )"""
+    ax.loglog(
+        df_rsfac['ni'].to_numpy(),
+        df_rsfac['dt'].to_numpy(),
+        label = '$s_{fac,res}$'
+    )
     ax.loglog(
         df_fcorr['ni'].to_numpy(),
         df_fcorr['dt'].to_numpy(),
@@ -389,20 +392,18 @@ def plot_improvement_ni():
     fig.tight_layout()
     fig.savefig('report/final/figures/improvements_ni_time.png', dpi=300)
 
-    plt.show()
-
-def plot_smoothing_cfl_residual(av_template):
+def plot_smoothing_cfl_residual(av_template, data):
     
     # keep sfac = 0.8
 
-    fcorrs = np.linspace(0.1, 0.9, 9)
-    cfls = np.logspace(-2, np.log10(0.5), 10, endpoint = True)
+    sfacs = np.linspace(0.05, 0.8, 10, endpoint = True)
+    cfls = np.logspace(-2, np.log10(1.2), 10, endpoint = True)
 
     avs = []
     for cfl in cfls:
-        for fcorr in fcorrs:
+        for sfac in sfacs:
             av_template['cfl'] = cfl
-            av_template['fcorr'] = fcorr
+            av_template['sfac'] = sfac
             avs.append(av_template.copy())
 
     manager = create_cfd_env(avs, 'smoothing_cfl.csv')
@@ -411,54 +412,85 @@ def plot_smoothing_cfl_residual(av_template):
 
     df = pd.read_csv(manager.shared_file)
 
-    df_agg = df.groupby(['cfl', 'fcorr'], as_index=False).agg({'dt': 'mean'})
-
     df_converged_within = df[df['converged'] == 0]
     df_converged_outside = df[df['converged'] == 1]
     df_diverged = df[df['converged'] == 2]
     df_max_iter = df[df['converged'] == 3]
 
     # scatter
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=[12,9])
+
+    fig.subplots_adjust(
+        top=0.872,
+        bottom=0.087,
+        left=0.073,
+        right=0.983,
+        hspace=0.2,
+        wspace=0.2
+    )
 
     ax.scatter(
         df_converged_within['cfl'].to_numpy(),
-        df_converged_within['fcorr'].to_numpy(),
+        df_converged_within['sfac'].to_numpy(),
+        c =  np.log10(df_converged_within[data]),
+        s = 100,
         label = 'Converged within',
-        marker = 'o'
+        marker = 'o',
+        cmap = 'jet'
     )
-    ax.scatter(
+    conout = ax.scatter(
         df_converged_outside['cfl'].to_numpy(),
-        df_converged_outside['fcorr'].to_numpy(),
+        df_converged_outside['sfac'].to_numpy(),
+        c = np.log10(df_converged_outside[data]),
+        s = 100,
         label = 'Converged outside',
-        marker = 'd'
+        marker = 'd',
+        cmap = 'jet'
     )
     ax.scatter(
         df_diverged['cfl'].to_numpy(),
-        df_diverged['fcorr'].to_numpy(),
+        df_diverged['sfac'].to_numpy(),
+        s = 100,
+        color = 'red',
         label = 'Diverged',
         marker = 'x'
     )
     ax.scatter(
         df_max_iter['cfl'].to_numpy(),
-        df_max_iter['fcorr'].to_numpy(),
+        df_max_iter['sfac'].to_numpy(),
+        s = 100,
+        color = 'black',
         label = 'Max iterations',
         marker = 's'
     )
+    cbar = plt.colorbar(conout)
+    if data == 'dro_avg':
+        cbar.set_label('Log10 average residual density error')
+    elif data == 'dt':
+        cbar.set_label('Log10 run time')
 
     ax.set_xlabel('CFL')
-    ax.set_ylabel('$f_{corr}$')
+    ax.set_ylabel('$s_{fac}$')
+    ax.set_xscale('log')
 
-    ax.legend()
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15),
+          ncol=2, fancybox=True, shadow=True)
     fig.tight_layout()
 
-    fig.savefig('report/final/figures/smoothing_cfl_residual.png', dpi=300)
+    fig.savefig(f'report/final/figures/smoothing_cfl_{data}.png', dpi=300)
+
 
 
 if __name__ == "__main__":
 
-    #plot_improvement_cfl()
+    plot_improvement_cfl()
     #plot_improvement_ni()
 
     av_template = read_settings('cases/bump/input_bump.txt')
-    plot_smoothing_cfl_residual(av_template)
+    av_template['fcorr'] = 0.8
+    print(av_template)
+    #plot_smoothing_cfl_residual(av_template, 'dro_avg')
+    #plot_smoothing_cfl_residual(av_template, 'dt')
+
+    plt.show()
+
