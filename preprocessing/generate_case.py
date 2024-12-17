@@ -189,7 +189,7 @@ def gen_tube(casename):
 
 ################################################################################
 
-def gen_naca(casename):
+def gen_naca4(casename, code='2412'):
     # Create a single cambered NACA aerofoil in a straight wind tunnel
 
     # Optional elliptic grid smoothing
@@ -204,7 +204,13 @@ def gen_naca(casename):
     geom = {};
 
     # Specify NACA 2412 coefficients and surface resolution
-    m = 0.02; p = 0.4; t = 0.12; ns = 101; 
+    m = 0.01 * int(code[0]) 
+    p = 0.1 * int(code[1])
+    t = 0.01 * int(code[2:])
+
+    print(m, p, t)
+
+    ns = 101
 
     # Construct the camberline
     x = polyspace(0,1,0.005/float(ns),1.0/float(ns),ns); yc = np.zeros(ns);  
@@ -422,7 +428,7 @@ def gen_multi(casename):
 
 ################################################################################
 
-def generate_case(casename, fname = None):
+def generate_case(casename, casedir = 'cases/'):
     # Create the curves for the desired case and set the boundary conditions
     if casename == 'bend':
         av,geom = gen_bend(casename)
@@ -434,8 +440,12 @@ def generate_case(casename, fname = None):
         av,geom = gen_waves(casename)
     elif casename == 'tube':
         av,geom = gen_tube(casename)
-    elif casename == 'naca':
-        av,geom,g = gen_naca(casename)
+    elif casename[:4] == 'naca':
+        if len(casename[4:]) == 4:
+            av,geom,g = gen_naca4(casename, casename[4:])
+        else:
+            av,geom,g = gen_naca4(casename)
+
     elif casename == 'turbine_c':
         av,geom,g = gen_turbine_c(casename)
     elif casename == 'turbine_h':
@@ -444,11 +454,11 @@ def generate_case(casename, fname = None):
         av,geom = gen_multi(casename)
 
     # Save the settings and curves to their input files
-    write_settings(av, fname)
-    write_geom(av,geom, fname)
+    write_settings(av, casedir)
+    write_geom(av,geom, casedir)
 
     # Open figure window to plot the curves
-    if not fname:
+    if not casedir:
         plt.figure(figsize=[9.6,7.2]); ax = plt.axes(); cols = gen_cols();
         ax.set_xlabel('x / m'); ax.set_ylabel('y / m');
         ax.set_aspect('equal',adjustable='box'); ax.tick_params(direction='in')
@@ -467,7 +477,7 @@ def generate_case(casename, fname = None):
     if 'g' in locals():
         
         # Open a new figure window
-        if not fname:
+        if not casedir:
             plt.figure(figsize=[9.6,7.2]); ax = plt.axes(); cols = gen_cols();
             ax.set_xlabel('x / m'); ax.set_ylabel('y / m');
             ax.set_aspect('equal',adjustable='box'); ax.tick_params(direction='in')
@@ -496,7 +506,7 @@ def generate_case(casename, fname = None):
             x_2 = g['x'][n_2][i_2,j_2]; y_2 = g['y'][n_2][i_2,j_2];
 
             # Plot both sides of the patch with different symbols
-            if not fname:
+            if not casedir:
                 ax.plot(x_1,y_1,'+',color=cols[m,:])
                 ax.plot(x_2,y_2,'x',color=cols[m,:])
 
@@ -509,12 +519,12 @@ def generate_case(casename, fname = None):
         y_in = np.squeeze(g['y'][g['n_in']-1][0,:])
         x_out = np.squeeze(g['x'][g['n_out']-1][-1,:])
         y_out = np.squeeze(g['y'][g['n_out']-1][-1,:])
-        if not fname:
+        if not casedir:
             ax.plot(x_in,y_in,color=[0.8,0.8,0.8])
             ax.plot(x_out,y_out,color=[0.8,0.8,0.8])
 
         # Write the entire grid definition to file
-        write_mesh(av,g, fname)
+        write_mesh(av,g, casedir)
 
 def generate_all():
 
