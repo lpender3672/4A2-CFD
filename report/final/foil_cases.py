@@ -62,8 +62,12 @@ def plot_clcd_alpha():
 
     fig, ax = plt.subplots()
 
-    ax.plot(df_naca0012['alpha'], df_naca0012['cl'], label='NACA0012')
-    ax.plot(df_naca2412['alpha'], df_naca2412['cl'], label='NACA2412')
+    ax.plot(df_naca0012['alpha'].to_numpy(), 
+            df_naca0012['cl'].to_numpy(), 
+            label='NACA0012')
+    ax.plot(df_naca2412['alpha'].to_numpy(), 
+            df_naca2412['cl'].to_numpy(), 
+            label='NACA2412')
 
     ax.grid( linestyle='--', linewidth=0.5)
     ax.legend()
@@ -73,6 +77,26 @@ def plot_clcd_alpha():
 
     fig.tight_layout()
     fig.savefig('report/final/figures/cl_alpha.png', dpi=300)
+
+    fig, ax = plt.subplots()
+
+    ax.plot(df_naca0012['alpha'].to_numpy(),
+            df_naca0012['cd'].to_numpy(),
+            label='NACA0012')
+    ax.plot(df_naca2412['alpha'].to_numpy(),
+            df_naca2412['cd'].to_numpy(),
+            label='NACA2412')
+
+    ax.grid( linestyle='--', linewidth=0.5)
+    ax.legend()
+
+    ax.set_xlabel('Angle of attack [deg]')
+    ax.set_ylabel('Drag coefficient')
+
+    fig.tight_layout()
+    fig.savefig('report/final/figures/cd_alpha.png', dpi=300)
+
+    ax.plot
 
 
 if __name__ == "__main__":
