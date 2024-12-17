@@ -397,7 +397,10 @@ def plot_smoothing_cfl_residual(av_template, data):
     # keep sfac = 0.8
 
     sfacs = np.linspace(0.05, 0.8, 10, endpoint = True)
-    cfls = np.logspace(-2, np.log10(1.2), 10, endpoint = True)
+    #cfls = np.logspace(-2, np.log10(1.5), 10, endpoint = True)
+    # rewrite with arrange
+    cfls = 10**np.arange(-2, np.log10(1.5), 0.2)
+    print(cfls)
 
     avs = []
     for cfl in cfls:
@@ -429,7 +432,7 @@ def plot_smoothing_cfl_residual(av_template, data):
         wspace=0.2
     )
 
-    ax.scatter(
+    conin = ax.scatter(
         df_converged_within['cfl'].to_numpy(),
         df_converged_within['sfac'].to_numpy(),
         c =  np.log10(df_converged_within[data]),
@@ -463,7 +466,12 @@ def plot_smoothing_cfl_residual(av_template, data):
         label = 'Max iterations',
         marker = 's'
     )
-    cbar = plt.colorbar(conout)
+
+    if len(df_converged_within) > len(df_converged_outside):
+        cbar = plt.colorbar(conin)
+    else:
+        cbar = plt.colorbar(conout)
+
     if data == 'dro_avg':
         cbar.set_label('Log10 average residual density error')
     elif data == 'dt':
@@ -483,14 +491,14 @@ def plot_smoothing_cfl_residual(av_template, data):
 
 if __name__ == "__main__":
 
-    plot_improvement_cfl()
+    #plot_improvement_cfl()
     #plot_improvement_ni()
 
     av_template = read_settings('cases/bump/input_bump.txt')
     av_template['fcorr'] = 0.8
     print(av_template)
-    #plot_smoothing_cfl_residual(av_template, 'dro_avg')
-    #plot_smoothing_cfl_residual(av_template, 'dt')
+    plot_smoothing_cfl_residual(av_template, 'dro_avg')
+    plot_smoothing_cfl_residual(av_template, 'dt')
 
     plt.show()
 
