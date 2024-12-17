@@ -14,17 +14,23 @@ from postprocessing.routines import (
     default_settings,
     read_settings,
     read_conv,
+    read_case,
     check_run_converged
+)
+from postprocessing.plot_airfoil_cp import (
+    calc_lift
 )
 from preprocessing.generate_case import generate_case
 
 class CFDWorker:
-    def __init__(self, worker_id, base_folder, cfd_executable, av, shared_file, shared_lock):
+    def __init__(self, worker_id, base_folder, cfd_executable, av, shared_file, shared_lock, isfoilcase = False):
         self.worker_id = worker_id
         self.base_folder = Path(base_folder)
         self.cfd_executable = cfd_executable
         self.shared_file = Path(shared_file)
         self.shared_lock = shared_lock
+
+        self.isfoilcase = isfoilcase
 
         self.av = av
         self.dt = np.nan
@@ -36,7 +42,8 @@ class CFDWorker:
         self.target_folder = self.worker_folder / self.av['casename']
         self.target_folder.mkdir(exist_ok=True)
 
-        self.target_file = self.target_folder / f"input_{self.av['casename']}.txt"
+        self.in_file = self.target_folder / f"input_{self.av['casename']}.txt"
+        self.out_file = self.target_folder / f"out_final_{self.av['casename']}.bin"
 
         self.log_file = self.worker_folder / f"worker_{self.worker_id}.log"
         
@@ -76,6 +83,11 @@ class CFDWorker:
             newrow.append(val)
 
         newrow = newrow + [self.dt, converged, iterations, dro_max, dro_avg]
+        if self.isfoilcase:
+            gs = read_case(self.out_file)
+            cl = calc_lift(self.av, gs)
+            newrow.append(cl)
+
         return newrow
 
     def run(self):
@@ -83,7 +95,7 @@ class CFDWorker:
         self.setup_environment()
         with open(self.log_file, "w") as log:
             try:
-                parsed_file = str(self.target_file).replace("\\", "/")
+                parsed_file = str(self.in_file).replace("\\", "/")
                 t1 = time.time()
                 subprocess.run([self.cfd_executable, "--path", parsed_file],
                                 check=True,
@@ -115,6 +127,13 @@ class CFDManager:
 
         self.avs = avs
 
+        if 'naca' in self.avs[0]['casename']:
+            self.isfoilcase = True
+        elif 'turbine' in self.avs[0]['casename']:
+            self.isfoilcase = True
+        else:
+            self.isfoilcase = False
+
     def clear_shared_file(self):
         if self.shared_file.exists():
             self.shared_file.unlink()
@@ -124,6 +143,9 @@ class CFDManager:
             headers.append(key)
         
         headers = headers + ['dt', 'converged', 'iterations', 'dro_max', 'dro_avg']
+
+        if self.isfoilcase:
+            headers.append('cl')
         
         with open(self.shared_file, "w", newline="") as csvfile:
             writer = csv.writer(csvfile)
