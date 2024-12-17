@@ -84,9 +84,10 @@ class CFDWorker:
 
         newrow = newrow + [self.dt, converged, iterations, dro_max, dro_avg]
         if self.isfoilcase:
-            gs = read_case(self.out_file)
-            cl = calc_lift(self.av, gs)
+            gs = read_case(str(self.out_file))
+            cl, cd = calc_lift(self.av, gs)
             newrow.append(cl)
+            newrow.append(cd)
 
         return newrow
 
@@ -146,6 +147,7 @@ class CFDManager:
 
         if self.isfoilcase:
             headers.append('cl')
+            headers.append('cd')
         
         with open(self.shared_file, "w", newline="") as csvfile:
             writer = csv.writer(csvfile)
@@ -169,9 +171,8 @@ class CFDManager:
                         subfolder.unlink()
                 folder.rmdir()
 
-    def start_workers(self):
+    def start_workers(self, time_averages = 3):
 
-        time_averages = 3
         precision = 8
 
         #self.clear_shared_file()
@@ -220,7 +221,8 @@ class CFDManager:
                         self.cfd_executable, 
                         self.avs[i], 
                         self.shared_file, 
-                        self.shared_lock)
+                        self.shared_lock,
+                        self.isfoilcase)
                     )
 
         # run workers

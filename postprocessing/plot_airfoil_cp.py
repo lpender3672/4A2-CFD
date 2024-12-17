@@ -44,9 +44,14 @@ def calc_lift(av, gs):
     cl_upper = -cpup[:-1] * np.cos(dtheta_u - alpha) * np.diff(xs_u)
     cl_lower = -cplo[:-1] * np.cos(dtheta_l - alpha) * np.diff(xs_l)
 
+    cd_upper = -cpup[:-1] * np.sin(dtheta_u - alpha) * np.diff(xs_u)
+    cd_lower = -cplo[:-1] * np.sin(dtheta_l - alpha) * np.diff(xs_l)
+
     Cl = np.sum(cl_lower) - np.sum(cl_upper)
 
-    return Cl
+    Cd = np.sum(cd_lower) + np.sum(cd_upper)
+
+    return Cl, Cd
 
 def main():
 
@@ -93,7 +98,7 @@ def main():
 
     cpup, cplo = separate(cut['cp'])
 
-    Cl = calc_lift(av, gs)
+    Cl, _ = calc_lift(av, gs)
     print(f'Cl: {Cl}')
 
     ax.plot(lens_u, cpup)
