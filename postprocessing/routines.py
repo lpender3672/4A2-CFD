@@ -740,13 +740,13 @@ def default_settings(casename):
 
 ################################################################################
 
-def write_settings(av, casedir = 'cases/'):
+def write_settings(av, casedir = 'cases'):
     # Create an input file with settings and boundary conditions
 
     # Open the file to write
-    filename = str(casedir) + av['casename'] +  '/input_' + av['casename'] + '.txt'
-    casepath = pathlib.Path(str(casedir) + av['casename'])
+    casepath = pathlib.Path(casedir) / av['casename']
     casepath.mkdir(exist_ok=True)
+    filename = casepath / f"input_{av['casename']}.txt"
 
     f = open(filename,'w')
 
@@ -778,11 +778,13 @@ def write_settings(av, casedir = 'cases/'):
 
 ################################################################################
 
-def write_geom(av,geom, casedir = 'cases/'):
+def write_geom(av,geom, casedir = 'cases'):
     # Create an input file with settings and boundary conditions
 
     # Open the file to write
-    filename = str(casedir) + av['casename'] + '/geom_' + av['casename'] + '.txt'
+    casepath = pathlib.Path(casedir) / av['casename']
+    #casepath.mkdir(exist_ok=True)
+    filename = casepath / f"geom_{av['casename']}.txt"
     
     f = open(filename,'w')
 
@@ -807,11 +809,13 @@ def write_geom(av,geom, casedir = 'cases/'):
 
 ################################################################################
 
-def write_mesh(av,g, casedir = 'cases/'):
+def write_mesh(av,g, casedir = 'cases'):
     # Write grid coordinates and connectivity data to file directly
 
     # Open the file to write
-    filename = str(casedir) + av['casename'] + '/mesh_' + av['casename'] + '.bin'
+    casepath = pathlib.Path(casedir) / av['casename']
+    #casepath.mkdir(exist_ok=True)
+    filename = casepath / f"mesh_{av['casename']}.bin"
 
     f = open(filename,'w')
 

@@ -40,7 +40,7 @@ def plot_cl_alpha():
     manager.clear_worker_folders()
     manager.start_workers()
 
-    lift_file = manager.shared_file.parent / "lift.csv"
+    lift_file = manager.shared_file.parent / "cl_alpha.csv"
     df = pd.read_csv(lift_file)
 
     print(df)

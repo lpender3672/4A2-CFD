@@ -41,10 +41,10 @@ def calc_lift(av, gs):
     dtheta_u = np.arctan2(np.diff(ys_u), np.diff(xs_u))
     dtheta_l = np.arctan2(np.diff(ys_l), np.diff(xs_l))
 
-    cl_upper = -cpup[:-1] * np.sin(dtheta_u - alpha) * np.diff(xs_u)
-    cl_lower = -cplo[:-1] * np.sin(dtheta_l - alpha) * np.diff(xs_l)
+    cl_upper = -cpup[:-1] * np.cos(dtheta_u - alpha) * np.diff(xs_u)
+    cl_lower = -cplo[:-1] * np.cos(dtheta_l - alpha) * np.diff(xs_l)
 
-    Cl = np.sum(cl_upper) + np.sum(cl_lower)
+    Cl = np.sum(cl_lower) - np.sum(cl_upper)
 
     return Cl
 
@@ -93,8 +93,13 @@ def main():
 
     cpup, cplo = separate(cut['cp'])
 
+    Cl = calc_lift(av, gs)
+    print(f'Cl: {Cl}')
+
     ax.plot(lens_u, cpup)
     ax.plot(lens_l, cplo)
+
+    
 
     # flip y
     ax.invert_yaxis()
