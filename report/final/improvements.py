@@ -314,7 +314,7 @@ def plot_smoothing_cfl(av_template, data):
     sfacs = np.linspace(0.05, 0.8, 10, endpoint = True)
     #cfls = np.logspace(-2, np.log10(1.5), 10, endpoint = True)
     # rewrite with arrange
-    cfls = 10**np.arange(-2, np.log10(3), 0.2)
+    cfls = 10**np.arange(-2, np.log10(1.5), 0.2)
     print(cfls)
 
     avs = []
@@ -330,38 +330,16 @@ def plot_smoothing_cfl(av_template, data):
 
     plot_scatter(manager, 'cfl', 'sfac', data)
 
-def plot_smoothing_ni(av_template, data):
-    
-    # keep sfac = 0.8
-
-    sfacs = np.linspace(0.05, 0.8, 10, endpoint = True)
-    #cfls = np.logspace(-2, np.log10(1.5), 10, endpoint = True)
-    # rewrite with arrange
-    nis = np.logspace(1, 3, 10, endpoint = True).astype(int)
-    print(nis)
-
-    avs = []
-    for ni in nis:
-        for sfac in sfacs:
-            av_template['ni'] = ni
-            av_template['sfac'] = sfac
-            avs.append(av_template.copy())
-
-    manager = create_cfd_env(avs, 'smoothing_ni.csv')
-    manager.clear_worker_folders()
-    manager.start_workers()
-
-    #plot_scatter(manager, 'cfl', 'sfac', data)
 
 def plot_smoothing_fcorr(av_template, data):
     
     # keep sfac = 0.8
-    av_template['cfl'] = 0.5
+    av_template['cfl'] = 0.3
 
-    sfacs = np.linspace(0.01, 0.99, 10, endpoint = True)
+    sfacs = np.linspace(0.05, 0.8, 10, endpoint = True)
     #cfls = np.logspace(-2, np.log10(1.5), 10, endpoint = True)
     # rewrite with arrange
-    fcorrs = np.linspace(0.05, 0.95, 10, endpoint = True)
+    fcorrs = np.linspace(0.1, 0.9, 10, endpoint = True)
 
     avs = []
     for fcorr in fcorrs:
@@ -380,7 +358,7 @@ def plot_smoothing_fcorr(av_template, data):
 def plot_smoothing_sfac_res(av_template, data):
     
     # keep sfac = 0.8
-    av_template['cfl'] = 0.8
+    av_template['cfl'] = 0.3
 
     sfacs = np.linspace(0.05, 0.95, 10, endpoint = True)
     #cfls = np.logspace(-2, np.log10(1.5), 10, endpoint = True)
@@ -421,10 +399,17 @@ def plot_scatter(manager, xlabel, ylabel, clabel, logx=True):
         wspace=0.2
     )
 
+    if clabel == 'FM':
+        cval_in = - np.log10(df_converged_within['dro_avg']) / df_converged_within['dt']
+        cval_out = - np.log10(df_converged_outside['dro_avg']) / df_converged_outside['dt']
+    else:
+        cval_in = np.log10(df_converged_within[clabel])
+        cval_out = np.log10(df_converged_outside[clabel])
+
     conin = ax.scatter(
         df_converged_within[xlabel].to_numpy(),
         df_converged_within[ylabel].to_numpy(),
-        c =  np.log10(df_converged_within[clabel]),
+        c =  cval_in,
         s = 100,
         label = 'Converged within',
         marker = 'o',
@@ -433,7 +418,7 @@ def plot_scatter(manager, xlabel, ylabel, clabel, logx=True):
     conout = ax.scatter(
         df_converged_outside[xlabel].to_numpy(),
         df_converged_outside[ylabel].to_numpy(),
-        c = np.log10(df_converged_outside[clabel]),
+        c = cval_out,
         s = 100,
         label = 'Converged outside',
         marker = 'd',
@@ -465,6 +450,8 @@ def plot_scatter(manager, xlabel, ylabel, clabel, logx=True):
         cbar.set_label('Log10 average residual density error')
     elif clabel == 'dt':
         cbar.set_label('Log10 run time')
+    elif clabel == 'FM':
+        cbar.set_label('FM')
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -478,6 +465,68 @@ def plot_scatter(manager, xlabel, ylabel, clabel, logx=True):
     fig.savefig(f'report/final/figures/{xlabel}_{ylabel}_{clabel}.png', dpi=300)
 
 
+def effort_vs_accuracy_fcorr():
+
+    df = pd.read_csv('report/final/data/smoothing_fcorr.csv')
+
+    df = df[df['converged'] < 2]
+
+    # aggregate by time but keep all columns
+    df = df.groupby(list(df.columns), as_index=False).agg({'dt': 'mean'})
+
+    fig, ax = plt.subplots(figsize = [8, 6])
+
+    scat = ax.scatter(
+        np.log10(df['dro_avg']),
+        np.log10(df['dt']),
+        c = df['sfac'],
+        s = 60*df['fcorr']
+    )
+
+    cbar = plt.colorbar(scat)
+
+    cbar.set_label('sfac')
+    ax.set_xlabel('Log10 average residual density error')
+    ax.set_ylabel('Log10 run time')
+
+    ax.grid( which='both', linestyle='--', linewidth=0.5)
+
+    fig.tight_layout()
+
+    fig.savefig('report/final/figures/effort_vs_accuracy_fcorr.png', dpi=300)
+
+
+def effort_vs_accuracy_sfac_res():
+
+    df = pd.read_csv('report/final/data/smoothing_sfac_res.csv')
+
+    df = df[df['converged'] < 2]
+
+    # aggregate by time but keep all columns
+    df = df.groupby(list(df.columns), as_index=False).agg({'dt': 'mean'})
+
+    fig, ax = plt.subplots(figsize = [8, 6])
+
+    scat = ax.scatter(
+        np.log10(df['dro_avg']),
+        np.log10(df['dt']),
+        c = df['sfac'],
+        s = 60*df['sfac_res']
+    )
+
+    cbar = plt.colorbar(scat)
+
+    cbar.set_label('sfac')
+    ax.set_xlabel('Log10 average residual density error')
+    ax.set_ylabel('Log10 run time')
+
+    ax.grid( which='both', linestyle='--', linewidth=0.5)
+
+    fig.tight_layout()
+
+    fig.savefig('report/final/figures/effort_vs_accuracy_sfac_res.png', dpi=300)
+
+
 if __name__ == "__main__":
 
     #plot_improvement_cfl()
@@ -486,11 +535,14 @@ if __name__ == "__main__":
     av_template = read_settings('cases/bump/input_bump.txt')
     av_template['fcorr'] = 0.8
     print(av_template)
-    plot_smoothing_ni(av_template, 'dt')
     #plot_smoothing_cfl(av_template, 'dro_avg')
-    #plot_smoothing_fcorr(av_template, 'dro_avg')
+    #plot_smoothing_cfl(av_template, 'dt')
+    #plot_smoothing_fcorr(av_template, 'dt')
     #plot_smoothing_sfac_res(av_template, 'dt')
     #plot_smoothing_cfl_residual(av_template, 'dt')
+
+    effort_vs_accuracy_fcorr()
+    effort_vs_accuracy_sfac_res()
 
     plt.show()
 
