@@ -399,10 +399,17 @@ def plot_scatter(manager, xlabel, ylabel, clabel, logx=True):
         wspace=0.2
     )
 
+    if clabel == 'FM':
+        cval_in = - np.log10(df_converged_within['dro_avg']) / df_converged_within['dt']
+        cval_out = - np.log10(df_converged_outside['dro_avg']) / df_converged_outside['dt']
+    else:
+        cval_in = np.log10(df_converged_within[clabel])
+        cval_out = np.log10(df_converged_outside[clabel])
+
     conin = ax.scatter(
         df_converged_within[xlabel].to_numpy(),
         df_converged_within[ylabel].to_numpy(),
-        c =  np.log10(df_converged_within[clabel]),
+        c =  cval_in,
         s = 100,
         label = 'Converged within',
         marker = 'o',
@@ -411,7 +418,7 @@ def plot_scatter(manager, xlabel, ylabel, clabel, logx=True):
     conout = ax.scatter(
         df_converged_outside[xlabel].to_numpy(),
         df_converged_outside[ylabel].to_numpy(),
-        c = np.log10(df_converged_outside[clabel]),
+        c = cval_out,
         s = 100,
         label = 'Converged outside',
         marker = 'd',
@@ -443,6 +450,8 @@ def plot_scatter(manager, xlabel, ylabel, clabel, logx=True):
         cbar.set_label('Log10 average residual density error')
     elif clabel == 'dt':
         cbar.set_label('Log10 run time')
+    elif clabel == 'FM':
+        cbar.set_label('FM')
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -464,7 +473,8 @@ if __name__ == "__main__":
     av_template = read_settings('cases/bump/input_bump.txt')
     av_template['fcorr'] = 0.8
     print(av_template)
-    #plot_smoothing_cfl(av_template, 'dro_avg')
+    plot_smoothing_cfl(av_template, 'dro_avg')
+    plot_smoothing_cfl(av_template, 'dt')
     plot_smoothing_fcorr(av_template, 'dt')
     #plot_smoothing_sfac_res(av_template, 'dt')
     #plot_smoothing_cfl_residual(av_template, 'dt')
