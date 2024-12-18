@@ -117,6 +117,9 @@ This method, also proposed by Kutta, has advantages compared to typical RK4 in t
 
 \subsubsection{Deferred Correction}
 
+The amount of smoothing required for stability decreases as the solution converges to steady state.
+This means over many iterations we can start to reduce the amount of artifical viscosity added to the solution.
+This can be done by defining another flow correction variable, \texttt{corr}, that approaches a final correction factor \texttt{corr\_total} = \texttt{fcorr} * (\texttt{prop} - \texttt{prop\_average}). 
 
 
 \subsubsection{Residual Averaging}
@@ -289,6 +292,37 @@ While this marginally increases the time per iteration, it reduces the number of
 \end{figure}
 
 \subsection{Effort vs Accuracy}
+
+\begin{figure}[H]
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_cfl.png}
+        \caption{Colour is \texttt{sfac} and size represents \texttt{cfl} number.}
+        \label{fig:effort_vs_accuracy_cfl}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_ni.png}
+        \caption{Colour is \texttt{sfac} and size represents number of cells in \texttt{i} direction.}
+        \label{fig:effort_vs_accuracy_ni}
+    \end{subfigure}
+\end{figure}
+
+\begin{figure}[H]
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/effort_vs_accuracy_sfac_res.png}
+        \caption{Colour is \texttt{sfac} and size represents \texttt{sfac\_res}.}
+        \label{fig:effort_vs_accuracy_sfac_res}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_fcorr.png}
+        \caption{Colour is \texttt{sfac} and size represents \texttt{fcorr}.}
+        \label{fig:effort_vs_accuracy_fcorr}
+    \end{subfigure}
+    \caption{Effort vs accuracy for bump case different parameters}
+\end{figure}
 
 \section{Discussion}
 % two pages that doesnt repeat interim
