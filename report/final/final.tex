@@ -92,6 +92,14 @@ The number of threads in the threadpool was set to 8, less than the number of co
 The GUI was improved with more inputs and improved visualisation animations.
 The zoom and pan no longer resets on each frame update and is consistent between tabs.
 
+\subsection{Convergence definition}
+
+\subsection{Figure of merit definition}
+In order to identify the best parameters, its useful to define a figure of merit (FM) to compare the performance of the code.
+In our case we want the most accuracy in the least amount of time and so the FM is defined as
+\begin{equation}
+    \text{FM} = \frac{-\log_{10}(d_{avg})}{\text{T}}
+\end{equation}
 
 \subsection{Improvements}
 % runge kutta
