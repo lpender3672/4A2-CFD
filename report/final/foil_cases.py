@@ -31,6 +31,9 @@ def plot_clcd_alpha():
     av_0012 = read_settings('cases/naca0012/input_naca0012.txt')
     av_2412 = read_settings('cases/naca2412/input_naca2412.txt')
 
+    av_0012['cfl'] = 0.2
+    av_2412['cfl'] = 0.2
+
     av_templates = [av_0012, av_2412]
     alphas = np.linspace(-10, 20, 13)
     print(alphas)
@@ -95,10 +98,10 @@ def plot_clcd_alpha():
     
     theoretical_gradient = 2 / np.pi
     gradient_0012 =  np.diff(df_naca0012['cl']) / np.diff(np.deg2rad(df_naca0012['alpha']))
-    gradient_0012 = np.mean(gradient_0012[:-1])
+    gradient_0012 = np.mean(gradient_0012[:-4])
     print(f'raw gradient {gradient_0012}, difference {(gradient_0012 - theoretical_gradient) / theoretical_gradient}')
     gradient_2412 =  np.diff(df_naca2412['cl']) / np.diff(np.deg2rad(df_naca2412['alpha']))
-    gradient_2412 = np.mean(gradient_2412[:-1])
+    gradient_2412 = np.mean(gradient_2412[:-4])
     print(f'raw gradient {gradient_2412}, difference {(gradient_2412 - theoretical_gradient) / theoretical_gradient}')
 
     ax.grid( linestyle='--', linewidth=0.5)

@@ -307,7 +307,7 @@ def plot_improvement_ni():
 
     plot_improvement(manager, 'ni')
 
-def plot_smoothing_cfl_residual(av_template, data):
+def plot_smoothing_cfl(av_template, data):
     
     # keep sfac = 0.8
 
@@ -328,9 +328,57 @@ def plot_smoothing_cfl_residual(av_template, data):
     manager.clear_worker_folders()
     manager.start_workers()
 
-    plot_scatter(manager, 'cfl', 'sfac', 'dro_avg')
+    plot_scatter(manager, 'cfl', 'sfac', data)
 
-def plot_scatter(manager, xlabel, ylabel, clabel):
+
+def plot_smoothing_fcorr(av_template, data):
+    
+    # keep sfac = 0.8
+    av_template['cfl'] = 0.3
+
+    sfacs = np.linspace(0.05, 0.8, 10, endpoint = True)
+    #cfls = np.logspace(-2, np.log10(1.5), 10, endpoint = True)
+    # rewrite with arrange
+    fcorrs = np.linspace(0.1, 0.9, 10, endpoint = True)
+
+    avs = []
+    for fcorr in fcorrs:
+        for sfac in sfacs:
+            av_template['fcorr'] = fcorr
+            av_template['sfac'] = sfac
+            avs.append(av_template.copy())
+
+    manager = create_cfd_env(avs, 'smoothing_fcorr.csv')
+    manager.clear_worker_folders()
+    manager.start_workers()
+
+    plot_scatter(manager, 'sfac', 'fcorr', data, logx=False)
+
+
+def plot_smoothing_sfac_res(av_template, data):
+    
+    # keep sfac = 0.8
+    av_template['cfl'] = 0.3
+
+    sfacs = np.linspace(0.05, 0.95, 10, endpoint = True)
+    #cfls = np.logspace(-2, np.log10(1.5), 10, endpoint = True)
+    # rewrite with arrange
+    sfac_ress = np.linspace(0.3, 0.95, 10, endpoint = True)
+
+    avs = []
+    for sfac_res in sfac_ress:
+        for sfac in sfacs:
+            av_template['sfac_res'] = sfac_res
+            av_template['sfac'] = sfac
+            avs.append(av_template.copy())
+
+    manager = create_cfd_env(avs, 'smoothing_sfac_res.csv')
+    manager.clear_worker_folders()
+    manager.start_workers()
+
+    plot_scatter(manager, 'sfac', 'sfac_res', data, logx=False)
+
+def plot_scatter(manager, xlabel, ylabel, clabel, logx=True):
 
     df = pd.read_csv(manager.shared_file)
 
@@ -398,10 +446,11 @@ def plot_scatter(manager, xlabel, ylabel, clabel):
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.set_xscale('log')
+    if logx:
+        ax.set_xscale('log')
 
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15),
-          ncol=2, fancybox=True, shadow=True)
+          ncol=2, fancybox=True)
     fig.tight_layout()
 
     fig.savefig(f'report/final/figures/{xlabel}_{ylabel}_{clabel}.png', dpi=300)
@@ -415,7 +464,9 @@ if __name__ == "__main__":
     av_template = read_settings('cases/bump/input_bump.txt')
     av_template['fcorr'] = 0.8
     print(av_template)
-    plot_smoothing_cfl_residual(av_template, 'dro_avg')
+    #plot_smoothing_cfl(av_template, 'dro_avg')
+    plot_smoothing_fcorr(av_template, 'dt')
+    #plot_smoothing_sfac_res(av_template, 'dt')
     #plot_smoothing_cfl_residual(av_template, 'dt')
 
     plt.show()
