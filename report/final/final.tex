@@ -19,7 +19,7 @@
 \usepackage{color, colortbl}
 \usepackage{textgreek}
 \usepackage{mathrsfs}
-\usepackage{savetrees}
+\usepackage{savetrees}[moderate]
 \usepackage{dirtree}
 
 
@@ -87,6 +87,7 @@ Not only is this more efficient, but also now allows cases to be run in parallel
 This was imporant to accelerate the testing and a custom python thread pool manager was written for this purpose.
 A worker creates the directory structure for the case, runs the solver, and then writes the key results to a shared file.
 The worker directory and run function are shown in the appendix \ref{fig:worker_dir}.
+The number of threads in the threadpool was set to 8, less than the number of cores on the machine to prevent incorrect time measurements due to windows thread scheduling.
 
 The GUI was improved with more inputs and improved visualisation animations.
 The zoom and pan no longer resets on each frame update and is consistent between tabs.
