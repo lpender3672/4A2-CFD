@@ -115,6 +115,18 @@ This method, also proposed by Kutta, has advantages compared to typical RK4 in t
 
 \subsubsection{Spatially Varying Timestep}
 
+Steady state is reached when the change in variables between cells converges to the residual value.
+This condition can occur at each cell for different timesteps.
+The current global timestep is calculated from the global minimum cell size and so is significantly smaller than the maximum stable local timestep for many cells.
+If a steady state solution is all that is required then convergence can be accelerated by using the local timestep for each cell.
+This would be calculated below
+\begin{equation}
+    \Delta t = \frac{l_{min}{a + v}
+\end{equation}
+Where $l_{min}$ is the minimum between the cell length and height, $a$ is the local speed of sound, and $v$ is the local velocity of the fluid.
+The local timesteps are then updated every 10 iterations.
+While this marginally increases the time per iteration, it reduces the number of iterations required to converge.
+
 
 \subsection{Extension}
 % multigrid
@@ -133,7 +145,7 @@ This method, also proposed by Kutta, has advantages compared to typical RK4 in t
 
 \section{Results}
 
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{figures/software.png}
     \caption{Software GUI}
@@ -147,16 +159,16 @@ This method, also proposed by Kutta, has advantages compared to typical RK4 in t
     \begin{subfigure}{0.49\textwidth}
         \centering
         \includegraphics[width=0.99\textwidth]{figures/improvements_cfl_residual.png}
-        \caption{improvements\_cfl\_residual}
+        \caption{Varying CFL number}
         \label{fig:improvements_cfl_residual}
     \end{subfigure}
     \begin{subfigure}{0.49\textwidth}
         \centering
         \includegraphics[width=0.99\textwidth]{figures/improvements_ni_residual.png}
-        \caption{improvements\_ni\_residual}
+        \caption{Varying number of cells in \texttt{i} direction}
         \label{fig:improvements_ni_residual}
     \end{subfigure}
-    \caption{Comparison of improvements}
+    \caption{Spatial and temporal accuracy of improvements}
 \end{figure}
 
 \begin{figure}[H]
@@ -164,16 +176,16 @@ This method, also proposed by Kutta, has advantages compared to typical RK4 in t
     \begin{subfigure}{0.49\textwidth}
         \centering
         \includegraphics[width=0.99\textwidth]{figures/improvements_cfl_time.png}
-        \caption{improvements\_cfl\_time}
+        \caption{Varying CFL number}
         \label{fig:improvements_cfl_time}
     \end{subfigure}
     \begin{subfigure}{0.49\textwidth}
         \centering
         \includegraphics[width=0.99\textwidth]{figures/improvements_ni_time.png}
-        \caption{improvements\_ni\_time}
+        \caption{Varying number of cells in \texttt{i} direction}
         \label{fig:improvements_ni_time}
     \end{subfigure}
-    \caption{Comparison of improvements}
+    \caption{Spatial and temporal impact on runtime}
 \end{figure}
 
 
