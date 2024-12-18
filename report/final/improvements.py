@@ -465,6 +465,31 @@ def plot_scatter(manager, xlabel, ylabel, clabel, logx=True):
     fig.savefig(f'report/final/figures/{xlabel}_{ylabel}_{clabel}.png', dpi=300)
 
 
+def effort_vs_accuracy_fcorr():
+
+    df = pd.read_csv('report/final/data/smoothing_fcorr.csv')
+
+    df = df[df['converged'] < 2]
+
+    fig, ax = plt.subplots(figsize = [6, 4])
+
+    scat = ax.scatter(
+        np.log10(df['dro_avg']),
+        np.log10(df['dt']),
+        c = df['sfac'],
+        s = 60*df['fcorr']
+    )
+
+    cbar = plt.colorbar(scat)
+
+    cbar.set_label('sfac')
+    ax.set_xlabel('Log10 average residual density error')
+    ax.set_ylabel('Log10 run time')
+
+    ax.grid( which='both', linestyle='--', linewidth=0.5)
+
+    fig.tight_layout()
+
 if __name__ == "__main__":
 
     #plot_improvement_cfl()
@@ -473,11 +498,13 @@ if __name__ == "__main__":
     av_template = read_settings('cases/bump/input_bump.txt')
     av_template['fcorr'] = 0.8
     print(av_template)
-    plot_smoothing_cfl(av_template, 'dro_avg')
-    plot_smoothing_cfl(av_template, 'dt')
-    plot_smoothing_fcorr(av_template, 'dt')
+    #plot_smoothing_cfl(av_template, 'dro_avg')
+    #plot_smoothing_cfl(av_template, 'dt')
+    #plot_smoothing_fcorr(av_template, 'dt')
     #plot_smoothing_sfac_res(av_template, 'dt')
     #plot_smoothing_cfl_residual(av_template, 'dt')
+
+    effort_vs_accuracy_fcorr()
 
     plt.show()
 
