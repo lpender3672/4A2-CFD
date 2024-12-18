@@ -88,6 +88,8 @@ This was imporant to accelerate the testing and a custom python thread pool mana
 A worker creates the directory structure for the case, runs the solver, and then writes the key results to a shared file.
 The worker directory and run function are shown in the appendix \ref{fig:worker_dir}.
 
+The GUI was improved with more inputs and improved visualisation animations.
+The zoom and pan no longer resets on each frame update and is consistent between tabs.
 
 
 \subsection{Improvements}
@@ -97,16 +99,21 @@ The worker directory and run function are shown in the appendix \ref{fig:worker_
 % spatially varying timestep
 \subsubsection{Runge-Kutta}
 
+The Runge-Kutta methods are a family of implicit and explicit iterative methods used to solve ordinary differential equations.
+This involves computing gradients at a number of intermediate timesteps to improve accuracy of each timestep.
+The method implemented here is informal in that the gradients are between the starting timestep property and previous intermediate timestep property.
+Another difference to typical RK4 is that the intermediate timesteps linearly increase to total timestep size in a method similar to 3/8-rule.
+This method, also proposed by Kutta, has advantages compared to typical RK4 in that most error coefficients are smaller however, the method is more computationally expensive \cite{solve_ODE_nonstiff}.
+
+
 \subsubsection{Deferred Correction}
+
+
 
 \subsubsection{Residual Averaging}
 
 \subsubsection{Spatially Varying Timestep}
 
-% need to cherry pick commits
-% and create 4 branches of individual improvements
-% release 4 separate apps and produce comparison graphs
-% discuss with reference to literature the improvement and implementation
 
 \subsection{Extension}
 % multigrid
@@ -205,7 +212,7 @@ The worker directory and run function are shown in the appendix \ref{fig:worker_
     \caption{Naca2412 test case results}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[H]
     \centering
     \begin{subfigure}{0.49\textwidth}
         \centering
@@ -284,6 +291,11 @@ The turbine case had very similar mesh geometry to
     \emph{4A2 Computational Fluid Dynamics: Writing an Euler Solver}
     University of Cambridge,
     2024.
+
+    \bibitem{solve_ODE_nonstiff}
+    Hairer, Ernst et al.
+    \emph{Solving ordinary differential equations I: Nonstiff problems, Berlin, New York}
+    Springer-Verlag, Berlin(1993)
 
     \bibitem{4A3_lab}
     L. W. Pender
