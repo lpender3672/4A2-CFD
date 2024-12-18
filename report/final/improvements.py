@@ -358,7 +358,7 @@ def plot_smoothing_fcorr(av_template, data):
 def plot_smoothing_sfac_res(av_template, data):
     
     # keep sfac = 0.8
-    av_template['cfl'] = 2
+    av_template['cfl'] = 0.8
 
     sfacs = np.linspace(0.05, 0.95, 10, endpoint = True)
     #cfls = np.logspace(-2, np.log10(1.5), 10, endpoint = True)
@@ -465,8 +465,8 @@ if __name__ == "__main__":
     av_template['fcorr'] = 0.8
     print(av_template)
     #plot_smoothing_cfl(av_template, 'dro_avg')
-    plot_smoothing_fcorr(av_template, 'dro_avg')
-    #plot_smoothing_sfac_res(av_template, 'dt')
+    #plot_smoothing_fcorr(av_template, 'dro_avg')
+    plot_smoothing_sfac_res(av_template, 'dt')
     #plot_smoothing_cfl_residual(av_template, 'dt')
 
     plt.show()
