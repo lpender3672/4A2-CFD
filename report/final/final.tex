@@ -121,7 +121,7 @@ The current global timestep is calculated from the global minimum cell size and 
 If a steady state solution is all that is required then convergence can be accelerated by using the local timestep for each cell.
 This would be calculated below
 \begin{equation}
-    \Delta t = \frac{l_{min}{a + v}
+    \Delta t = \frac{l_{min}}{a + v}
 \end{equation}
 Where $l_{min}$ is the minimum between the cell length and height, $a$ is the local speed of sound, and $v$ is the local velocity of the fluid.
 The local timesteps are then updated every 10 iterations.
@@ -275,7 +275,7 @@ While this marginally increases the time per iteration, it reduces the number of
         \caption{}
         \label{fig:turbine_h_surface_cp}
     \end{subfigure}
-    \caption{Turbine\_c test case results}
+    \caption{Turbine\_h test case results}
 \end{figure}
 
 \subsection{Effort vs Accuracy}
@@ -292,7 +292,7 @@ Why?
 
 \subsection{Turbine}
 
-The turbine case had very similar mesh geometry to 
+The two turbine 
 
 \section{Summary}
 
