@@ -328,6 +328,10 @@ def plot_smoothing_cfl_residual(av_template, data):
     manager.clear_worker_folders()
     manager.start_workers()
 
+    plot_scatter(manager, 'cfl', 'sfac', 'dro_avg')
+
+def plot_scatter(manager, xlabel, ylabel, clabel):
+
     df = pd.read_csv(manager.shared_file)
 
     df_converged_within = df[df['converged'] == 0]
@@ -348,34 +352,34 @@ def plot_smoothing_cfl_residual(av_template, data):
     )
 
     conin = ax.scatter(
-        df_converged_within['cfl'].to_numpy(),
-        df_converged_within['sfac'].to_numpy(),
-        c =  np.log10(df_converged_within[data]),
+        df_converged_within[xlabel].to_numpy(),
+        df_converged_within[ylabel].to_numpy(),
+        c =  np.log10(df_converged_within[clabel]),
         s = 100,
         label = 'Converged within',
         marker = 'o',
         cmap = 'jet'
     )
     conout = ax.scatter(
-        df_converged_outside['cfl'].to_numpy(),
-        df_converged_outside['sfac'].to_numpy(),
-        c = np.log10(df_converged_outside[data]),
+        df_converged_outside[xlabel].to_numpy(),
+        df_converged_outside[ylabel].to_numpy(),
+        c = np.log10(df_converged_outside[clabel]),
         s = 100,
         label = 'Converged outside',
         marker = 'd',
         cmap = 'jet'
     )
     ax.scatter(
-        df_diverged['cfl'].to_numpy(),
-        df_diverged['sfac'].to_numpy(),
+        df_diverged[xlabel].to_numpy(),
+        df_diverged[ylabel].to_numpy(),
         s = 100,
         color = 'red',
         label = 'Diverged',
         marker = 'x'
     )
     ax.scatter(
-        df_max_iter['cfl'].to_numpy(),
-        df_max_iter['sfac'].to_numpy(),
+        df_max_iter[xlabel].to_numpy(),
+        df_max_iter[ylabel].to_numpy(),
         s = 100,
         color = 'black',
         label = 'Max iterations',
@@ -387,32 +391,31 @@ def plot_smoothing_cfl_residual(av_template, data):
     else:
         cbar = plt.colorbar(conout)
 
-    if data == 'dro_avg':
+    if clabel == 'dro_avg':
         cbar.set_label('Log10 average residual density error')
-    elif data == 'dt':
+    elif clabel == 'dt':
         cbar.set_label('Log10 run time')
 
-    ax.set_xlabel('CFL')
-    ax.set_ylabel('$s_{fac}$')
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
     ax.set_xscale('log')
 
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15),
           ncol=2, fancybox=True, shadow=True)
     fig.tight_layout()
 
-    fig.savefig(f'report/final/figures/smoothing_cfl_{data}.png', dpi=300)
-
+    fig.savefig(f'report/final/figures/{xlabel}_{ylabel}_{clabel}.png', dpi=300)
 
 
 if __name__ == "__main__":
 
     #plot_improvement_cfl()
-    plot_improvement_ni()
+    #plot_improvement_ni()
 
     av_template = read_settings('cases/bump/input_bump.txt')
     av_template['fcorr'] = 0.8
     print(av_template)
-    #plot_smoothing_cfl_residual(av_template, 'dro_avg')
+    plot_smoothing_cfl_residual(av_template, 'dro_avg')
     #plot_smoothing_cfl_residual(av_template, 'dt')
 
     plt.show()
