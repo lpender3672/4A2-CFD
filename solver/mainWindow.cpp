@@ -12,7 +12,7 @@ MainWindow::MainWindow(t_mode app_mode) {
     
 
     setWindowIcon(QIcon(":/icon.ico"));
-    resize(1280, 720);
+    resize(1200, 800);
 
     
     inputWidget = new InputWidget(this);
@@ -21,22 +21,22 @@ MainWindow::MainWindow(t_mode app_mode) {
     visWidget = new VisWidget(this);
     
     // add a description widget
-    QLabel *desc = new QLabel("<h1> Description </h1>\n <p> This is a program that solves the 2D Euler Equation using the finite difference method. </p>", this);
+    QLabel *desc = new QLabel("<h1> Description </h1>\n <p> This is a program that solves the 2D Euler Equation using an improved Lax method.</p> \n <p>It can handle both single and multigrid meshes for internal and external flows. </p>", this);
 
     // set widget sizes
-    inputWidget->setMaximumWidth(300);
-    console->setMaximumWidth(300);
-    convWidget->setMinimumWidth(400);
+    desc->setMaximumWidth(500);
+    inputWidget->setMaximumWidth(500);
+    console->setMaximumWidth(500);
+    convWidget->setMaximumWidth(500);
     convWidget->setMinimumHeight(300);
     visWidget->setMinimumWidth(400);
     visWidget->setMinimumHeight(300);
 
-    gridLayout->addWidget(inputWidget, 0, 0, 1, 1);
-    gridLayout->addWidget(convWidget, 1, 1, 1, 1);
-    gridLayout->addWidget(console, 1, 0, 1, 1);
-    gridLayout->addWidget(visWidget, 0, 2, 2, 1);
-
-    gridLayout->addWidget(desc, 0, 1, 1, 1);
+    gridLayout->addWidget(desc, 0, 0, 1, 2);
+    gridLayout->addWidget(inputWidget, 1, 0, 2, 2);
+    gridLayout->addWidget(console, 3, 0, 1, 2);
+    gridLayout->addWidget(convWidget, 5, 0, 2, 2);
+    gridLayout->addWidget(visWidget, 0, 2, 7, 3);
 
     setLayout(gridLayout);
 

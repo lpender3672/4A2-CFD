@@ -77,15 +77,19 @@
 % write_settings python
 
 Some corrections were made to the code supplied by the course.
-The first correction was to the \texttt{interpolate} fortran function which only presented when compiling the program outside of debug mode and so was difficult to identify.
-It was found that the "interp" function was returning unset memory values for the last point of the array. This is believed to be due to more relaxed precision in \texttt{si} which left it outside the normalised range of \texttt{si\_a}
+The first correction was to the \texttt{interpolate} fortran function to fix an issue which only presented when compiling the program without debug symbols and so was difficult to identify.
+It was found that in some cases this function was returning unset memory values at the last point of the array. This is believed to be due to more relaxed precision in \texttt{si} which left it outside the normalised range of \texttt{si\_a}.
 The fix was to add a check to see if \texttt{si} is outside the input range, and if so return the boundary value.
 A mistake in the python function \texttt{write\_settings} was also found where the gas constants were being written in the incorrect order.
 
-The general program stopit file was removed and replaced with the variable \texttt{av\%crashed} which is set to true if \texttt{NaN} is detected, or if the user interrupts the program.
-Not only is this more elegant, but also allows the program to be run in parallel without writing to the same file.
+The general program \texttt{stopit} file was removed and replaced with the variable \texttt{av\%crashed} which is set to true if \texttt{NaN} is detected, or if the user interrupts the program.
+Not only is this more efficient, but also now allows cases to be run in parallel writing only to case specific files, and not a shared program file which causes write violations.
 This was imporant to accelerate the testing and a custom python thread pool manager was written for this purpose.
-A worker creates the directory and generates case files 
+A worker creates the directory structure for the case, runs the solver, and then writes the key results to a shared file.
+The worker directory and run function are shown in the appendix \ref{fig:worker_dir}.
+
+
+
 \subsection{Improvements}
 % runge kutta
 % deferred correction
@@ -123,7 +127,7 @@ A worker creates the directory and generates case files
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.6\textwidth]{figures/software.png}
+    \includegraphics[width=0.7\textwidth]{figures/software.png}
     \caption{Software GUI}
     \label{fig:software}
 \end{figure}
@@ -307,6 +311,8 @@ A worker directory folder is created in the following format:
     .3 out\_guess\_bump.bin.
     .2 log.txt.
     }
+    \caption{Worker directory structure}
+    \label{fig:worker_dir}
 \end{figure}
 
 During setup \texttt{generate\_case} is called and the settings and geometry files are written to the case folder.

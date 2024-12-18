@@ -53,6 +53,10 @@ private:
     QLineEdit *fCorrInput;
     QLineEdit *nstepsInput;
 
+    QLineEdit *alphaInput;
+    QLineEdit *pstagInput;
+    QLineEdit *tstagInput;
+    QLineEdit *poutInput;
 };
 
 #endif // INPUTWIDGET_H

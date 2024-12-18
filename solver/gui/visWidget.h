@@ -131,6 +131,9 @@ signals:
     void newGridVector(const QVector<t_grid> &message);
 
 private:
+    //StringList tabNames;
+    QStringList tabNames;
+
     QVBoxLayout *mainLayout; // No error should occur here now
     QTabWidget *tabWidget;
     QChartView *chartView1;

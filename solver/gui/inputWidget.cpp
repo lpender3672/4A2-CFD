@@ -24,7 +24,8 @@ InputWidget::InputWidget(QWidget *parent) : QWidget(parent)
     layout->addWidget(stopButton);
 
     QGridLayout *gridLayout = new QGridLayout();
-    QStringList labels = {"CFL", "SFAC", "SFAC_RES", "D_MAX", "D_VAR", "FACSEC", "FCORR", "NSTEPS"};
+    QStringList leftLabels = {"CFL", "SFAC", "SFAC_RES", "FACSEC", "FCORR", "NSTEPS"};
+    QStringList rightLabels = {"D_MAX", "D_VAR", "ALPHA", "PSTAG", "TSTAG", "POUT"};
 
     cflInput = new QLineEdit(this);
     sfacInput = new QLineEdit(this);
@@ -34,15 +35,27 @@ InputWidget::InputWidget(QWidget *parent) : QWidget(parent)
     facSecInput = new QLineEdit(this);
     fCorrInput = new QLineEdit(this);
     nstepsInput = new QLineEdit(this);
+    alphaInput = new QLineEdit(this);
+    pstagInput = new QLineEdit(this);
+    tstagInput = new QLineEdit(this);
+    poutInput = new QLineEdit(this);
 
-    QLineEdit *inputs[] = {cflInput, sfacInput, sfacResInput, dMaxInput, dVarInput, facSecInput, fCorrInput, nstepsInput};
+    QLineEdit *leftInputs[] = {cflInput, sfacInput, sfacResInput, facSecInput, fCorrInput, nstepsInput};
+    QLineEdit *rightInputs[] = {dMaxInput, dVarInput, alphaInput, pstagInput, tstagInput, poutInput};
 
-    for (int i = 0; i < labels.size(); ++i) {
-        QLabel *label = new QLabel(labels[i], this);
+    for (int i = 0; i < leftLabels.size(); ++i) {
+        QLabel *label = new QLabel(leftLabels[i], this);
         gridLayout->addWidget(label, i, 0);
-        gridLayout->addWidget(inputs[i], i, 1);
+        gridLayout->addWidget(leftInputs[i], i, 1);
         // signal
-        connect(inputs[i], &QLineEdit::editingFinished, this, &InputWidget::saveInputFields);
+        connect(leftInputs[i], &QLineEdit::editingFinished, this, &InputWidget::saveInputFields);
+    }
+    for (int i = 0; i < rightLabels.size(); ++i) {
+        QLabel *label = new QLabel(rightLabels[i], this);
+        gridLayout->addWidget(label, i, 2);
+        gridLayout->addWidget(rightInputs[i], i, 3);
+        // signal
+        connect(rightInputs[i], &QLineEdit::editingFinished, this, &InputWidget::saveInputFields);
     }
 
     layout->addLayout(gridLayout);
@@ -97,6 +110,10 @@ void InputWidget::updateInputFields() {
     facSecInput->setText(QString::number(av.facsec, 'f'));
     fCorrInput->setText(QString::number(av.fcorr, 'f'));
     nstepsInput->setText(QString::number(av.nsteps));
+    alphaInput->setText(QString::number(bcs.alpha, 'f'));
+    pstagInput->setText(QString::number(bcs.pstag, 'f'));
+    tstagInput->setText(QString::number(bcs.tstag, 'f'));
+    poutInput->setText(QString::number(bcs.p_out, 'f'));
 }
 
 void InputWidget::blockInputFields() {
@@ -108,6 +125,10 @@ void InputWidget::blockInputFields() {
     facSecInput->setReadOnly(true);
     fCorrInput->setReadOnly(true);
     nstepsInput->setReadOnly(true);
+    alphaInput->setReadOnly(true);
+    pstagInput->setReadOnly(true);
+    tstagInput->setReadOnly(true);
+    poutInput->setReadOnly(true);
 
     choosePathButton->setEnabled(false);
     stopButton->setEnabled(true);
@@ -123,6 +144,10 @@ void InputWidget::unblockInputFields() {
     facSecInput->setReadOnly(false);
     fCorrInput->setReadOnly(false);
     nstepsInput->setReadOnly(false);
+    alphaInput->setReadOnly(false);
+    pstagInput->setReadOnly(false);
+    tstagInput->setReadOnly(false);
+    poutInput->setReadOnly(false);
     
     choosePathButton->setEnabled(true);
     stopButton->setEnabled(false);
@@ -139,6 +164,10 @@ void InputWidget::saveInputFields() {
         av.facsec = facSecInput->text().toFloat();
         av.fcorr = fCorrInput->text().toFloat();
         av.nsteps = nstepsInput->text().toInt();
+        bcs.alpha = alphaInput->text().toFloat();
+        bcs.pstag = pstagInput->text().toFloat();
+        bcs.tstag = tstagInput->text().toFloat();
+        bcs.p_out = poutInput->text().toFloat();
 
     } catch (const std::exception &e) {
         qDebug() << e.what();

@@ -26,9 +26,8 @@ VisWidget::~VisWidget()
 
 void VisWidget::setupTabs()
 {
-    int tabCount = 8;
 
-    QStringList tabNames = {
+    tabNames = {
         "ro",
         "rovx",
         "rovy",
@@ -36,8 +35,10 @@ void VisWidget::setupTabs()
         "T",
         "P",
         "hstag",
-        "mach"
+        "Mach",
+        "dro"
     };
+    int tabCount = tabNames.size();
 
     for (int i = 0; i < tabCount; ++i) {
         QCustomPlot *plot = nullptr;
@@ -156,6 +157,12 @@ void VisWidget::onTabChanged(int index)
             dataPointers.push_back(mach);
         }
         updateMeshGraph(customPlots[7], meshPlots[7], colorScales[7], currentGrids, dataPointers, t_data_type::NODE);
+        break;
+    case 8:
+        for (int i = 0; i < currentGrids.size(); ++i) {
+            dataPointers.push_back(currentGrids[i].dro);
+        }
+        updateMeshGraph(customPlots[8], meshPlots[8], colorScales[8], currentGrids, dataPointers, t_data_type::CELL);
         break;
     default:
         break;
@@ -288,6 +295,10 @@ void VisWidget::updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, 
     }
 
     colorScale->axis()->setRange(globalMinValue, globalMaxValue);
+    // set colorScale title
+    colorScale->axis()->setLabel(
+        tabNames[tabWidget->currentIndex()]
+    );
 
     // reset axis
         // set aspect ratio to 1:1
