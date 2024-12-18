@@ -330,6 +330,28 @@ def plot_smoothing_cfl(av_template, data):
 
     plot_scatter(manager, 'cfl', 'sfac', data)
 
+def plot_smoothing_ni(av_template, data):
+    
+    # keep sfac = 0.8
+
+    sfacs = np.linspace(0.05, 0.8, 10, endpoint = True)
+    #cfls = np.logspace(-2, np.log10(1.5), 10, endpoint = True)
+    # rewrite with arrange
+    nis = np.logspace(1, 3, 10, endpoint = True).astype(int)
+    print(nis)
+
+    avs = []
+    for ni in nis:
+        for sfac in sfacs:
+            av_template['ni'] = ni
+            av_template['sfac'] = sfac
+            avs.append(av_template.copy())
+
+    manager = create_cfd_env(avs, 'smoothing_ni.csv')
+    manager.clear_worker_folders()
+    manager.start_workers()
+
+    #plot_scatter(manager, 'cfl', 'sfac', data)
 
 def plot_smoothing_fcorr(av_template, data):
     
@@ -464,7 +486,8 @@ if __name__ == "__main__":
     av_template = read_settings('cases/bump/input_bump.txt')
     av_template['fcorr'] = 0.8
     print(av_template)
-    plot_smoothing_cfl(av_template, 'dro_avg')
+    plot_smoothing_ni(av_template, 'dt')
+    #plot_smoothing_cfl(av_template, 'dro_avg')
     #plot_smoothing_fcorr(av_template, 'dro_avg')
     #plot_smoothing_sfac_res(av_template, 'dt')
     #plot_smoothing_cfl_residual(av_template, 'dt')
