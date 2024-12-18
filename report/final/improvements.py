@@ -464,9 +464,9 @@ if __name__ == "__main__":
     av_template = read_settings('cases/bump/input_bump.txt')
     av_template['fcorr'] = 0.8
     print(av_template)
-    #plot_smoothing_cfl(av_template, 'dro_avg')
+    plot_smoothing_cfl(av_template, 'dro_avg')
     #plot_smoothing_fcorr(av_template, 'dro_avg')
-    plot_smoothing_sfac_res(av_template, 'dt')
+    #plot_smoothing_sfac_res(av_template, 'dt')
     #plot_smoothing_cfl_residual(av_template, 'dt')
 
     plt.show()
