@@ -46,7 +46,7 @@
 
       ! Residual averaging to increase stable timestep
       dcell_avg = sum(dcell) / ((ni-1) * (nj-1))
-      dcell = (1 - av%sfac_res) * dcell + av%sfac_res * dcell_avg
+      dcell(1:ni,1:nj) = (1 - av%sfac_res) * dcell(1:ni,1:nj) + av%sfac_res * dcell_avg
 
 !     Now distribute the changes equally to the four corners of each cell. Each 
 !     interior grid point receives one quarter of the change from each of the 
