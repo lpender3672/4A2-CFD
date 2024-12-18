@@ -203,9 +203,9 @@ def main():
     
     else:
         cut = cut_j(gs[0], 0)
-        xs_u, xs_l = separate(cut['x'])
-        ys_u, ys_l = separate(cut['y'])
-        cpup, cplo = separate(cut['cp'])
+        xs_l, xs_u = separate(cut['x'])
+        ys_l, ys_u = separate(cut['y'])
+        cplo, cpup = separate(cut['cp'])
 
     lens_u = np.cumsum(np.sqrt(np.diff(xs_u)**2 + np.diff(ys_u)**2))
     lens_l = np.cumsum(np.sqrt(np.diff(xs_l)**2 + np.diff(ys_l)**2))
