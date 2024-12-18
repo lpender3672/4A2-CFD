@@ -19,7 +19,7 @@
 \usepackage{color, colortbl}
 \usepackage{textgreek}
 \usepackage{mathrsfs}
-\usepackage{savetrees}
+\usepackage{savetrees}[moderate]
 \usepackage{dirtree}
 
 
@@ -87,6 +87,7 @@ Not only is this more efficient, but also now allows cases to be run in parallel
 This was imporant to accelerate the testing and a custom python thread pool manager was written for this purpose.
 A worker creates the directory structure for the case, runs the solver, and then writes the key results to a shared file.
 The worker directory and run function are shown in the appendix \ref{fig:worker_dir}.
+The number of threads in the threadpool was set to 8, less than the number of cores on the machine to prevent incorrect time measurements due to windows thread scheduling.
 
 The GUI was improved with more inputs and improved visualisation animations.
 The zoom and pan no longer resets on each frame update and is consistent between tabs.
@@ -233,35 +234,36 @@ This method, also proposed by Kutta, has advantages compared to typical RK4 in t
 
 \begin{figure}[H]
     \centering
-    \begin{subfigure}{0.49\textwidth}
+    \begin{subfigure}{0.44\textwidth}
         \centering
         \includegraphics[width=0.99\textwidth]{figures/turbine_c_cp.png}
         \caption{}
         \label{fig:turbine_c_cp}
     \end{subfigure}
-    \begin{subfigure}{0.49\textwidth}
+    \begin{subfigure}{0.55\textwidth}
         \centering
-        \includegraphics[width=0.99\textwidth]{figures/turbine_c_mach.png}
+        \includegraphics[width=0.99\textwidth]{figures/turbine_c_surface_cp.png}
         \caption{}
-        \label{fig:turbine_c_mach}
+        \label{fig:turbine_c_surface_cp}
     \end{subfigure}
     \caption{Turbine\_c test case results}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \begin{subfigure}{0.46\textwidth}
-        \includegraphics[width=0.99\textwidth]{figures/turbine_c_surface_cp.png}
-        \caption{Turbine\_c test case results}
-        \label{fig:turbine_c_surface_cp}
-    \end{subfigure}
-    \begin{subfigure}{0.5\textwidth}
+    \begin{subfigure}{0.44\textwidth}
         \centering
-        \includegraphics[width=0.99\textwidth]{figures/turbine_real.png}
-        \caption{Real turbine data \cite{4A3_lab}}
-        \label{fig:turbine_real}
+        \includegraphics[width=0.99\textwidth]{figures/turbine_h_cp.png}
+        \caption{}
+        \label{fig:turbine_h_cp}
     \end{subfigure}
-    \caption{Comparison of CFD to experimental data}
+    \begin{subfigure}{0.55\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/turbine_h_surface_cp.png}
+        \caption{}
+        \label{fig:turbine_h_surface_cp}
+    \end{subfigure}
+    \caption{Turbine\_c test case results}
 \end{figure}
 
 \subsection{Effort vs Accuracy}
@@ -282,8 +284,6 @@ The turbine case had very similar mesh geometry to
 
 \section{Summary}
 
-\section{References}
-
 \begin{thebibliography}{9}
 
     \bibitem{handout}
@@ -295,7 +295,7 @@ The turbine case had very similar mesh geometry to
     \bibitem{solve_ODE_nonstiff}
     Hairer, Ernst et al.
     \emph{Solving ordinary differential equations I: Nonstiff problems, Berlin, New York}
-    Springer-Verlag, Berlin(1993)
+    Springer-Verlag, Berlin, 1993
 
     \bibitem{4A3_lab}
     L. W. Pender
@@ -358,13 +358,20 @@ def run(self):
     print(f"Worker {self.worker_id} finished.")
 \end{lstlisting}
 
-\subsection{Identical turbine geometry}
+\subsection{Real turbine comparison}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.6\textwidth]{figures/turbine_geometry.png}
     \caption{Comparison of turbine geometry}
     \label{fig:turbine_geometry}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.99\textwidth]{figures/turbine_real.png}
+    \caption{Real turbine data \cite{4A3_lab}}
+    \label{fig:turbine_real}
 \end{figure}
 
 \end{document}

@@ -177,9 +177,15 @@ def main():
     # Use the "cut_i", "mass_av" AND "area_av" functions to calculate the
     # reference pressures at the inlet plane and therefore the static pressure
     # coefficient
-    cut = cut_i(gs[0], 0)
+    if "turbine" in av['casename']:
+        cut = cut_i(gs[0], -1)
+    else:
+        cut = cut_i(gs[0], 0)
     pstag_ref = mass_av(cut, 'pstag')[0]
     p_ref = area_av(cut, 'p')[0]
+
+    print(f'pstag_ref: {pstag_ref}')
+    print(f'p_ref: {p_ref}')
 
     for i in range(len(gs)):
         gs[i]['cp'] = (gs[i]['p'] - p_ref) / (pstag_ref - p_ref)

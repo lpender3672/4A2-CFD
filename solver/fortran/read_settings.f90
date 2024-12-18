@@ -79,6 +79,8 @@
       call write_to_qt(msg_bfr)
       write(msg_bfr,*) '  sfac_res =', av%sfac_res, 'fcorr =', av%fcorr, 'facsec =', av%facsec
       call write_to_qt(msg_bfr)
+      write(msg_bfr,*) '  flow_guess_method =', av%guess_method, 'tstep method =', av%tstep_method, 'nrkuts = ', av%nrkuts
+      call write_to_qt(msg_bfr)
       write(msg_bfr,*) '  Convergence  d_max =', av%d_max
       call write_to_qt(msg_bfr)
       write(msg_bfr,*) '  Mesh size  ni =', av%ni, 'nj =', av%nj
