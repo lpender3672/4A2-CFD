@@ -333,9 +333,6 @@ def plot_smoothing_cfl(av_template, data):
 
 def plot_smoothing_fcorr(av_template, data):
     
-    # keep sfac = 0.8
-    av_template['cfl'] = 0.3
-
     sfacs = np.linspace(0.05, 0.8, 10, endpoint = True)
     #cfls = np.logspace(-2, np.log10(1.5), 10, endpoint = True)
     # rewrite with arrange
@@ -354,11 +351,29 @@ def plot_smoothing_fcorr(av_template, data):
 
     plot_scatter(manager, 'sfac', 'fcorr', data, logx=False)
 
+def plot_smoothing_ni(av_template, data):
+    
+    sfacs = np.linspace(0.05, 0.8, 10, endpoint = True)
+    #cfls = np.logspace(-2, np.log10(1.5), 10, endpoint = True)
+    # rewrite with arrange
+    nis = np.logspace(1, 3, 10, endpoint = True).astype(int)
+
+    avs = []
+    for ni in nis:
+        for sfac in sfacs:
+            av_template['ni'] = ni
+            av_template['sfac'] = sfac
+            avs.append(av_template.copy())
+
+    manager = create_cfd_env(avs, 'smoothing_ni.csv')
+    manager.clear_worker_folders()
+    manager.start_workers()
+
+    plot_scatter(manager, 'sfac', 'ni', data, logx=False)
 
 def plot_smoothing_sfac_res(av_template, data):
     
     # keep sfac = 0.8
-    av_template['cfl'] = 0.3
 
     sfacs = np.linspace(0.05, 0.95, 10, endpoint = True)
     #cfls = np.logspace(-2, np.log10(1.5), 10, endpoint = True)
