@@ -14,6 +14,15 @@ import copy
 import matplotlib.pyplot as plt
 import mat73
 
+import scipy.io as sio
+
+
+# load the .mat file
+#naca0012_sweep = sio.loadmat('Data/0012_swp.mat')
+
+# print the contents of the .mat file
+# print(naca0012_sweep.keys())
+
 
 def create_cfd_env(avs, name):
 
@@ -65,6 +74,19 @@ def plot_clcd_alpha():
     df_naca0012 = df_naca0012.sort_values('alpha')
     df_naca2412 = df_naca2412.sort_values('alpha')
 
+    # load BEM data
+    naca0012_sweep = sio.loadmat('report/final/data/0012_swp.mat')
+
+    alpha0012 = naca0012_sweep['alpha'][0,:]
+    cl0012 = naca0012_sweep['Cl_s'][0,:]
+    cd0012 = naca0012_sweep['Cd_s'][0,:]
+
+    naca2412_sweep = sio.loadmat('report/final/data/2412_swp.mat')
+
+    #alpha2412 = naca2412_sweep['alpha'][0,:]
+    #cl2412 = naca2412_sweep['Cl_s'][0,:]
+    #cd2412 = naca2412_sweep['Cd_s'][0,:]
+
     fig, ax = plt.subplots()
 
     ax.plot(df_naca0012['alpha'].to_numpy(), 
@@ -75,6 +97,8 @@ def plot_clcd_alpha():
             df_naca2412['cl'].to_numpy(),
             '-o',
             label='NACA2412')
+    
+    ax.plot(alpha0012, cl0012, label='BEM NACA0012')
 
     ax.grid( linestyle='--', linewidth=0.5)
     ax.legend()
@@ -87,6 +111,8 @@ def plot_clcd_alpha():
 
     fig, ax = plt.subplots()
 
+    
+
     ax.plot(df_naca0012['alpha'].to_numpy(),
             df_naca0012['cd'].to_numpy(),
             '-o',
@@ -95,7 +121,7 @@ def plot_clcd_alpha():
             df_naca2412['cd'].to_numpy(),
             '-o',
             label='NACA2412')
-    
+        
     theoretical_gradient = 2 / np.pi
     gradient_0012 =  np.diff(df_naca0012['cl']) / np.diff(np.deg2rad(df_naca0012['alpha']))
     gradient_0012 = np.mean(gradient_0012[:-4])

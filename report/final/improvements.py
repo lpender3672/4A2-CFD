@@ -477,6 +477,9 @@ def plot_scatter(manager, xlabel, ylabel, clabel, logx=True, logy=False):
         ax.set_xscale('log')
     if logy:
         ax.set_yscale('log')
+        
+    ax.grid( which='both', linestyle='--', linewidth=0.5)
+    ax.set_axisbelow(True)
 
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15),
           ncol=2, fancybox=True)
@@ -656,8 +659,8 @@ def effort_vs_accuracy_ni():
 
 if __name__ == "__main__":
 
-    #plot_improvement_cfl()
-    #plot_improvement_ni()
+    plot_improvement_cfl()
+    plot_improvement_ni()
 
     av_template = read_settings('cases/bump/input_bump.txt')
     av_template['fcorr'] = 0.8

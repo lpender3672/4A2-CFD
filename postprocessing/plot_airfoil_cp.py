@@ -16,8 +16,8 @@ import mat73
 def separate(arr):
 
     npts = arr.shape[0] // 2
-    up_var = np.flip(arr[:npts+1], axis=0)
-    low_var = arr[npts:]
+    up_var = np.flip(arr[:npts], axis=0)
+    low_var = arr[npts+1:]
     return up_var, low_var
 
 def gradient_seperate(arr, gradarr):
@@ -54,11 +54,14 @@ def calc_lift(av, gs):
     dtheta_u = np.arctan2(np.diff(ys_u), np.diff(xs_u))
     dtheta_l = np.arctan2(np.diff(ys_l), np.diff(xs_l))
 
-    cl_upper = -cpup[:-1] * np.cos(dtheta_u - alpha) * np.diff(xs_u)
-    cl_lower = -cplo[:-1] * np.cos(dtheta_l - alpha) * np.diff(xs_l)
+    ds_u = np.sqrt(np.diff(xs_u)**2 + np.diff(ys_u)**2)
+    ds_l = np.sqrt(np.diff(xs_l)**2 + np.diff(ys_l)**2)
 
-    cd_upper = -cpup[:-1] * np.sin(dtheta_u - alpha) * np.diff(xs_u)
-    cd_lower = -cplo[:-1] * np.sin(dtheta_l - alpha) * np.diff(xs_l)
+    cl_upper = -cpup[:-1] * np.cos(dtheta_u - alpha) * ds_u
+    cl_lower = -cplo[:-1] * np.cos(dtheta_l - alpha) * ds_l
+
+    cd_upper = -cpup[:-1] * np.sin(dtheta_u - alpha) * ds_u
+    cd_lower = -cplo[:-1] * np.sin(dtheta_l - alpha) * ds_l
 
     Cl = np.sum(cl_lower) - np.sum(cl_upper)
 
