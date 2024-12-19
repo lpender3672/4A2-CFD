@@ -95,6 +95,22 @@ The zoom and pan no longer resets on each frame update and is consistent between
 
 \subsection{Convergence definition}
 
+The same convergence criteria described in the Interim report \cite{interim} was implemented to stop the solver when the last 100 calculated \texttt{d\_avg} were all within a factor of \texttt{d\_var} of their mean.
+This was done to prevent the solver from reaching max iterations when the solution had already converged, making it possible to more accurately measure the runtime.
+Large values of \texttt{d\_var}, can cause the solver to stop prematurely if the convergence was slow, and similarly small values
+can cause the solver to run for longer than necessary.
+Additionally the requirement of 100 points of \texttt{d\_avg}, which is calculated every 50 iterations means that the minimum number of iterations for convergence to be detected is 5000.
+With the improvements made convergence was, for some cases, observed to occur before this limit, highlighting a problem with the convergence criteria.
+
+The original check if the final residual error is within the bounds specified in the inputs is nested within this check.
+This means the solver subroutine will terminate with 4 possible outcomes:
+\begin{itemize}
+    \item Converged within boundary specified
+    \item Converged outside boundary specified
+    \item Diverged
+    \item Maximum iterations reached
+\end{itemize}
+
 \subsection{Figure of merit definition}
 In order to identify the best parameters, its useful to define a figure of merit (FM) to compare the performance of the code.
 In our case we want the most accuracy in the least amount of time and so the FM is defined as
@@ -120,8 +136,18 @@ This method, also proposed by Kutta, has advantages compared to typical RK4 in t
 
 The amount of smoothing required for stability decreases as the solution converges to steady state.
 This means over many iterations we can start to reduce the amount of artifical viscosity added to the solution.
-This can be done by defining another flow correction variable, \texttt{corr}, that approaches a final correction factor \texttt{corr\_total} = \texttt{fcorr} * (\texttt{prop} - \texttt{prop\_average}). 
+This can be done by defining another flow correction variable, \texttt{corr}, that slowly approaches a final correction factor
+\begin{equation}
+    \texttt{corr\_total} = \texttt{fcorr} \times (\texttt{prop} - \texttt{prop\_average}).
+\end{equation}
+Then \texttt{corr} is updated by
+\begin{equation}
+    \texttt{corr} = (1 - \texttt{corr\_rate}) \times \texttt{corr} + \texttt{corr\_rate} \times \texttt{corr\_total}
+\end{equation}
+Each iteration the solution then is smoothed towards \texttt{prop\_average} + \texttt{corr}.
 
+The amount of artifical viscosity cancelled out is set by \texttt{fcorr} and the rate of correction is set by \texttt{corr\_rate}.
+However, \texttt{corr\_rate} was fixed within the solver to 0.01.
 
 \subsubsection{Residual Averaging}
 
@@ -154,6 +180,8 @@ While this marginally increases the time per iteration, it reduces the number of
 \subsection{Additional Cases}
 % airfoil case comparison with SA1 or xfoil
 % experiment with airfoils
+The generate naca case function was modified to input the 4 digit naca airfoil code to generate various airfoil geometries.
+A simpler symmetric airfoil case, NACA0012 was tested to compare with the provided NACA2412 case.
 
 % compare turbine theory with turbo course
 
@@ -164,7 +192,7 @@ Unless otherwise specified the following default parameters are used for the cas
 
 \begin{table}[H]
     \begin{adjustbox}{tabular=l|rrrrrrrrrrrr,center}
-        \texttt{casename} & \texttt{cfl} & \texttt{sfac} & \texttt{sfac\_res} & \texttt{fcorr} & \texttt{nsteps} & \texttt{ni} & \texttt{nj} & \texttt{pstag} & \texttt{tstag} & \texttt{alpha} & \texttt{rfin} & p \\
+        \texttt{casename} & \texttt{cfl} & \texttt{sfac} & \texttt{sfac\_res} & \texttt{fcorr} & \texttt{nsteps} & \texttt{ni} & \texttt{nj} & \texttt{pstag} & \texttt{tstag} & \texttt{alpha} & \texttt{rfin} & \texttt{p} \\
         \hline
         bend & 0.20 & 0.80 & 0.50 & 0.90 & 1e+05 & 53 & 37 & 1.00e+05 & 300.00 & 0.0 & 0.25 & 8.50e+04 \\
         bump & 0.10 & 0.40 & 0.50 & 0.90 & 1e+05 & 53 & 37 & 1.00e+05 & 300.00 & 0.0 & 0.25 & 8.50e+04 \\
@@ -173,16 +201,9 @@ Unless otherwise specified the following default parameters are used for the cas
         turbine\_c & 0.10 & 0.60 & 0.50 & 0.80 & 1e+05 & - & - & 1.05e+05 & 300.00 & 0.0 & 0.25 & 1.03e+05 \\
         turbine\_h & 0.10 & 0.80 & 0.00 & 0.90 & 1e+05 & - & - & 1.05e+05 & 300.00 & 0.0 & 0.10 & 1.03e+05 \\
     \end{adjustbox}
-    \caption{Default parameters for cases}
+    \caption{Default parameters for cases. \texttt{d\_max} = 1e-4 and \texttt{d\_var} = 1e-2 for all cases.}   
     \label{tab:default_params}
 \end{table}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.7\textwidth]{figures/software.png}
-    \caption{Software GUI}
-    \label{fig:software}
-\end{figure}
 
 \subsection{Comparison of Improvements}
 
@@ -368,6 +389,12 @@ The two turbine
     University of Cambridge,
     2024.
 
+    \bibitem{interim}
+    L. W. Pender
+    \emph{4A2 Interim Report}
+    University of Cambridge,
+    2024.
+
     \bibitem{solve_ODE_nonstiff}
     Hairer, Ernst et al.
     \emph{Solving ordinary differential equations I: Nonstiff problems, Berlin, New York}
@@ -382,6 +409,15 @@ The two turbine
 \end{thebibliography}
 
 \section{Appendix}
+
+\subsection{Software}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/software.png}
+    \caption{Software GUI}
+    \label{fig:software}
+\end{figure}
 
 \subsection{Worker runtime enviroment}
 
