@@ -205,6 +205,26 @@
 !         Write out summary every "nconv" steps and update "davg" and "dmax" 
           if(mod(av%nstep,nconv) == 0) then
               call check_conv(av,g,d_avg,d_max)
+
+              !         Stop marching if converged to the desired tolerance "conlim"
+              !if(d_max < av%d_max .and. d_avg < av%d_avg) then
+              avg_of_hist = sum(d_avg_hist)/100
+              if (all(abs(d_avg_hist / avg_of_hist - 1) < av%d_var)) then
+                  ! this code is modified. The original code is commented out above
+                  ! the calculation stops when the variation of the average residual is less than 1%
+                  write(msg_bfr,*) d_max ," ", av%d_max, " ", avg_of_hist, " ", av%d_avg
+                  call write_to_qt(msg_bfr)
+                  if(d_max < av%d_max .and. avg_of_hist < av%d_avg) then
+                      write(msg_bfr,*) 'Calculation converged within bounds in', nstep,'iterations'
+                      call write_to_qt(msg_bfr)
+                  else
+                      write(msg_bfr,*) 'Calculation converged outside bounds in', nstep,'iterations'
+                      call write_to_qt(msg_bfr)
+                  end if
+                  
+                  exit
+              end if
+
               conv_point%iters = av%nstep
               conv_point%d_max = d_max
               conv_point%d_avg = d_avg
@@ -225,24 +245,6 @@
           if (mod(av%nstep,nsend) == 0) then
               call grids_to_qt(g, av%nn)
           end if
-
-!         Stop marching if converged to the desired tolerance "conlim"
-          !if(d_max < av%d_max .and. d_avg < av%d_avg) then
-          avg_of_hist = sum(d_avg_hist)/100
-          if (all(abs(d_avg_hist / avg_of_hist - 1) < av%d_var)) then
-            ! this code is modified. The original code is commented out above
-            ! the calculation stops when the variation of the average residual is less than 1%
-              if(d_max < av%d_max .and. d_avg < av%d_avg) then
-                  write(msg_bfr,*) 'Calculation converged within bounds in', nstep,'iterations'
-                  call write_to_qt(msg_bfr)
-              else
-                  write(msg_bfr,*) 'Calculation converged outside bounds in', nstep,'iterations'
-                  call write_to_qt(msg_bfr)
-              end if
-              
-              exit
-          end if
-          
 
           if (av%crashed) then
               exit
