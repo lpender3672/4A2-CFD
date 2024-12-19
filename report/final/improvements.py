@@ -487,7 +487,9 @@ def effort_vs_accuracy_fcorr():
 
     cbar.set_label('sfac')
     ax.set_xlabel('Log10 average residual density error')
-    ax.set_ylabel('Log10 run time')
+    ax.set_ylabel('Log10 average run time')
+    # flip x
+    ax.invert_xaxis()
 
     ax.grid( which='both', linestyle='--', linewidth=0.5)
 
@@ -518,7 +520,8 @@ def effort_vs_accuracy_sfac_res():
 
     cbar.set_label('sfac')
     ax.set_xlabel('Log10 average residual density error')
-    ax.set_ylabel('Log10 run time')
+    ax.set_ylabel('Log10 average run time')
+    ax.invert_xaxis()
 
     ax.grid( which='both', linestyle='--', linewidth=0.5)
 
@@ -541,21 +544,53 @@ def effort_vs_accuracy_cfl():
     scat = ax.scatter(
         np.log10(df['dro_avg']),
         np.log10(df['dt']),
-        c = df['sfac'],
-        s = 60*df['cfl']
+        c = np.log10(df['cfl']),
+        s = 60*df['sfac']
     )
 
     cbar = plt.colorbar(scat)
 
-    cbar.set_label('sfac')
+    cbar.set_label('Log10 cfl')
     ax.set_xlabel('Log10 average residual density error')
-    ax.set_ylabel('Log10 run time')
+    ax.set_ylabel('Log10 average run time')
+    ax.invert_xaxis()
 
     ax.grid( which='both', linestyle='--', linewidth=0.5)
 
     fig.tight_layout()
 
     fig.savefig('report/final/figures/effort_vs_accuracy_cfl.png', dpi=300)
+
+def effort_vs_accuracy_ni():
+    
+    df = pd.read_csv('report/final/data/smoothing_ni.csv')
+
+    df = df[df['converged'] < 2]
+
+    # aggregate by time but keep all columns
+    df = df.groupby(list(df.columns), as_index=False).agg({'dt': 'mean'})
+
+    fig, ax = plt.subplots(figsize = [8, 6])
+
+    scat = ax.scatter(
+        np.log10(df['dro_avg']),
+        np.log10(df['dt']),
+        c = np.log10(df['ni']),
+        s = 100 * df['sfac']
+    )
+    ax.invert_xaxis()
+
+    cbar = plt.colorbar(scat)
+
+    cbar.set_label('Log10 ni')
+    ax.set_xlabel('Log10 average residual density error')
+    ax.set_ylabel('Log10 average run time')
+
+    ax.grid( which='both', linestyle='--', linewidth=0.5)
+
+    fig.tight_layout()
+
+    fig.savefig('report/final/figures/effort_vs_accuracy_ni.png', dpi=300)
 
 if __name__ == "__main__":
 
@@ -574,6 +609,7 @@ if __name__ == "__main__":
     effort_vs_accuracy_fcorr()
     effort_vs_accuracy_sfac_res()
     effort_vs_accuracy_cfl()
+    effort_vs_accuracy_ni()
 
     plt.show()
 
