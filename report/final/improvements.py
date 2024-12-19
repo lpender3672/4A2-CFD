@@ -369,7 +369,7 @@ def plot_smoothing_ni(av_template, data):
     manager.clear_worker_folders()
     manager.start_workers()
 
-    plot_scatter(manager, 'sfac', 'ni', data, logx=False)
+    plot_scatter(manager, 'sfac', 'ni', data, logx=False, logy=True)
 
 def plot_smoothing_sfac_res(av_template, data):
     
@@ -393,7 +393,7 @@ def plot_smoothing_sfac_res(av_template, data):
 
     plot_scatter(manager, 'sfac', 'sfac_res', data, logx=False)
 
-def plot_scatter(manager, xlabel, ylabel, clabel, logx=True):
+def plot_scatter(manager, xlabel, ylabel, clabel, logx=True, logy=False):
 
     df = pd.read_csv(manager.shared_file)
 
@@ -472,6 +472,8 @@ def plot_scatter(manager, xlabel, ylabel, clabel, logx=True):
     ax.set_ylabel(ylabel)
     if logx:
         ax.set_xscale('log')
+    if logy:
+        ax.set_yscale('log')
 
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15),
           ncol=2, fancybox=True)
@@ -479,6 +481,27 @@ def plot_scatter(manager, xlabel, ylabel, clabel, logx=True):
 
     fig.savefig(f'report/final/figures/{xlabel}_{ylabel}_{clabel}.png', dpi=300)
 
+
+def plot_performance_metric_contours(fig, ax):
+
+    # get x and y limits from ax
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+
+    x = np.logspace(
+        np.log10(xlim[0]), np.log10(xlim[1]), 100)
+    y = np.logspace(
+        np.log10(ylim[0]), np.log10(ylim[1]), 100)
+
+    X, Y = np.meshgrid(x, y)
+    FM = - (np.log10(X) + np.log10(Y))
+
+    # set extreme values to NaN
+
+    contours = ax.contour(X, Y, FM, levels = 10, colors = 'black', linestyles = '-', linewidths = 0.5, zorder=0, alpha=0.7)
+    ax.clabel(contours, inline=True, fontsize=8, fmt="%.2f",zorder=0, levels=contours.levels[::2])
+
+    return fig, ax
 
 def effort_vs_accuracy_fcorr():
 
@@ -492,21 +515,27 @@ def effort_vs_accuracy_fcorr():
     fig, ax = plt.subplots(figsize = [8, 6])
 
     scat = ax.scatter(
-        np.log10(df['dro_avg']),
-        np.log10(df['dt']),
+        df['dro_avg'],
+        df['dt'],
         c = df['sfac'],
         s = 60*df['fcorr']
     )
 
     cbar = plt.colorbar(scat)
 
-    cbar.set_label('sfac')
-    ax.set_xlabel('Log10 average residual density error')
-    ax.set_ylabel('Log10 average run time')
+    cbar.set_label(r'$\texttt{sfac}$ [-]')
+    ax.set_xlabel('Average Residual Density Error [-]')
+    ax.set_ylabel('Average Run Time [s]')
     # flip x
     ax.invert_xaxis()
+    # set log log
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+
+    fig, ax = plot_performance_metric_contours(fig, ax)
 
     ax.grid( which='both', linestyle='--', linewidth=0.5)
+    ax.set_axisbelow(True)
 
     fig.tight_layout()
 
@@ -525,20 +554,25 @@ def effort_vs_accuracy_sfac_res():
     fig, ax = plt.subplots(figsize = [8, 6])
 
     scat = ax.scatter(
-        np.log10(df['dro_avg']),
-        np.log10(df['dt']),
+        df['dro_avg'],
+        df['dt'],
         c = df['sfac'],
         s = 60*df['sfac_res']
     )
 
     cbar = plt.colorbar(scat)
 
-    cbar.set_label('sfac')
-    ax.set_xlabel('Log10 average residual density error')
-    ax.set_ylabel('Log10 average run time')
+    cbar.set_label(r'$\texttt{sfac}$ [-]')
+    ax.set_xlabel('Average Residual Density Error [-]')
+    ax.set_ylabel('Average Run Time [s]')
     ax.invert_xaxis()
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+
+    fig, ax = plot_performance_metric_contours(fig, ax)
 
     ax.grid( which='both', linestyle='--', linewidth=0.5)
+    ax.set_axisbelow(True)
 
     fig.tight_layout()
 
@@ -557,20 +591,25 @@ def effort_vs_accuracy_cfl():
     fig, ax = plt.subplots(figsize = [8, 6])
 
     scat = ax.scatter(
-        np.log10(df['dro_avg']),
-        np.log10(df['dt']),
+        df['dro_avg'],
+        df['dt'],
         c = np.log10(df['cfl']),
         s = 60*df['sfac']
     )
 
     cbar = plt.colorbar(scat)
 
-    cbar.set_label('Log10 cfl')
-    ax.set_xlabel('Log10 average residual density error')
-    ax.set_ylabel('Log10 average run time')
+    cbar.set_label(r'$\log_{10}( \texttt{cfl})$ [-]')
+    ax.set_xlabel('Average Residual Density Error [-]')
+    ax.set_ylabel('Average Run Time [s]')
     ax.invert_xaxis()
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+
+    fig, ax = plot_performance_metric_contours(fig, ax)
 
     ax.grid( which='both', linestyle='--', linewidth=0.5)
+    ax.set_axisbelow(True)
 
     fig.tight_layout()
 
@@ -588,20 +627,25 @@ def effort_vs_accuracy_ni():
     fig, ax = plt.subplots(figsize = [8, 6])
 
     scat = ax.scatter(
-        np.log10(df['dro_avg']),
-        np.log10(df['dt']),
+        df['dro_avg'],
+        df['dt'],
         c = np.log10(df['ni']),
         s = 100 * df['sfac']
     )
     ax.invert_xaxis()
+    ax.set_xscale('log')
+    ax.set_yscale('log')
 
     cbar = plt.colorbar(scat)
 
-    cbar.set_label('Log10 ni')
-    ax.set_xlabel('Log10 average residual density error')
-    ax.set_ylabel('Log10 average run time')
+    cbar.set_label(r'$\log_{10}( \texttt{ni})$ [-]')
+    ax.set_xlabel('Average Residual Density Error [-]')
+    ax.set_ylabel('Average Run Time [s]')
+
+    fig, ax = plot_performance_metric_contours(fig, ax)
 
     ax.grid( which='both', linestyle='--', linewidth=0.5)
+    ax.set_axisbelow(True)
 
     fig.tight_layout()
 
@@ -616,7 +660,7 @@ if __name__ == "__main__":
     av_template['fcorr'] = 0.8
     print(av_template)
     #plot_smoothing_cfl(av_template, 'dro_avg')
-    #plot_smoothing_cfl(av_template, 'dt')
+    plot_smoothing_cfl(av_template, 'dt')
     #plot_smoothing_fcorr(av_template, 'dt')
     #plot_smoothing_sfac_res(av_template, 'dt')
     #plot_smoothing_cfl_residual(av_template, 'dt')

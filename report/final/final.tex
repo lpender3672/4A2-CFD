@@ -71,6 +71,28 @@
 \date{December 2024}
 \maketitle 
 
+\section{Introduction}
+
+% make better
+Computational Fluid Dynamics (CFD) is a powerful tool for solving fluid flow problems.
+This can be done much faster and at lower cost than experimental methods.
+This makes it a valuable tool to be used alongside experimental validation.
+
+
+\section{Objective}
+
+%To write a program to solve the Euler equations for two-dimensional flows using a finite volume time
+%marching method. Completing this work will give you practical expertise in pre-processing and post-
+%processing the simulations as well as understanding the methods of solution. The knowledge gained
+%is core to all CFD methods and transferrable to all other research and commercial CFD packages
+
+\begin{itemize}
+    \item Write a program to solve the Euler equations for two-dimensional flows using a finite volume time marching method.
+    \item Pre-process and post-process the simulations.
+    \item Understand the methods of solution.
+    \item Gain practical expertise in CFD methods.
+\end{itemize}
+
 \section{Software}
 % monumental amount of work required here
 \subsection{Modifications}
@@ -78,13 +100,13 @@
 % write_settings python
 
 Some corrections were made to the code supplied by the course.
-The first correction was to the \texttt{interpolate} fortran function to fix an issue which only presented when compiling the program without debug symbols and so was difficult to identify.
+The first correction was to the \texttt{interpolate} fortran function to fix an issue which only presented when compiling without debug symbols which made it difficult to identify.
 It was found that in some cases this function was returning unset memory values at the last point of the array. This is believed to be due to more relaxed precision in \texttt{si} which left it outside the normalised range of \texttt{si\_a}.
 The fix was to add a check to see if \texttt{si} is outside the input range, and if so return the boundary value.
-A mistake in the python function \texttt{write\_settings} was also found where the gas constants were being written in the incorrect order.
+Another correction in the python function \texttt{write\_settings} was also made where the gas constants were being written in the incorrect order.
 
-The general program \texttt{stopit} file was removed and replaced with the variable \texttt{av\%crashed} which is set to true if \texttt{NaN} is detected, or if the user interrupts the program.
-Not only is this more efficient, but also now allows cases to be run in parallel writing only to case specific files, and not a shared program file which causes write violations.
+The general program \texttt{stopit} file was removed and replaced with the boolean \texttt{av\%crashed} which is set to \texttt{True} if \texttt{NaN} is detected, or if the user interrupts the program.
+Not only is this more efficient, but also now allows cases to be run in parallel; writing only to case specific files, and not a shared program file that causes write violations.
 This was imporant to accelerate the testing and a custom python thread pool manager was written for this purpose.
 A worker creates the directory structure for the case, runs the solver, and then writes the key results to a shared file.
 The worker directory and run function are shown in the appendix \ref{fig:worker_dir}.
@@ -115,7 +137,7 @@ This means the solver subroutine will terminate with 4 possible outcomes:
 In order to identify the best parameters, its useful to define a figure of merit (FM) to compare the performance of the code.
 In our case we want the most accuracy in the least amount of time and so the FM is defined as
 \begin{equation}
-    \text{FM} = \frac{-\log_{10}(d_{avg})}{\text{T}}
+    \text{FM} = \log_{10} \left( \frac{1}{\texttt{d\_avg} \times T} \right)
 \end{equation}
 
 \subsection{Improvements}
@@ -151,7 +173,13 @@ However, \texttt{corr\_rate} was fixed within the solver to 0.01.
 
 \subsubsection{Residual Averaging}
 
-
+At the onset of instability the adjacent grid points have high and low respective values that causes the solution to oscillate on alternating timesteps.
+If the timestep is too large the amplitude of these oscillations can grow and cause the solution to diverge.
+Its possible to smooth the changes in primary flow variables to improve stability.
+This is done by
+\begin{equation}
+    \texttt{dcell} = (1 - \texttt{sfac\_res}) \times \texttt{dcell} + \texttt{sfac\_res} \times \texttt{dcell\_avg}
+\end{equation}
 
 \subsubsection{Spatially Varying Timestep}
 
@@ -242,7 +270,41 @@ Unless otherwise specified the following default parameters are used for the cas
 \end{figure}
 
 
-\subsection{Naca airfoils}
+\subsection{Effort vs Accuracy}
+
+\begin{figure}[H]
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_cfl.png}
+        \caption{Colour is $\log_{10}( \texttt{cfl})$ and size represents \texttt{sfac}.}
+        \label{fig:effort_vs_accuracy_cfl}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_ni.png}
+        \caption{Colour is $\log_{10}( \texttt{ni})$ and size represents \texttt{sfac}.}
+        \label{fig:effort_vs_accuracy_ni}
+    \end{subfigure}
+    \caption{Effort vs accuracy for bump case with varying parameters}
+\end{figure}
+
+\begin{figure}[H]
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_sfac_res.png}
+        \caption{Colour is \texttt{sfac} and size represents \texttt{sfac\_res}.}
+        \label{fig:effort_vs_accuracy_sfac_res}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_fcorr.png}
+        \caption{Colour is \texttt{sfac} and size represents \texttt{fcorr}.}
+        \label{fig:effort_vs_accuracy_fcorr}
+    \end{subfigure}
+    \caption{Effort vs accuracy for bump case with varying parameters. Contours are $FM$.}
+\end{figure}
+
+\subsection{NACA airfoils}
 
 \begin{figure}[H]
     \centering
@@ -258,7 +320,7 @@ Unless otherwise specified the following default parameters are used for the cas
         \caption{}
         \label{fig:naca0012_mach}
     \end{subfigure}
-    \caption{Naca0012 test case results}
+    \caption{NACA0012 test case results}
 \end{figure}
 
 \begin{figure}[H]
@@ -275,7 +337,7 @@ Unless otherwise specified the following default parameters are used for the cas
         \caption{}
         \label{fig:naca2412_mach}
     \end{subfigure}
-    \caption{Naca2412 test case results}
+    \caption{NACA2412 test case results}
 \end{figure}
 
 \begin{figure}[H]
@@ -292,7 +354,7 @@ Unless otherwise specified the following default parameters are used for the cas
         \caption{}
         \label{fig:cd_alpha}
     \end{subfigure}
-    \caption{Naca2412 test case results}
+    \caption{NACA2412 test case results}
 \end{figure}
 
 \subsection{Turbine}
@@ -331,49 +393,19 @@ Unless otherwise specified the following default parameters are used for the cas
     \caption{Turbine\_h test case results}
 \end{figure}
 
-\subsection{Effort vs Accuracy}
-
-\begin{figure}[H]
-    \begin{subfigure}{0.49\textwidth}
-        \centering
-        \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_cfl.png}
-        \caption{Colour is $\log_{10}( \texttt{cfl})$ and size represents \texttt{sfac}.}
-        \label{fig:effort_vs_accuracy_cfl}
-    \end{subfigure}
-    \begin{subfigure}{0.49\textwidth}
-        \centering
-        \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_ni.png}
-        \caption{Colour is $\log_{10}( \texttt{ni})$ and size represents \texttt{sfac}.}
-        \label{fig:effort_vs_accuracy_ni}
-    \end{subfigure}
-    \caption{Effort vs accuracy for bump case with varying parameters}
-\end{figure}
-
-\begin{figure}[H]
-    \begin{subfigure}{0.49\textwidth}
-        \centering
-        \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_sfac_res.png}
-        \caption{Colour is \texttt{sfac} and size represents \texttt{sfac\_res}.}
-        \label{fig:effort_vs_accuracy_sfac_res}
-    \end{subfigure}
-    \begin{subfigure}{0.49\textwidth}
-        \centering
-        \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_fcorr.png}
-        \caption{Colour is \texttt{sfac} and size represents \texttt{fcorr}.}
-        \label{fig:effort_vs_accuracy_fcorr}
-    \end{subfigure}
-    \caption{Effort vs accuracy for bump case with varying parameters}
-\end{figure}
-
 \section{Discussion}
 % two pages that doesnt repeat interim
 
-\subsection{Naca airfoils}
+\subsection{NACA airfoils}
 
-Figure \ref{fig:cl_alpha} shows the lift coefficient against angle of attack for the Naca0012 and Naca2412 airfoils.
-From invicid theory, these lift coefficient should be linear with angle of attack with gradient $ 2\pi $. ( our algorithm can now compute PI !)
-The actual gradient observed is 4.5\% higher than $2/\pi$ for the Naca0012 and 10.9\% lower for the Naca2412.
-Why?
+Figure \ref{fig:cl_alpha} shows the lift coefficient against angle of attack for the NACA0012 and NACA2412 airfoils.
+From invicid theory, these lift coefficient should be linear with angle of attack with gradient $ 2/\pi $. ( our algorithm can now compute PI !)
+The actual gradient observed is 4.5\% higher than $2/\pi$ for the NACA0012 and 10.9\% lower for the NACA2412.
+% discuss Kutta condition 
+% not necessary to explicitly apply 
+% because the artificial viscosity of the solver is enough to make the flow leave the trailing edge smoothly
+
+
 
 \subsection{Turbine}
 
