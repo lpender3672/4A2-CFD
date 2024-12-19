@@ -312,9 +312,12 @@ def plot_smoothing_cfl(av_template, data):
     # keep sfac = 0.8
 
     sfacs = np.linspace(0.05, 0.8, 10, endpoint = True)
+    sfacs = np.append(sfacs, [0.01, 0.9])
+
     #cfls = np.logspace(-2, np.log10(1.5), 10, endpoint = True)
     # rewrite with arrange
     cfls = 10**np.arange(-2, np.log10(1.5), 0.2)
+    cfls = np.append(cfls, [1.2, 1.5, 2, 3, 5])
     print(cfls)
 
     avs = []
@@ -428,7 +431,7 @@ def plot_scatter(manager, xlabel, ylabel, clabel, logx=True, logy=False):
         s = 100,
         label = 'Converged within',
         marker = 'o',
-        cmap = 'jet'
+        cmap = 'viridis_r'
     )
     conout = ax.scatter(
         df_converged_outside[xlabel].to_numpy(),
@@ -437,7 +440,7 @@ def plot_scatter(manager, xlabel, ylabel, clabel, logx=True, logy=False):
         s = 100,
         label = 'Converged outside',
         marker = 'd',
-        cmap = 'jet'
+        cmap = 'viridis_r'
     )
     ax.scatter(
         df_diverged[xlabel].to_numpy(),
@@ -660,15 +663,15 @@ if __name__ == "__main__":
     av_template['fcorr'] = 0.8
     print(av_template)
     #plot_smoothing_cfl(av_template, 'dro_avg')
-    plot_smoothing_cfl(av_template, 'dt')
+    plot_smoothing_cfl(av_template, 'dro_avg')
     #plot_smoothing_fcorr(av_template, 'dt')
     #plot_smoothing_sfac_res(av_template, 'dt')
     #plot_smoothing_cfl_residual(av_template, 'dt')
 
-    effort_vs_accuracy_fcorr()
-    effort_vs_accuracy_sfac_res()
-    effort_vs_accuracy_cfl()
-    effort_vs_accuracy_ni()
+    #effort_vs_accuracy_fcorr()
+    #effort_vs_accuracy_sfac_res()
+    #effort_vs_accuracy_cfl()
+    #effort_vs_accuracy_ni()
 
     plt.show()
 
