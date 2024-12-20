@@ -489,12 +489,14 @@ The small runtimes are likely to be innacurate however, as the solution is conve
 \subsection{NACA airfoils}
 
 Figure \ref{fig:naca0012_cp} shows the pressure coefficient of the computational domain for the NACA0012 airfoil at $\alpha = 0^\circ$.
-The static pressure coefficient is 0 in the free stream but is above 1 at the leading edge stagnation point.
-This is possible for some bluff bodies or when compressibility effects are significant, neither of which apply to this case.
-The cause of this is thought to be due the solver converging on an unrealistic solution.
-Figure \ref{fig:naca0012_surface_cp} shows the surface pressure coefficients against normalised surface path length.
 
+Figure \ref{fig:naca0012_surface_cp} shows the pressure coefficient on the surface of the NACA0012 airfoil at $\alpha = 0^\circ$.
+This is compared to a panel method solution from the SA1 report \cite{SA1}.
+This method includes a boundary layer solver but this is uncoupled from the invicid flow solvler.
+The Reynolds number is matched to the dynamic pressure boundary condition at an altitude of 35000ft.
+For 15kPa dynamic pressure this corresponds to a Reynolds number of $\sim7\times10^6$.
 
+% talk about residual maps
 
 Figure \ref{fig:cl_alpha} shows the lift coefficient against angle of attack for the NACA0012 and NACA2412 airfoils.
 The graph shows strong linear relationship for nearly all angles of attack.
@@ -511,11 +513,10 @@ Reasons for this are unclear.
 \subsection{Turbine}
 
 Theres two turbine cases, turbine\_c and turbine\_h which represent the same geometry with the same number of nodes but different mesh topologies.
-
-
+The geometry is based on a real turbine experiment \cite{4A3_lab} and the pressure inputs shown in shown in table \ref{tab:default_params} are set to values measured from the experiment. 
 
 The results shown in figures \ref{fig:turbine_c_cp} and \ref{fig:turbine_h_cp} show the pressure coefficient for the turbine cases.
-The run settings shown in table \ref{tab:default_params} are set to values measured from a real turbine experiment \cite{4A3_lab}.
+
 
 \section{Summary}
 
