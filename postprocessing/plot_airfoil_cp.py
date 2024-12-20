@@ -13,6 +13,8 @@ from postprocessing.routines import *
 from scipy.signal import find_peaks
 import mat73
 
+import scipy.io as sio
+
 def separate(arr):
 
     npts = arr.shape[0] // 2
@@ -68,6 +70,38 @@ def calc_lift(av, gs):
     Cd = np.sum(cd_lower) + np.sum(cd_upper)
 
     return Cl, Cd
+
+def plot_SA1_cp(ax, av, code):
+    
+    try:
+        naca_sweep = sio.loadmat(f'report/final/data/{code}_swp.mat')
+    except FileNotFoundError:
+        return ax
+
+    alpha = naca_sweep['alpha'][0,:]
+    xs = naca_sweep['xs'][0,:]
+    ys = naca_sweep['ys'][0,:]
+
+    # find idx that alpha[:] = av['alpha']
+    idx = np.where(alpha == av['alpha'])[0][0]
+    cpdists = naca_sweep['cpdists'][idx,:]
+
+    print(len(cpdists))
+
+    xs_u, xs_l = separate(xs)
+    ys_u, ys_l = separate(ys)
+    # non dim path length
+    lens_u = np.cumsum(np.sqrt(np.diff(xs_u)**2 + np.diff(ys_u)**2))
+    lens_l = np.cumsum(np.sqrt(np.diff(xs_l)**2 + np.diff(ys_l)**2))
+    lens_u = np.insert(lens_u, 0, 0) / np.max(lens_u)
+    lens_l = np.insert(lens_l, 0, 0) / np.max(lens_l)
+
+    cp_up, cp_lo = separate(cpdists)
+    # now must interpolate lens to be the same length as cpdists
+    ax.plot(lens_u, cp_up, label='PM Upper Surface', color = 'green')
+    ax.plot(lens_l, cp_lo, label='PM Lower Surface', color = 'red')
+
+    return ax
 
 
 def plot_blades(av, gs):
@@ -223,8 +257,12 @@ def main():
 
     fig = plt.figure(figsize=[8,5.4]); ax = plt.axes();
 
-    ax.plot(lens_u, cpup, label='Upper surface')
-    ax.plot(lens_l, cplo, label='Lower surface')
+    ax.plot(lens_u, cpup, label='CFD Upper surface')
+    ax.plot(lens_l, cplo, label='CFD Lower surface')
+
+    if 'naca' in av['casename']:
+        code = av['casename'][4:]
+        ax = plot_SA1_cp(ax, av, code)
 
     # these are uncomparable
     #if av['casename'] == 'turbine_c':

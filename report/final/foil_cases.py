@@ -78,14 +78,14 @@ def plot_clcd_alpha():
     naca0012_sweep = sio.loadmat('report/final/data/0012_swp.mat')
 
     alpha0012 = naca0012_sweep['alpha'][0,:]
-    cl0012 = naca0012_sweep['Cl_s'][0,:]
-    cd0012 = naca0012_sweep['Cd_s'][0,:]
+    cl0012 = naca0012_sweep['clswp'][0,:]
+    cd0012 = naca0012_sweep['cdswp'][0,:]
 
     naca2412_sweep = sio.loadmat('report/final/data/2412_swp.mat')
 
-    #alpha2412 = naca2412_sweep['alpha'][0,:]
-    #cl2412 = naca2412_sweep['Cl_s'][0,:]
-    #cd2412 = naca2412_sweep['Cd_s'][0,:]
+    alpha2412 = naca2412_sweep['alpha'][0,:]
+    cl2412 = naca2412_sweep['clswp'][0,:]
+    cd2412 = naca2412_sweep['cdswp'][0,:]
 
     fig, ax = plt.subplots()
 

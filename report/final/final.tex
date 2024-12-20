@@ -137,7 +137,7 @@ This means the solver subroutine will terminate with 4 possible outcomes:
 In order to identify the best parameters, its useful to define a figure of merit (FM) to compare the performance of the code.
 In our case we want the most accuracy in the least amount of time and so the FM is defined as
 \begin{equation}
-    \text{FM} = \log_{10} \left( \frac{1}{\texttt{d\_avg} \times T} \right)
+    \text{FM} = \log_{10} \left( \frac{1}{\texttt{d\_avg} \times T} \right) \label{eq:FM}
 \end{equation}
 
 \subsection{Improvements}
@@ -292,23 +292,25 @@ Unless otherwise specified the following default parameters are used for the cas
         \caption{Colour is $\log_{10}( \texttt{ni})$ and size represents \texttt{sfac}.}
         \label{fig:effort_vs_accuracy_ni}
     \end{subfigure}
-    \caption{Effort vs accuracy for bump case with varying parameters}
+    \caption{Effort vs accuracy for bump case with varying parameters. Contours are constant $FM$.}
+    \label{fig:effort_vs_accuracy_1}
 \end{figure}
 
 \begin{figure}[H]
-    \begin{subfigure}{0.49\textwidth}
-        \centering
-        \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_sfac_res.png}
-        \caption{Colour is \texttt{sfac} and size represents \texttt{sfac\_res}.}
-        \label{fig:effort_vs_accuracy_sfac_res}
-    \end{subfigure}
     \begin{subfigure}{0.49\textwidth}
         \centering
         \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_fcorr.png}
         \caption{Colour is \texttt{sfac} and size represents \texttt{fcorr}.}
         \label{fig:effort_vs_accuracy_fcorr}
     \end{subfigure}
-    \caption{Effort vs accuracy for bump case with varying parameters. Contours are $FM$.}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_sfac_res.png}
+        \caption{Colour is \texttt{sfac\_res} and size represents \texttt{sfac}.}
+        \label{fig:effort_vs_accuracy_sfac_res}
+    \end{subfigure}
+    \caption{Effort vs accuracy for bump case with varying parameters. Contours are constant $FM$.}
+    \label{fig:effort_vs_accuracy_2}
 \end{figure}
 
 \subsection{NACA airfoils}
@@ -340,7 +342,7 @@ Unless otherwise specified the following default parameters are used for the cas
     \end{subfigure}
     \begin{subfigure}{0.49\textwidth}
         \centering
-        \includegraphics[width=0.99\textwidth]{figures/naca0012_surface_cp.png}
+        \includegraphics[width=0.99\textwidth]{figures/naca2412_surface_cp.png}
         \caption{}
         \label{fig:naca2412_mach}
     \end{subfigure}
@@ -419,8 +421,8 @@ The spatially varying timestep clearly reduces the stability as the most unstabl
 The deferred correction cancels out the artificial viscosity and so when run with the same \texttt{sfac} as the default case, the final smoothing is reduced which is shown to reduce stability at high \texttt{cfl} numbers \cite{interim}.
 
 The relation of the runtime to \texttt{cfl} and \texttt{ni} is shown in figures \ref{fig:improvements_cfl_time} and \ref{fig:improvements_ni_time}.
-Most of the improvements show the same temporal runtime order as the default ($\mathcal{O}(\texttt{cfl}^{-1/2})$) with the exception of the deferred correction.
-The small region shows a runtime inversely proportional to \texttt{cfl}. %TODO
+Most of the improvements show the same runtime order as the default $T\sim\mathcal{O}(\texttt{cfl}^{-1/2})$ with the exception of the deferred correction.
+The small region shows a runtime inversely proportional to \texttt{cfl}. WHY? %TODO
 The Runge Kutta improvement shows a noticeable increase in runtime at the same \texttt{cfl} which is expected due to the increased number of intermediate timesteps.
 This method also increases stability for larger \texttt{cfl} timesteps, allowing faster convergence and reducing the overall runtime.
 From figure \ref{fig:improvements_ni_time} the spatial runtime order is the same first order as the default solver for all improvements.
@@ -433,14 +435,46 @@ The combination of all the improvements are then tested to see how they affect t
 Figure \ref{fig:cfl_sfac_dro_avg} shows the effect of \texttt{cfl} and \texttt{sfac} on the stability and residual error (accuracy) of the solver.
 When compared to the same figure for the default solver in the interim report \cite{interim}, the improvement show stability at much higher \texttt{cfl} numbers.
 It also shows stability at much lower \texttt{sfac} numbers which is thought to be due to the inclusion of residual averaging.
+% TODO
 
+Figures \ref{fig:effort_vs_accuracy_1} and \ref{fig:effort_vs_accuracy_2} show the final steady state residual plotted against runtime for converged bump cases with varying parameters.
+This effectively provides an effort vs accuracy curve for the solver.
+The contour lines shown on each graph are the figure of merit (FM) defined in equation \ref{eq:FM}.
+Parameters that give the highest FM, or the most accuracy in a given time, or the least time for a given accuracy are the most desirable.
+
+Figure \ref{fig:effort_vs_accuracy_cfl} shows decreasing \texttt{cfl} improves the accuracy which has already been shown however it does so along a constant FM contour.
+The size of markers for this graph represents the \texttt{sfac} which shows by reducing this parameter, a significant increases in FM for the same \texttt{cfl} can be achieved.
+This cannot be seen for extreme \texttt{cfl} numbers with low numbers taking significant runtime and high numbers being unstable as seen in \ref{fig:cfl_sfac_dro_avg}.
+The deviation from constant FM contour at low runtimes may again be due to the solution not meeting convergence criteria when it should.
+Low \texttt{sfac} at high \texttt{cfl} numbers have an increased runtime than high \texttt{sfac} which is thought to be due to %TODO
+
+Figure \ref{fig:effort_vs_accuracy_ni} shows the effect of varying the number of cells in the \texttt{i} direction on the effort vs accuracy curve.
+Again the same trend as \ref{fig:improvements_ni_residual} is observed where accuracy increases second order and time increases linearly.
+The plateau due to floating point precision at high mesh values limit the accuracy that can be gained for an increase in effort.
+This gives rise to an \textit{optimal mesh size} where the FM is maximised.
+For the bump case this is seen to be around $\texttt{ni}=200$, reaching $FM =4.5$.
+The size of markers for this graph represents the \texttt{sfac}.
+Groups of same \texttt{ni} can be identified by lines of same colour but decreasing marker sizes.
+These lines show that decreasing \texttt{sfac} increases the FM for the same \texttt{ni} and \texttt{cfl}.
+
+Figure \ref{fig:effort_vs_accuracy_sfac_res} shows the effect of varying \texttt{sfac} and \texttt{sfac\_res} on the effort vs accuracy curve.
+The colour is \texttt{sfac\_res} and the size is \texttt{sfac}.
+The graph shows that increasing \texttt{sfac\_res} at constant \texttt{cfl} increases both accuracy and runtime.
+For high \texttt{sfac} this increase is small but for low \texttt{sfac} the increases are significant.
+
+This change was made to increase stability at high \texttt{cfl} numbers % TODO
+% and so this should probably be rerun at the maximum stable cfl number to see the effect of the improvement.
+
+
+
+Figure \ref{fig:effort_vs_accuracy_sfac_res} shows 
 
 \subsection{NACA airfoils}
 
 Figure \ref{fig:cl_alpha} shows the lift coefficient against angle of attack for the NACA0012 and NACA2412 airfoils.
 The graph shows strong linear relationship for nearly all angles of attack.
 From invicid theory, these lift coefficient should be linear with angle of attack with gradient $ 2\pi $.
-However, the gradient the linear region is 
+However, the gradient of the linear region is very close to $\pi/4$.
 
 % discuss Kutta condition 
 % not necessary to explicitly apply 

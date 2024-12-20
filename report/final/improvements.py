@@ -378,23 +378,23 @@ def plot_smoothing_sfac_res(av_template, data):
     
     # keep sfac = 0.8
 
-    sfacs = np.linspace(0.05, 0.95, 10, endpoint = True)
-    #cfls = np.logspace(-2, np.log10(1.5), 10, endpoint = True)
+    #sfacs = np.linspace(0.05, 0.95, 10, endpoint = True)
+    cfls = np.logspace(-2, np.log10(5), 15, endpoint = True)
     # rewrite with arrange
     sfac_ress = np.linspace(0.3, 0.95, 10, endpoint = True)
 
     avs = []
     for sfac_res in sfac_ress:
-        for sfac in sfacs:
+        for cfl in cfls:
             av_template['sfac_res'] = sfac_res
-            av_template['sfac'] = sfac
+            av_template['cfl'] = cfl
             avs.append(av_template.copy())
 
     manager = create_cfd_env(avs, 'smoothing_sfac_res.csv')
     manager.clear_worker_folders()
     manager.start_workers()
 
-    plot_scatter(manager, 'sfac', 'sfac_res', data, logx=False)
+    plot_scatter(manager, 'cfl', 'sfac_res', data, logx=False)
 
 def plot_scatter(manager, xlabel, ylabel, clabel, logx=True, logy=False):
 
@@ -562,13 +562,13 @@ def effort_vs_accuracy_sfac_res():
     scat = ax.scatter(
         df['dro_avg'],
         df['dt'],
-        c = df['sfac'],
-        s = 60*df['sfac_res']
+        c = df['sfac_res'],
+        s = 60*df['sfac']
     )
 
     cbar = plt.colorbar(scat)
 
-    cbar.set_label(r'$\texttt{sfac}$ [-]')
+    cbar.set_label(r'$\texttt{sfac\_res}$ [-]')
     ax.set_xlabel('Average Residual Density Error [-]')
     ax.set_ylabel('Average Run Time [s]')
     ax.invert_xaxis()
@@ -659,16 +659,16 @@ def effort_vs_accuracy_ni():
 
 if __name__ == "__main__":
 
-    plot_improvement_cfl()
-    plot_improvement_ni()
+    #plot_improvement_cfl()
+    #plot_improvement_ni()
 
     av_template = read_settings('cases/bump/input_bump.txt')
     av_template['fcorr'] = 0.8
     print(av_template)
     #plot_smoothing_cfl(av_template, 'dro_avg')
-    plot_smoothing_cfl(av_template, 'dro_avg')
+    #plot_smoothing_cfl(av_template, 'dro_avg')
     #plot_smoothing_fcorr(av_template, 'dt')
-    #plot_smoothing_sfac_res(av_template, 'dt')
+    plot_smoothing_sfac_res(av_template, 'dt')
     #plot_smoothing_cfl_residual(av_template, 'dt')
 
     #effort_vs_accuracy_fcorr()
