@@ -564,13 +564,13 @@ def effort_vs_accuracy_sfac_res():
     scat = ax.scatter(
         df['dro_avg'],
         df['dt'],
-        c = df['sfac_res'],
-        s = 60*df['sfac']
+        c = np.log10(df['cfl']),
+        s = 60*df['sfac_res']
     )
 
     cbar = plt.colorbar(scat)
 
-    cbar.set_label(r'$\texttt{sfac\_res}$ [-]')
+    cbar.set_label(r'$\log_{10}(\texttt{cfl})$ [-]')
     ax.set_xlabel('Average Residual Density Error [-]')
     ax.set_ylabel('Average Run Time [s]')
     ax.invert_xaxis()
@@ -670,11 +670,11 @@ if __name__ == "__main__":
     #plot_smoothing_cfl(av_template, 'dro_avg')
     #plot_smoothing_cfl(av_template, 'dro_avg')
     #plot_smoothing_fcorr(av_template, 'dt')
-    plot_smoothing_sfac_res(av_template, 'dt')
+    #plot_smoothing_sfac_res(av_template, 'dt')
     #plot_smoothing_cfl_residual(av_template, 'dt')
 
     #effort_vs_accuracy_fcorr()
-    #effort_vs_accuracy_sfac_res()
+    effort_vs_accuracy_sfac_res()
     #effort_vs_accuracy_cfl()
     #effort_vs_accuracy_ni()
 
