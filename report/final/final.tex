@@ -164,7 +164,7 @@ This can be done by defining another flow correction variable, \texttt{corr}, th
 \end{equation}
 Then \texttt{corr} is updated by
 \begin{equation}
-    \texttt{corr} = (1 - \texttt{corr\_rate}) \times \texttt{corr} + \texttt{corr\_rate} \times \texttt{corr\_total}
+    \texttt{corr} = (1 - \texttt{corr\_rate}) \times \texttt{corr} + \texttt{corr\_rate} \times \texttt{corr\_total} \label{eq:corr_rate}
 \end{equation}
 Each iteration the solution then is smoothed towards \texttt{prop\_average} + \texttt{corr}.
 
@@ -306,7 +306,7 @@ Unless otherwise specified the following default parameters are used for the cas
     \begin{subfigure}{0.49\textwidth}
         \centering
         \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_sfac_res.png}
-        \caption{Colour is \texttt{sfac\_res} and size represents \texttt{sfac}.}
+        \caption{Colour is \texttt{sfac\_res} and size represents \texttt{cfl}.}
         \label{fig:effort_vs_accuracy_sfac_res}
     \end{subfigure}
     \caption{Effort vs accuracy for bump case with varying parameters. Contours are constant $FM$.}
@@ -422,7 +422,9 @@ The deferred correction cancels out the artificial viscosity and so when run wit
 
 The relation of the runtime to \texttt{cfl} and \texttt{ni} is shown in figures \ref{fig:improvements_cfl_time} and \ref{fig:improvements_ni_time}.
 Most of the improvements show the same runtime order as the default $T\sim\mathcal{O}(\texttt{cfl}^{-1/2})$ with the exception of the deferred correction.
-The small region shows a runtime inversely proportional to \texttt{cfl}. WHY? %TODO
+The small region shows a runtime inversely proportional to \texttt{cfl}.
+This is thought to be due to primary flow variables now being smoothed to an additional term, \texttt{corr}, that itself converges to \texttt{corr\_total}.
+This could effectively double the runtime order of the default solver.
 The Runge Kutta improvement shows a noticeable increase in runtime at the same \texttt{cfl} which is expected due to the increased number of intermediate timesteps.
 This method also increases stability for larger \texttt{cfl} timesteps, allowing faster convergence and reducing the overall runtime.
 From figure \ref{fig:improvements_ni_time} the spatial runtime order is the same first order as the default solver for all improvements.
@@ -457,15 +459,22 @@ The size of markers for this graph represents the \texttt{sfac}.
 Groups of same \texttt{ni} can be identified by lines of same colour but decreasing marker sizes.
 These lines show that decreasing \texttt{sfac} increases the FM for the same \texttt{ni} and \texttt{cfl}.
 
-Figure \ref{fig:effort_vs_accuracy_sfac_res} shows the effect of varying \texttt{sfac} and \texttt{sfac\_res} on the effort vs accuracy curve.
-The colour is \texttt{sfac\_res} and the size is \texttt{sfac}.
-The graph shows that increasing \texttt{sfac\_res} at constant \texttt{cfl} increases both accuracy and runtime.
-For high \texttt{sfac} this increase is small but for low \texttt{sfac} the increases are significant.
+Figure \ref{fig:effort_vs_accuracy_fcorr} shows the effect of varying \texttt{fcorr} and \texttt{sfac} on the effort vs accuracy curve.
+The size of the markers represents the factor \texttt{fcorr} of artificial viscosity to be cancelled out.
+The colour represents the amount of artifical viscosity \texttt{sfac} added to the solution.
+The previous trends of reduced \texttt{sfac} increasing accuracy for given effort are observed.
+Most importantly, increasing \texttt{fcorr} gives a significant rise in accuracy for a marginal increase in runtime.
+This increase in runtime for a fixed \texttt{cfl} is due to the increased final smoothing \texttt{fcorr\_total} that must be reached in the same rate \texttt{corr\_rate} \ref{eq:corr_rate}.
+Interestingly, at very low \texttt{sfac} the runtime slightly decreases upon increasing \texttt{fcorr}.
+This faster convergence must be due to the reduced smoothing factors towards the end of convergence but its not clear the exact mechanism that causes this.
+
+The final plot, figure \ref{fig:effort_vs_accuracy_sfac_res} shows the effect of varying \texttt{sfac\_res} and \texttt{cfl} on the effort vs accuracy curve.
+The colour is $\log_{10}(\texttt{cfl})$ and the size is \texttt{sfac\_res}.
+The graph shows that increasing the residual averaging factor \texttt{sfac\_res} for modest to low \texttt{cfl} numbers, increases the runtime with similar accuracy.
+
 
 This change was made to increase stability at high \texttt{cfl} numbers % TODO
 % and so this should probably be rerun at the maximum stable cfl number to see the effect of the improvement.
-
-
 
 Figure \ref{fig:effort_vs_accuracy_sfac_res} shows 
 
