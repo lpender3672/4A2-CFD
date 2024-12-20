@@ -83,7 +83,11 @@ def plot_SA1_cp(ax, av, code):
     ys = naca_sweep['ys'][0,:]
 
     # find idx that alpha[:] = av['alpha']
-    idx = np.where(alpha == av['alpha'])[0][0]
+    try:
+        idx = np.where(alpha == av['alpha'])[0][0]
+    except IndexError:
+        return ax
+    
     cpdists = naca_sweep['cpdists'][idx,:]
 
     print(len(cpdists))
@@ -103,6 +107,14 @@ def plot_SA1_cp(ax, av, code):
 
     return ax
 
+def get_block_with_minx(gs):
+    min_x = np.inf
+    for g in gs:
+        min_x = min(min_x, np.min(g['x']))
+
+    for g in gs:
+        if np.min(g['x']) == min_x:
+            return g
 
 def plot_blades(av, gs):
 
@@ -214,10 +226,9 @@ def main():
     # Use the "cut_i", "mass_av" AND "area_av" functions to calculate the
     # reference pressures at the inlet plane and therefore the static pressure
     # coefficient
-    if "turbine" in av['casename']:
-        cut = cut_i(gs[0], -1)
-    else:
-        cut = cut_i(gs[0], 0)
+    ref_g = get_block_with_minx(gs)
+    print(gs.index(ref_g))
+    cut = cut_i(ref_g, 0)
     pstag_ref = mass_av(cut, 'pstag')[0]
     p_ref = area_av(cut, 'p')[0]
 
@@ -278,7 +289,7 @@ def main():
 
     fig.tight_layout()
 
-    fig.savefig(f'report/final/figures/{sys.argv[-1]}_surface_cp.png', dpi=300)
+    fig.savefig(f'report/final/figures/{sys.argv[-1]}_surface_cp_{av["alpha"]}.png', dpi=300)
 
     # Show all the plots
     plt.show()

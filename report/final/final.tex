@@ -205,6 +205,9 @@ While this marginally increases the time per iteration, it reduces the number of
 % mesh shapes make a large impact on the compuational effort accuracy curve.
 % identify and make some recommonendations on mesh geometry
 
+An additional piece of code to calculate the pressure coefficient $C_p$ was written to identify the block at which to take the refence inlet static and stagnation pressures.
+This was found simply by finding the block with the minimum $x$ coordinate.
+The reference pressures are then taken at $\texttt{i}=0$ and averaged with respect to area and mass flow rate.
 
 \subsection{Additional Case}
 % airfoil case comparison with SA1 or xfoil
@@ -283,13 +286,13 @@ Unless otherwise specified the following default parameters are used for the cas
     \begin{subfigure}{0.49\textwidth}
         \centering
         \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_cfl.png}
-        \caption{Colour is $\log_{10}( \texttt{cfl})$ and size represents \texttt{sfac}.}
+        \caption{Colour is $\log_{10}( \texttt{cfl})$ and size represents \\ $\texttt{sfac} \in [0.05, 0.8]$.}
         \label{fig:effort_vs_accuracy_cfl}
     \end{subfigure}
     \begin{subfigure}{0.49\textwidth}
         \centering
         \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_ni.png}
-        \caption{Colour is $\log_{10}( \texttt{ni})$ and size represents \texttt{sfac}.}
+        \caption{Colour is $\log_{10}( \texttt{ni})$ and size represents \\ $\texttt{sfac} \in [0.05, 0.8]$.}
         \label{fig:effort_vs_accuracy_ni}
     \end{subfigure}
     \caption{Effort vs accuracy for bump case with varying parameters. Contours are constant $FM$.}
@@ -300,13 +303,13 @@ Unless otherwise specified the following default parameters are used for the cas
     \begin{subfigure}{0.49\textwidth}
         \centering
         \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_fcorr.png}
-        \caption{Colour is \texttt{sfac} and size represents \texttt{fcorr}.}
+        \caption{Colour is \texttt{sfac} and size represents \\ $\texttt{fcorr} \in [0.1, 0.9]$. }
         \label{fig:effort_vs_accuracy_fcorr}
     \end{subfigure}
     \begin{subfigure}{0.49\textwidth}
         \centering
         \includegraphics[width=0.99\textwidth]{figures/effort_vs_accuracy_sfac_res.png}
-        \caption{Colour is \texttt{sfac\_res} and size represents \texttt{cfl}.}
+        \caption{Colour is $\log_{10}( \texttt{cfl})$ and size represents \\ $\texttt{sfac\_res} \in [0.1,0.95]$. \texttt{sfac} = 0.2}
         \label{fig:effort_vs_accuracy_sfac_res}
     \end{subfigure}
     \caption{Effort vs accuracy for bump case with varying parameters. Contours are constant $FM$.}
@@ -325,11 +328,11 @@ Unless otherwise specified the following default parameters are used for the cas
     \end{subfigure}
     \begin{subfigure}{0.49\textwidth}
         \centering
-        \includegraphics[width=0.99\textwidth]{figures/naca0012_surface_cp.png}
+        \includegraphics[width=0.99\textwidth]{figures/naca0012_surface_cp_0.0.png}
         \caption{}
-        \label{fig:naca0012_mach}
+        \label{fig:naca0012_surface_cp}
     \end{subfigure}
-    \caption{NACA0012 test case results}
+    \caption{NACA0012 test case results at $\alpha = 0^\circ$}
 \end{figure}
 
 \begin{figure}[H]
@@ -342,12 +345,20 @@ Unless otherwise specified the following default parameters are used for the cas
     \end{subfigure}
     \begin{subfigure}{0.49\textwidth}
         \centering
-        \includegraphics[width=0.99\textwidth]{figures/naca2412_surface_cp.png}
+        \includegraphics[width=0.99\textwidth]{figures/naca2412_surface_cp_0.0.png}
         \caption{}
-        \label{fig:naca2412_mach}
+        \label{fig:naca2412_surface_cp}
     \end{subfigure}
-    \caption{NACA2412 test case results}
+    \caption{NACA2412 test case results at $\alpha = 0^\circ$}
 \end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figures/kutta.png}
+    \caption{Trailing edge residual map for NACA0012 at $\alpha = 0^\circ$}
+    \label{fig:kutta}
+\end{figure}
+
 
 \begin{figure}[H]
     \centering
@@ -471,19 +482,25 @@ This faster convergence must be due to the reduced smoothing factors towards the
 The final plot, figure \ref{fig:effort_vs_accuracy_sfac_res} shows the effect of varying \texttt{sfac\_res} and \texttt{cfl} on the effort vs accuracy curve.
 The colour is $\log_{10}(\texttt{cfl})$ and the size is \texttt{sfac\_res}.
 The graph shows that increasing the residual averaging factor \texttt{sfac\_res} for modest to low \texttt{cfl} numbers, increases the runtime with similar accuracy.
-
-
-This change was made to increase stability at high \texttt{cfl} numbers % TODO
-% and so this should probably be rerun at the maximum stable cfl number to see the effect of the improvement.
-
-Figure \ref{fig:effort_vs_accuracy_sfac_res} shows 
+Small markers are missing at high \texttt{cfl} numbers which demonstrates the increased stability of residual averaging.
+However, these increased timesteps have poor accuracy and high runtime and so dont have a high FM.
+The small runtimes are likely to be innacurate however, as the solution is converging well before meeting the convergence criteria.
 
 \subsection{NACA airfoils}
+
+Figure \ref{fig:naca0012_cp} shows the pressure coefficient of the computational domain for the NACA0012 airfoil at $\alpha = 0^\circ$.
+The static pressure coefficient is 0 in the free stream but is above 1 at the leading edge stagnation point.
+This is possible for some bluff bodies or when compressibility effects are significant, neither of which apply to this case.
+The cause of this is thought to be due the solver converging on an unrealistic solution.
+Figure \ref{fig:naca0012_surface_cp} shows the surface pressure coefficients against normalised surface path length.
+
+
 
 Figure \ref{fig:cl_alpha} shows the lift coefficient against angle of attack for the NACA0012 and NACA2412 airfoils.
 The graph shows strong linear relationship for nearly all angles of attack.
 From invicid theory, these lift coefficient should be linear with angle of attack with gradient $ 2\pi $.
-However, the gradient of the linear region is very close to $\pi/4$.
+However, the gradient of the linear region is a factor of 4 less than this.
+Reasons for this are unclear.
 
 % discuss Kutta condition 
 % not necessary to explicitly apply 
@@ -493,7 +510,8 @@ However, the gradient of the linear region is very close to $\pi/4$.
 
 \subsection{Turbine}
 
-Theres two turbine cases, turbine\_c and turbine\_h which represent the same geometry but with different mesh layouts.
+Theres two turbine cases, turbine\_c and turbine\_h which represent the same geometry with the same number of nodes but different mesh topologies.
+
 
 
 The results shown in figures \ref{fig:turbine_c_cp} and \ref{fig:turbine_h_cp} show the pressure coefficient for the turbine cases.
@@ -525,6 +543,12 @@ The run settings shown in table \ref{tab:default_params} are set to values measu
     \emph{4A3 Turbomachinary Laboratory Report}
     University of Cambridge,
     2024.
+
+    \bibitem{SA1}
+    L. W. Pender
+    \emph{SA1 Aircraft Wing Analysis}
+    University of Cambridge,
+    2024.
   
 \end{thebibliography}
 
@@ -535,7 +559,7 @@ The run settings shown in table \ref{tab:default_params} are set to values measu
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{figures/software.png}
-    \caption{Software GUI}
+    \caption{Software GUI with inputs, convergance graph and interactive animation tabs}
     \label{fig:software}
 \end{figure}
 
@@ -603,7 +627,7 @@ def run(self):
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.99\textwidth]{figures/turbine_real.png}
+    \includegraphics[width=0.7\textwidth]{figures/turbine_real.png}
     \caption{Real turbine data \cite{4A3_lab}}
     \label{fig:turbine_real}
 \end{figure}

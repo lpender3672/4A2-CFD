@@ -9,6 +9,16 @@ import os
 # Import modules and functions
 from postprocessing.routines import *
 
+def get_block_with_minx(gs):
+    min_x = np.inf
+    for g in gs:
+        min_x = min(min_x, np.min(g['x']))
+
+    for g in gs:
+        if np.min(g['x']) == min_x:
+            return g
+
+
 def main():
 
     # Construct full filenames to read the run data
@@ -34,13 +44,14 @@ def main():
     # Use the "cut_i", "mass_av" AND "area_av" functions to calculate the
     # reference pressures at the inlet plane and therefore the static pressure
     # coefficient
-    if "turbine" in av['casename']:
-        cut = cut_i(gs[0], -1)
-    else:
-        cut = cut_i(gs[0], 0)
+    g_ref = get_block_with_minx(gs)
+    cut = cut_i(g_ref, 0)
         
     pstag_ref = mass_av(cut, 'pstag')[0]
     p_ref = area_av(cut, 'p')[0]
+
+    print(f'pstag_ref: {pstag_ref}')
+    print(f'p_ref: {p_ref}')
 
     for i in range(len(gs)):
         gs[i]['cp'] = (gs[i]['p'] - p_ref) / (pstag_ref - p_ref)
@@ -103,7 +114,10 @@ def main():
 
         fig.tight_layout()
 
-        fig.savefig(f'report/final/figures/{sys.argv[-1]}_{name}.png', dpi=300)
+        if "naca" in sys.argv[-1]:
+            fig.savefig(f'report/final/figures/{sys.argv[-1]}_{name}_{av["alpha"]}.png', dpi=300)
+        else:
+            fig.savefig(f'report/final/figures/{sys.argv[-1]}_{name}.png', dpi=300)
 
     # Show all the plots
     plt.show()
