@@ -382,6 +382,7 @@ def plot_smoothing_sfac_res(av_template, data):
     cfls = np.logspace(-2, np.log10(5), 15, endpoint = True)
     # rewrite with arrange
     sfac_ress = np.linspace(0.3, 0.95, 10, endpoint = True)
+    sfac_ress = np.append(sfac_ress, [0.1, 0.2])
 
     avs = []
     for sfac_res in sfac_ress:
