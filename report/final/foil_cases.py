@@ -92,13 +92,23 @@ def plot_clcd_alpha():
     ax.plot(df_naca0012['alpha'].to_numpy(), 
             df_naca0012['cl'].to_numpy(), 
             '-o',
-            label='NACA0012')
+            label='CFD NACA0012')
     ax.plot(df_naca2412['alpha'].to_numpy(), 
             df_naca2412['cl'].to_numpy(),
             '-o',
-            label='NACA2412')
+            label='CFD NACA2412')
     
-    ax.plot(alpha0012, cl0012, label='BEM NACA0012')
+    ax.plot(alpha0012, cl0012, label='PM NACA0012')
+    ax.plot(alpha2412, cl2412, label='PM NACA2412')
+
+    cl1 = df_naca2412['cl'][df_naca2412['alpha'] == 0]
+    cl2 = cl2412[np.where(alpha2412 == 0)[0][0]]
+    print(f'cl1 {cl1}, cl2 {cl2}, diff {np.abs(cl1 - cl2)/cl2}')
+
+    ax.set_ylim([
+        df_naca0012['cl'].min() - 0.2,
+        df_naca2412['cl'].max() + 0.2
+    ])
 
     ax.grid( linestyle='--', linewidth=0.5)
     ax.legend()
@@ -111,7 +121,6 @@ def plot_clcd_alpha():
 
     fig, ax = plt.subplots()
 
-    
 
     ax.plot(df_naca0012['alpha'].to_numpy(),
             df_naca0012['cd'].to_numpy(),

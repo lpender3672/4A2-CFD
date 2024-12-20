@@ -94,6 +94,8 @@ This makes it a valuable tool to be used alongside experimental validation.
 \end{itemize}
 
 \section{Software}
+The software is a Qt application that calls fortran routines to solve the Euler equations for a 2D inviscid flow.
+The results are visualised within the app using QCustomPlot and post-processed using python scripts.
 % monumental amount of work required here
 \subsection{Modifications}
 % interpolate
@@ -228,7 +230,7 @@ Unless otherwise specified the following default parameters are used for the cas
         \hline
         bend & 0.20 & 0.80 & 0.50 & 0.90 & 1e+05 & 53 & 37 & 1.00e+05 & 300.00 & 0.0 & 0.25 & 8.50e+04 \\
         bump & 0.80 & 0.80 & 0.50 & 0.90 & 1e+05 & 53 & 37 & 1.00e+05 & 300.00 & 0.0 & 0.25 & 8.50e+04 \\
-        naca0012 & 0.20 & 0.60 & 0.50 & 0.60 & 1e+05 & - & - & 1.00e+05 & 300.00 & 0.0 & 0.25 & 9.00e+04 \\
+        naca0012 & 0.20 & 0.60 & 0.50 & 0.60 & 1e+05 & - & - & 1.00e+05 & 300.00 & 5.0 & 0.25 & 9.00e+04 \\
         naca2412 & 0.05 & 0.60 & 0.50 & 0.60 & 1e+05 & - & - & 1.00e+05 & 300.00 & 0.0 & 0.25 & 9.00e+04 \\
         turbine\_c & 0.10 & 0.60 & 0.50 & 0.80 & 1e+05 & - & - & 1.05e+05 & 300.00 & 0.0 & 0.25 & 1.03e+05 \\
         turbine\_h & 0.10 & 0.80 & 0.00 & 0.90 & 1e+05 & - & - & 1.05e+05 & 300.00 & 0.0 & 0.10 & 1.03e+05 \\
@@ -322,7 +324,7 @@ Unless otherwise specified the following default parameters are used for the cas
     \centering
     \begin{subfigure}{0.49\textwidth}
         \centering
-        \includegraphics[width=0.99\textwidth]{figures/naca0012_cp.png}
+        \includegraphics[width=0.99\textwidth]{figures/naca0012_cp_0.0}
         \caption{}
         \label{fig:naca0012_cp}
     \end{subfigure}
@@ -339,7 +341,7 @@ Unless otherwise specified the following default parameters are used for the cas
     \centering
     \begin{subfigure}{0.49\textwidth}
         \centering
-        \includegraphics[width=0.99\textwidth]{figures/naca2412_cp.png}
+        \includegraphics[width=0.99\textwidth]{figures/naca2412_cp_0.0.png}
         \caption{}
         \label{fig:naca2412_cp}
     \end{subfigure}
@@ -351,14 +353,6 @@ Unless otherwise specified the following default parameters are used for the cas
     \end{subfigure}
     \caption{NACA2412 test case results at $\alpha = 0^\circ$}
 \end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.4\textwidth]{figures/kutta.png}
-    \caption{Trailing edge residual map for NACA0012 at $\alpha = 0^\circ$}
-    \label{fig:kutta}
-\end{figure}
-
 
 \begin{figure}[H]
     \centering
@@ -377,6 +371,41 @@ Unless otherwise specified the following default parameters are used for the cas
     \caption{NACA2412 test case results}
 \end{figure}
 
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/naca0012_cp_5.0.png}
+        \caption{}
+        \label{fig:naca0012_cp5}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.99\textwidth]{figures/naca0012_surface_cp_5.0.png}
+        \caption{}
+        \label{fig:naca0012_surface_cp5}
+    \end{subfigure}
+    \caption{NACA0012 test case results at $\alpha = 5^\circ$}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.8\textwidth]{figures/kutta.png}
+        \caption{Trailing edge residual map}
+        \label{fig:kutta}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/corner.png}
+        \caption{Domain corner residual map}
+        \label{fig:corners}
+    \end{subfigure}
+    \caption{Residual maps for NACA0012 at $\alpha = 0^\circ$}
+    \label{fig:naca_residual_maps}
+\end{figure}
+
 \subsection{Turbine}
 
 \begin{figure}[H]
@@ -389,7 +418,7 @@ Unless otherwise specified the following default parameters are used for the cas
     \end{subfigure}
     \begin{subfigure}{0.55\textwidth}
         \centering
-        \includegraphics[width=0.99\textwidth]{figures/turbine_c_surface_cp.png}
+        \includegraphics[width=0.99\textwidth]{figures/turbine_c_surface_cp_0.0.png}
         \caption{}
         \label{fig:turbine_c_surface_cp}
     \end{subfigure}
@@ -406,7 +435,7 @@ Unless otherwise specified the following default parameters are used for the cas
     \end{subfigure}
     \begin{subfigure}{0.55\textwidth}
         \centering
-        \includegraphics[width=0.99\textwidth]{figures/turbine_h_surface_cp.png}
+        \includegraphics[width=0.99\textwidth]{figures/turbine_h_surface_cp_0.0.png}
         \caption{}
         \label{fig:turbine_h_surface_cp}
     \end{subfigure}
@@ -488,34 +517,65 @@ The small runtimes are likely to be innacurate however, as the solution is conve
 
 \subsection{NACA airfoils}
 
-Figure \ref{fig:naca0012_cp} shows the pressure coefficient of the computational domain for the NACA0012 airfoil at $\alpha = 0^\circ$.
-
-Figure \ref{fig:naca0012_surface_cp} shows the pressure coefficient on the surface of the NACA0012 airfoil at $\alpha = 0^\circ$.
-This is compared to a panel method solution from the SA1 report \cite{SA1}.
-This method includes a boundary layer solver but this is uncoupled from the invicid flow solvler.
+Multigrid arrangements can be used to solve the Euler equations for external flows.
+NACA airfoil flow results are compared to panel method solutions from the SA1 report \cite{SA1}.
+Typical panel methods explicitly apply the Kutta condition at the trailing edge to ensure the flow leaves smoothly.
+This is not necessary for the Euler solver as the artificial viscosity of the solver is enough to make the flow leave the trailing edge smoothly.
+The panel method includes a boundary layer solver but this is uncoupled from the invicid flow solvler and so the $C_p$ results can be compared directly.
 The Reynolds number is matched to the dynamic pressure boundary condition at an altitude of 35000ft.
 For 15kPa dynamic pressure this corresponds to a Reynolds number of $\sim7\times10^6$.
 
-% talk about residual maps
+Figure \ref{fig:naca0012_cp} shows the pressure coefficient of the computational domain for the NACA0012 airfoil at $\alpha = 0^\circ$.
+As expected the flow is highly symmetrical with pressure coefficient of 0 in the far field. The stagnation point is observed at the leading edge with a pressure coefficient of 1.
+The flow is then accelerated faster than freestream flow over upper and lower surfaces before rejoining at the trailing edge.
+Figure \ref{fig:naca0012_surface_cp} shows the pressure coefficient on the surface of the NACA0012 airfoil at $\alpha = 0^\circ$.
+The y axis is flipped so that the suction surface line is at the top of the graph.
+The upper and lower pressure coefficient lines are exactly on top of eachother, which is expected for a symmetric airfoil.
+There is a slight discrepancy between the upper and lower surfaces, the suction peak predicted by CFD is marginally higher and further back.
+This is likely due to numerical accuracy or a single index difference in the plotting function.
+The NACA2412 airfoil is shown in figure \ref{fig:naca2412_cp} and \ref{fig:naca2412_surface_cp} at $\alpha = 0^\circ$.
+A stronger suction peak is observed on the top surface which is to be expected for a cambered airfoil.
+The $C_p$ curves are also in strong agreement with the SA1 panel method results.
+The upper surface of the CFD solution is again slightly higher and further back than the panel method solution.
+Figures \ref{fig:naca0012_surface_cp} and \ref{fig:naca2412_surface_cp} both have a discontinous trailing edge which where the artifical smoothing 
+is working to apply the Kutta condition. This can be seen more clearly on the residual map in figure \ref{fig:kutta}.
 
 Figure \ref{fig:cl_alpha} shows the lift coefficient against angle of attack for the NACA0012 and NACA2412 airfoils.
 The graph shows strong linear relationship for nearly all angles of attack.
 From invicid theory, these lift coefficient should be linear with angle of attack with gradient $ 2\pi $.
-However, the gradient of the linear region is a factor of 4 less than this.
-Reasons for this are unclear.
-
+However the gradient is observed to be ~0.3, significantly smaller than the theoretical value.
+Plots of the panel method solution show a gradient of $2\pi$. The NACA2412 case intersects $\alpha = 0$ at a lift coefficient 25.8\% higher than the CFD solution shown in figure \ref{fig:naca2412_surface_cp}.
+The drag coefficient can also be calculated from the pressure coefficients, which for the invicid solver should be zero.
+These are shown in figure \ref{fig:cd_alpha} and show a similar linear relationship, both intersecting close to 0,0.
+% TODO: 
 % discuss Kutta condition 
 % not necessary to explicitly apply 
 % because the artificial viscosity of the solver is enough to make the flow leave the trailing edge smoothly
 
-
+Figure \ref{fig:naca0012_cp5} and \ref{fig:naca0012_surface_cp5} show the pressure coefficient map and the surface of the NACA0012 airfoil at $\alpha = 5^\circ$.
+Clearly this is very different from the panel method solution.
+The reason for this is thought to be due to a lack of boundary conditions on the domain.
+The current method of defining $\alpha$ at a single inlet plane is insufficient for external flow fields.
+For a positive $\alpha$ a small amount of flow must enter through the bottom of the domain and leave through the top, which is not possible with the current boundary conditions.
+This explains why the correct lift and drag coefficients are only observed at $\alpha = 0^\circ$.
+Figure \ref{fig:corners} shows the location of the maximum residuals at the corner caused by the discontinous boundary conditions.
 
 \subsection{Turbine}
 
-Theres two turbine cases, turbine\_c and turbine\_h which represent the same geometry with the same number of nodes but different mesh topologies.
+Theres two turbine cases, turbine\_c and turbine\_h which represent the same stage geometry with the same number of nodes but different mesh topologies.
 The geometry is based on a real turbine experiment \cite{4A3_lab} and the pressure inputs shown in shown in table \ref{tab:default_params} are set to values measured from the experiment. 
 
-The results shown in figures \ref{fig:turbine_c_cp} and \ref{fig:turbine_h_cp} show the pressure coefficient for the turbine cases.
+The results shown in figures \ref{fig:turbine_c_cp} and \ref{fig:turbine_h_cp} show the pressure coefficient in the domain and on the surface of the blade.
+The surface pressure distribution shows the characteristic suction peak and adverse pressure gradient to the trailing edge.
+However, when compared to real data in figure \ref{fig:turbine_real} the suction peak occurs much earlier and is more pronounced.
+Additionally, the real data shows no region of adverse pressure gradient on the bottom surface, which is observed in the CFD solution.
+
+The simpler mesh topology case turbine\_h proved highly unstable, however the results obtained agree more closely with the real data than the turbine\_c case.
+Figure \ref{fig:turbine_h_surface_cp} shows a later suction peak and a more gradual adverse pressure gradient on the top surface.
+The bottom surface shows a more gradual pressure gradient, still slightly adverse.
+However, for this case the trailing edge shows increased oscillations in the pressure coefficient.
+This is due to difficulties in applying the Kutta condition accross the averaged patch connecting top and bottom boundaries.
+This is likely the reason this simpler geometry is more unstable than the more complex turbine\_c case.
 
 
 \section{Summary}
@@ -528,25 +588,25 @@ The results shown in figures \ref{fig:turbine_c_cp} and \ref{fig:turbine_h_cp} s
     University of Cambridge,
     2024.
 
-    \bibitem{interim}
-    L. W. Pender
-    \emph{4A2 Interim Report}
-    University of Cambridge,
-    2024.
-
     \bibitem{solve_ODE_nonstiff}
     Hairer, Ernst et al.
     \emph{Solving ordinary differential equations I: Nonstiff problems, Berlin, New York}
     Springer-Verlag, Berlin, 1993
 
+    \bibitem{interim}
+    L. Pender
+    \emph{4A2 Interim Report}
+    University of Cambridge,
+    2024.
+
     \bibitem{4A3_lab}
-    L. W. Pender
+    L. Pender
     \emph{4A3 Turbomachinary Laboratory Report}
     University of Cambridge,
     2024.
 
     \bibitem{SA1}
-    L. W. Pender
+    L. Pender
     \emph{SA1 Aircraft Wing Analysis}
     University of Cambridge,
     2024.
