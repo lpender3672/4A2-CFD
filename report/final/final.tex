@@ -79,7 +79,7 @@ This can be done much faster and at lower cost than experimental methods.
 This makes it a valuable tool to be used alongside experimental validation.
 
 
-\section{Objective}
+\section{Objectives}
 
 %To write a program to solve the Euler equations for two-dimensional flows using a finite volume time
 %marching method. Completing this work will give you practical expertise in pre-processing and post-
@@ -88,9 +88,11 @@ This makes it a valuable tool to be used alongside experimental validation.
 
 \begin{itemize}
     \item Write a program to solve the Euler equations for two-dimensional flows using a finite volume time marching method.
-    \item Pre-process and post-process the simulations.
-    \item Understand the methods of solution.
-    \item Gain practical expertise in CFD methods.
+    \item Implement improvements including Runge-Kutta schemes, deferred correction, residual averaging, and spatially varying timesteps.
+    \item Analyse the effect of solver parameters and improvements on runtime, stability and accuracy.
+    \item Extend the solver to support multigrid cases and compare results across different mesh topologies.
+    \item Validate airfoil solutions with panel methods and turbine solutions with real turbine data.
+    \item Design and enhance a GUI for interactive visualization of results and parameter tuning.
 \end{itemize}
 
 \section{Software}
@@ -120,6 +122,8 @@ The zoom and pan no longer resets on each frame update and is consistent between
 \subsection{Convergence definition}
 
 The same convergence criteria described in the Interim report \cite{interim} was implemented to stop the solver when the last 100 calculated \texttt{d\_avg} were all within a factor of \texttt{d\_var} of their mean.
+This value \texttt{d\_avg} is defined as the maximum average change in momentum between directions x and y.
+Similarly, \texttt{d\_max} is the maximum change in momentum over both x,y directions and the domain.
 This was done to prevent the solver from reaching max iterations when the solution had already converged, making it possible to more accurately measure the runtime.
 Large values of \texttt{d\_var}, can cause the solver to stop prematurely if the convergence was slow, and similarly small values
 can cause the solver to run for longer than necessary.
@@ -206,7 +210,13 @@ While this marginally increases the time per iteration, it reduces the number of
 % important cases evaluation turbinne_c represent same geometry with different
 % mesh shapes make a large impact on the compuational effort accuracy curve.
 % identify and make some recommonendations on mesh geometry
-
+The program was extended to support multiple grid meshes.
+This was done by initialising the \texttt{grid\_t} as an allocatable pointer array of \texttt{t\_grid} structures.
+For single grid cases this array is allocated with a single element.
+Information about how the grids are connected is read into a similar list of \texttt{t\_match} structures.
+Each iteration step is then applied to each grid in the list and at the end of the timestep the patches are used to average primary flow variables between grids.
+The grid indices of inlet and outlet boundary conditions are also read into \texttt{bcs} from input files.
+The flow guess method was not updated
 An additional piece of code to calculate the pressure coefficient $C_p$ was written to identify the block at which to take the refence inlet static and stagnation pressures.
 This was found simply by finding the block with the minimum $x$ coordinate.
 The reference pressures are then taken at $\texttt{i}=0$ and averaged with respect to area and mass flow rate.
@@ -216,6 +226,7 @@ The reference pressures are then taken at $\texttt{i}=0$ and averaged with respe
 % experiment with airfoils
 The generate naca case function was modified to input the 4 digit naca airfoil code to generate various airfoil geometries.
 A simpler symmetric airfoil case, NACA0012 was tested to compare with the provided NACA2412 case.
+Additional functions to plot surface pressure distribution and compute lift and drag for naca and turbine cases were also added.
 
 % compare turbine theory with turbo course
 
@@ -477,7 +488,6 @@ The combination of all the improvements are then tested to see how they affect t
 Figure \ref{fig:cfl_sfac_dro_avg} shows the effect of \texttt{cfl} and \texttt{sfac} on the stability and residual error (accuracy) of the solver.
 When compared to the same figure for the default solver in the interim report \cite{interim}, the improvement show stability at much higher \texttt{cfl} numbers.
 It also shows stability at much lower \texttt{sfac} numbers which is thought to be due to the inclusion of residual averaging.
-% TODO
 
 Figures \ref{fig:effort_vs_accuracy_1} and \ref{fig:effort_vs_accuracy_2} show the final steady state residual plotted against runtime for converged bump cases with varying parameters.
 This effectively provides an effort vs accuracy curve for the solver.
@@ -488,7 +498,8 @@ Figure \ref{fig:effort_vs_accuracy_cfl} shows decreasing \texttt{cfl} improves t
 The size of markers for this graph represents the \texttt{sfac} which shows by reducing this parameter, a significant increases in FM for the same \texttt{cfl} can be achieved.
 This cannot be seen for extreme \texttt{cfl} numbers with low numbers taking significant runtime and high numbers being unstable as seen in \ref{fig:cfl_sfac_dro_avg}.
 The deviation from constant FM contour at low runtimes may again be due to the solution not meeting convergence criteria when it should.
-Low \texttt{sfac} at high \texttt{cfl} numbers have an increased runtime than high \texttt{sfac} which is thought to be due to %TODO
+Low \texttt{sfac} at high \texttt{cfl} numbers have an increased runtime than high \texttt{sfac} which is thought to be due to the increased unstable oscillations
+present in convergence history, delaying convergence criteria.
 
 Figure \ref{fig:effort_vs_accuracy_ni} shows the effect of varying the number of cells in the \texttt{i} direction on the effort vs accuracy curve.
 Again the same trend as \ref{fig:improvements_ni_residual} is observed where accuracy increases second order and time increases linearly.
@@ -554,10 +565,11 @@ These are shown in figure \ref{fig:cd_alpha} and show a similar linear relations
 
 Figure \ref{fig:naca0012_cp5} and \ref{fig:naca0012_surface_cp5} show the pressure coefficient map and the surface of the NACA0012 airfoil at $\alpha = 5^\circ$.
 Clearly this is very different from the panel method solution.
-The reason for this is thought to be due to a lack of boundary conditions on the domain.
+The reason for this is thought to be due to poorly posed boundary conditions on the domain.
 The current method of defining $\alpha$ at a single inlet plane is insufficient for external flow fields.
-For a positive $\alpha$ a small amount of flow must enter through the bottom of the domain and leave through the top, which is not possible with the current boundary conditions.
-This explains why the correct lift and drag coefficients are only observed at $\alpha = 0^\circ$.
+For a positive $\alpha$ a small amount of flow must enter through the bottom of the domain and leave through the top, which should be possible as these are not set as walls.
+However, the problem is better defined by explicitly setting far field boundary conditions.
+This may explain why the correct lift and drag coefficients are only observed at $\alpha = 0^\circ$.
 Figure \ref{fig:corners} shows the location of the maximum residuals at the corner caused by the discontinous boundary conditions.
 
 \subsection{Turbine}
@@ -577,8 +589,30 @@ However, for this case the trailing edge shows increased oscillations in the pre
 This is due to difficulties in applying the Kutta condition accross the averaged patch connecting top and bottom boundaries.
 This is likely the reason this simpler geometry is more unstable than the more complex turbine\_c case.
 
+\subsection{Improvements and limitations}
+\begin{itemize}
+    \item The solver negelcts viscous effects which are important for boundary layers, flow separation and hence lift and drag.
+    \item 2D geometry cannot capture 3D flow physics such as tip vorticies or spanwise variations which are particularly important for turbines.
+    \item Artificial viscosity can smooth fine scale flow features in shocks or sudden Prantl Meyer expansions.
+    \item The spatially varying timestep improvement is only valid for steady state solutions and so cannot capture transient effects.
+    \item The convergence criteria means that some cases can converge before the minimum number of iterations to trigger the convergence criteria, giving an innacurate runtime.
+    \item The boundary conditions for external flow fields are poorly posed and so at non-zero angles of attack the solver converges to an incorrect solution.
+    \item While the solver supports multigrid cases, its scalability and parallelisation for larger, more complex domains were not addressed.
+\end{itemize}
 
 \section{Summary}
+
+A 2D Euler solver was developed and tested on a variety of cases.
+The solver was improved upon from the interim report by adding Runge-Kutta, deferred correction, residual averaging and spatially varying timestep methods.
+Tests revealed significant stability and efficiency gains from the implemented improvements, particularly at higher \texttt{sfac} and \texttt{fcorr}.
+A figure of merit was defined to balance improvements in accuracy to increases in runtime.
+An optimal mesh size was identified before the limits of floating point precision.
+The solver was compared to panel method results for NACA airfoils and showed good agreement at $\alpha = 0^\circ$.
+At non-zero angles of attack the solver converged to incorrect solutions which is thought to be due to poorly posed external flow boundary conditions.
+Further limitations of the solver were discussed including the neglect of viscous effects, 2D geometry, artificial viscosity and convergence criteria.
+
+Some difficulties involved string and pointer manipulation in Fortran, interoperability between fortran and C++, and debugging strange memory errors.
+The development process would benefit significantly from a test driven approach, where functions can be validated at each stage, rather than waiting until halfway through the term to test the entire solver.
 
 \begin{thebibliography}{9}
 
