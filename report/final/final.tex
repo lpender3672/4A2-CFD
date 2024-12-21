@@ -98,6 +98,7 @@ This makes it a valuable tool to be used alongside experimental validation.
 \section{Software}
 The software is a Qt application that calls fortran routines to solve the Euler equations for a 2D inviscid flow.
 The results are visualised within the app using QCustomPlot and post-processed using python scripts.
+Casefiles and geometry are preprocessed using supplied python scripts.
 % monumental amount of work required here
 \subsection{Modifications}
 % interpolate
@@ -181,7 +182,7 @@ However, \texttt{corr\_rate} was fixed within the solver to 0.01.
 
 At the onset of instability the adjacent grid points have high and low respective values that causes the solution to oscillate on alternating timesteps.
 If the timestep is too large the amplitude of these oscillations can grow and cause the solution to diverge.
-Its possible to smooth the changes in primary flow variables to improve stability.
+Its possible to smooth the changes in primary flow variables to improve stability \cite{handout}.
 This is done by
 \begin{equation}
     \texttt{dcell} = (1 - \texttt{sfac\_res}) \times \texttt{dcell} + \texttt{sfac\_res} \times \texttt{dcell\_avg}
@@ -193,7 +194,7 @@ This should allow for larger \texttt{cfl} numbers and so converge faster.
 Steady state is reached when the change in variables between cells converges to the residual value.
 This condition can occur at each cell for different timesteps.
 The current global timestep is calculated from the global minimum cell size and so is significantly smaller than the maximum stable local timestep for many cells.
-If a steady state solution is all that is required then convergence can be accelerated by using the local timestep for each cell.
+If a steady state solution is all that is required then convergence can be accelerated by using the local timestep for each cell \cite{handout}.
 This would be calculated below
 \begin{equation}
     \Delta t = \frac{l_{min}}{a + v}
@@ -682,6 +683,7 @@ During setup \texttt{generate\_case} is called and the settings and geometry fil
 During runtime the \texttt{log.txt} acts as \texttt{stdout} for the program.
 When the solver finishes then the out files are saved and processed using the postprocessing python functions.
 
+\iffalse
 \begin{lstlisting}[language=Python]
 def run(self):
     self.setup_environment()
@@ -708,6 +710,7 @@ def run(self):
 
     print(f"Worker {self.worker_id} finished.")
 \end{lstlisting}
+\fi
 
 \subsection{Real turbine comparison}
 
