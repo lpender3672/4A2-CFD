@@ -698,6 +698,7 @@ def default_settings(casename):
 
     # CFL, smoothing factor and convergence limit
     av['cfl'] = 0.4; av['sfac'] = 0.5; av['d_max'] = 0.0001;
+    av['d_var'] = 0.01; av['facsec'] = 0.0; av['fcorr'] = 0.0
     # added variables
     av['d_var'] = 0.01
     av['facsec'] = 0.5
@@ -718,11 +719,12 @@ def default_settings(casename):
 
 ################################################################################
 
-def write_settings(av):
+def write_settings(av, casedir = 'cases/'):
     # Create an input file with settings and boundary conditions
 
     # Open the file to write
-    filename = 'cases/' + av['casename'] +  '/input_' + av['casename'] + '.txt'
+    filename = casedir / (av['casename'] +  '/input_' + av['casename'] + '.txt')
+
     f = open(filename,'w')
 
     # Write the casename
@@ -732,7 +734,7 @@ def write_settings(av):
     f.write('%f %f\n' % (av['rgas'], av['gam']))
 
     # Write the CFL, smoothing factor and convergence limit
-    f.write('%f %f %f %f %f\n' % (av['cfl'],av['sfac'],av['d_max'], av['d_var'], av['facsec']))
+    f.write('%f %f %f %f %f %f\n' % (av['cfl'],av['sfac'],av['d_max'], av['d_var'], av['facsec'], av['fcorr']))
 
     # Write the number of steps
     f.write('%d\n' % (av['nsteps']))
@@ -753,11 +755,12 @@ def write_settings(av):
 
 ################################################################################
 
-def write_geom(av,geom):
+def write_geom(av,geom, casedir = 'cases/'):
     # Create an input file with settings and boundary conditions
 
     # Open the file to write
-    filename = 'cases/' + av['casename'] + '/geom_' + av['casename'] + '.txt'
+    filename = casedir / (av['casename'] + '/geom_' + av['casename'] + '.txt')
+    
     f = open(filename,'w')
 
     # Write each curve in turn
@@ -781,11 +784,12 @@ def write_geom(av,geom):
 
 ################################################################################
 
-def write_mesh(av,g):
+def write_mesh(av,g, casedir = 'cases/'):
     # Write grid coordinates and connectivity data to file directly
 
     # Open the file to write
-    filename = 'cases/' + av['casename'] +  '/mesh_' + av['casename'] + '.bin'
+    filename = casedir / (av['casename'] + '/geom_' + av['casename'] + '.txt')
+
     f = open(filename,'w')
 
     # Write the number of blocks

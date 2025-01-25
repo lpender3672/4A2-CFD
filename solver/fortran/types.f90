@@ -107,7 +107,7 @@
 !         Mesh coordinate data in 2D matrices
           real(C_FLOAT), dimension(:,:), pointer :: x, y, area, lx_i, ly_i, &
               lx_j, ly_j
-          real(C_FLOAT)  ::  l_min
+          real(C_FLOAT), dimension(:,:), pointer  ::  l_min, dt, dt_total
 
 !         Primary variables at nodes
           real(C_FLOAT), dimension(:,:), pointer :: ro, roe, rovx, rovy
@@ -206,7 +206,7 @@
             grid_c%ni = grid%ni
             grid_c%nj = grid%nj
 
-            grid_c%l_min = grid%l_min
+            grid_c%l_min = 0 ! #TODO Temporary value because its not needed in C yet
             
             !     Conversion to C-compatible pointers
             grid_c%x = c_loc(grid%x)

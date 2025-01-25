@@ -1,0 +1,117 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage{amsmath, bm}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{layout}
+\usepackage{booktabs}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{color, colortbl}
+\usepackage{textgreek}
+\usepackage{mathrsfs}
+\usepackage{savetrees}
+
+
+\usetikzlibrary{calc}
+\usetikzlibrary{angles,quotes} % for pic
+\usetikzlibrary{patterns,snakes}
+\usetikzlibrary{arrows}
+\tikzset{>=latex} % for LaTeX arrow head
+
+\setlength{\parskip}{\baselineskip}%
+\setlength{\parindent}{0pt}%
+\linespread{0.9}
+
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+
+
+\begin{document}
+
+\title{Computational Fluid Dynamics \\
+    \large Final Report}
+\author{lwp26}
+\date{December 2024}
+\maketitle 
+
+\section{Software}
+% monumental amount of work required here
+\subsection{Corrections}
+% interpolate
+% write_settings python
+
+\subsection{Improvements}
+% runge kutta
+% deferred correction
+% residual averaging
+% spatially varying timestep
+
+% need to cherry pick commits
+% and create 4 branches of individual improvements
+% release 4 separate apps and produce comparison graphs
+% discuss with reference to literature the improvement and implementation
+
+\subsection{Extension}
+% multigrid
+% talk a bit about external flows
+% comparison to boundary element methods e.g. SA1 spoilers its much less useful
+% important cases evaluation turbinne_c represent same geometry with different
+% mesh shapes make a large impact on the compuational effort accuracy curve.
+% identify and make some recommonendations on mesh geometry
+
+
+\subsection{Additional Cases}
+% airfoil case comparison with SA1 or xfoil
+% experiment with airfoils
+
+% compare turbine theory with turbo course
+
+\section{Results}
+
+\subsection{Comparison of Improvements}
+
+\subsection{Case Results}
+
+\subsection{Effort vs Accuracy}
+
+\section{Discussion}
+% two pages that doesnt repeat interim
+
+\section{Summary}
+
+\end{document}

@@ -9,14 +9,15 @@
       use routines
       implicit none
       type(t_grid), intent(inout) :: g
-      real, dimension(:, :), allocatable :: ax, ay, bx, by
+      real, dimension(:, :), allocatable :: ax, ay, bx, by, li, lj
       integer :: ni, nj
-      real :: min_a, min_b
       integer :: i, j
 
 !     Declare integers or any extra variables you need here
       allocate(ax(g%ni-1,g%nj-1), ay(g%ni-1,g%nj-1))
       allocate(bx(g%ni-1,g%nj-1), by(g%ni-1,g%nj-1))
+
+      allocate(li(g%ni-1,g%nj-1), lj(g%ni-1,g%nj-1))
 
 !     Get the size of the mesh and store locally for convenience
       ni = g%ni; nj = g%nj;
@@ -67,10 +68,17 @@
       !end do
       ! FIXED loads of cell lengths are 0 so there is an issue with x and y coordinates in generate_mesh
       ! 
-      min_a = minval( hypot(g%lx_i, g%ly_i) )
-      min_b = minval( hypot(g%lx_j, g%ly_j) )
+      li = hypot(g%lx_i, g%ly_i)
+      lj = hypot(g%lx_j, g%ly_j)
 
-      g%l_min = min( min_a, min_b)
+      do i = 1, ni-1
+          do j = 1, nj-1
+              g%l_min(i,j) = min( li(i,j), lj(i,j))
+          end do
+      end do
+
+      ! could do something like this if still want to see output
+      ! av%l_min = min( av%l_min, minval(g%l_min))
 !
 !     Print the overall minimum length size that has been calculated
       write(6,*) 'Calculated cell areas and facet lengths'

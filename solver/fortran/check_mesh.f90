@@ -18,7 +18,7 @@
 
 !     Exact checking of floating point numbers never goes well, define a
 !     small tolerance to use for a comparative operation instead
-      tol = 1e-4 * g%l_min
+      tol = 1e-4 * minval(g%l_min)
 
 !     Check that all of the cell areas are positive, either with the intrinsic
 !     "minval" function or with nested do loops. Print the output to the screen
