@@ -12,6 +12,7 @@ preprocessing/__pycache__/
 *.toc
 *.out
 *.pdf
+case_env/
 
 
 # Compiled object files
