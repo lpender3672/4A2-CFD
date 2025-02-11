@@ -25,6 +25,7 @@
       use write_output_mod
       use timestep
 
+      use solver_flags, only: stopit
       use debug
 
 !     Don't use historical implicit variable naming
@@ -45,8 +46,7 @@
       type(t_grid), allocatable, target :: g(:)
       type(t_conv_point) :: conv_point
       real :: d_max = 1, d_avg = 1, avg_of_hist = 1
-      integer :: nstep, nconv = 50, ncheck = 10, ncalcdt = 10
-      integer :: nrkuts = 4
+      integer :: nstep, nconv = 50, ncheck = 10, ncalcdt = 10, nsend = 500
       integer :: nrkut, n
       integer :: ni, nj, m
 
@@ -98,7 +98,7 @@
 
 !     Calculate cell areas and facet lengths
       do n = 1, av%nn
-            call calc_areas(g(n))
+            call calc_areas(av, g(n))
       end do
 
       write(msg_bfr,*) 'Minimum mesh size found to be ', minval(g(1)%l_min)
@@ -122,7 +122,7 @@
 !            approximation to the converged flowfield and so the time to
 !            solution will be reduced. You will need to complete this option.
       do ng = 1, av%nn
-          call flow_guess(av,g(ng),bcs,1)
+          call flow_guess(av,g(ng),bcs,av%guess_method)
           call set_secondary(av,g(ng))
       end do
 
@@ -150,8 +150,9 @@
 !     Initialise the "stopit" file, during long runs you can request an output
 !     is written by setting the value to 1, or to terminate the calculation if
 !     set to 2
-      open(unit=11,file='stopit')
-      write(11,*) 0; close(11);
+      ! This is a horrible way to do this so its getting removed
+      !open(unit=11,file= av%casefolder // '/../stopit')
+      !write(11,*) 0; close(11);
 
 
       write(msg_bfr,*) 'Calculation started'
@@ -174,10 +175,10 @@
             g(ng)%rovy_start = g(ng)%rovy
           end do          
 
-          do nrkut = 1,nrkuts
+          do nrkut = 1,av%nrkuts
 
               do ng = 1, av%nn
-                  g(ng)%dt = g(ng)%dt_total / (1 + nrkuts - nrkut)
+                  g(ng)%dt = g(ng)%dt_total / (1 + av%nrkuts - nrkut)
               end do
 
               do ng = 1, av%nn
@@ -204,6 +205,26 @@
 !         Write out summary every "nconv" steps and update "davg" and "dmax" 
           if(mod(av%nstep,nconv) == 0) then
               call check_conv(av,g,d_avg,d_max)
+
+              !         Stop marching if converged to the desired tolerance "conlim"
+              !if(d_max < av%d_max .and. d_avg < av%d_avg) then
+              avg_of_hist = sum(d_avg_hist)/100
+              if (all(abs(d_avg_hist / avg_of_hist - 1) < av%d_var)) then
+                  ! this code is modified. The original code is commented out above
+                  ! the calculation stops when the variation of the average residual is less than 1%
+                  write(msg_bfr,*) d_max ," ", av%d_max, " ", avg_of_hist, " ", av%d_avg
+                  call write_to_qt(msg_bfr)
+                  if(d_max < av%d_max .and. avg_of_hist < av%d_avg) then
+                      write(msg_bfr,*) 'Calculation converged within bounds in', nstep,'iterations'
+                      call write_to_qt(msg_bfr)
+                  else
+                      write(msg_bfr,*) 'Calculation converged outside bounds in', nstep,'iterations'
+                      call write_to_qt(msg_bfr)
+                  end if
+                  
+                  exit
+              end if
+
               conv_point%iters = av%nstep
               conv_point%d_max = d_max
               conv_point%d_avg = d_avg
@@ -221,25 +242,16 @@
               call check_stop(av,g)
           end if
 
-!         Stop marching if converged to the desired tolerance "conlim"
-          !if(d_max < av%d_max .and. d_avg < av%d_avg) then
-          avg_of_hist = sum(d_avg_hist)/100
-          if (all(abs(d_avg_hist / avg_of_hist - 1) < av%d_var)) then
-            ! this code is modified. The original code is commented out above
-            ! the calculation stops when the variation of the average residual is less than 1%
-              if(d_max < av%d_max .and. d_avg < av%d_avg) then
-                  write(msg_bfr,*) 'Calculation converged within bounds in', nstep,'iterations'
-                  call write_to_qt(msg_bfr)
-              else
-                  write(msg_bfr,*) 'Calculation converged outside bounds in', nstep,'iterations'
-                  call write_to_qt(msg_bfr)
-              end if
-              
-              exit
+          if (mod(av%nstep,nsend) == 0) then
+              call grids_to_qt(g, av%nn)
           end if
-          
 
           if (av%crashed) then
+              exit
+          end if
+          if (stopit) then
+              write(msg_bfr,*) 'Solver stopped manually'
+              call write_to_qt(msg_bfr)
               exit
           end if
 
@@ -250,6 +262,9 @@
       write(msg_bfr,*) 'Calculation completed after', av%nstep,'iterations'
       call write_to_qt(msg_bfr)
       call write_output(av,g,3)
+
+      stopit = .false. ! reset stopit flag in a not thread safe way
+      ! should be ok because nobody can click the buttons fast enough
 
       call grids_to_qt(g, av%nn)
 !

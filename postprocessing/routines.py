@@ -10,10 +10,14 @@ import re
 import numpy as np
 import matplotlib.pyplot as plt 
 import scipy.interpolate as interp
+import pathlib
 
 # Set default directory to save figures in, plot resolution and font sizes
 plt.rcParams["savefig.directory"] = '.'; plt.rcParams['savefig.dpi'] = 600;
 plt.rc('font',size=14); plt.rc('axes',titlesize=16); plt.rc('axes',labelsize=16)
+
+plt.rcParams["text.usetex"] = True
+plt.rcParams["font.family"] = "serif"
 
 ################################################################################
 
@@ -28,7 +32,8 @@ def calc_secondary(av,b):
     #g%hstag = g%roe / g%ro
     b['vx'] = b['rovx'] / b['ro']
     b['vy'] = b['rovy'] / b['ro']
-    b['p'] = b['roe'] - 0.5 * b['ro'] * (b['rovx']**2 + b['rovy']**2)
+    b['p'] = (b['roe'] - 0.5 * b['ro'] * (b['rovx']**2 + b['rovy']**2)) * (av['gam'] - 1)
+    
     b['hstag'] = (b['roe'] + b['p']) / b['ro']
 
     # actually need pstag too
@@ -57,6 +62,20 @@ def cut_i(b,i):
 
     # Store the projected lengths in the i-direction
     c['lx'] = b['lx_i'][i,:]; c['ly'] = b['ly_i'][i,:];
+
+    return c
+
+def cut_j(b, j):
+    c = {}
+    for var in b:
+        if isinstance(b[var],np.ndarray):
+            if j < np.shape(b[var])[1]:
+                c[var] = np.squeeze(b[var][:,j])
+        else:
+            c[var] = b[var]
+
+    # Store the projected lengths in the j-direction
+    c['lx'] = b['lx_j'][:,j]; c['ly'] = b['ly_j'][:,j];
 
     return c
 
@@ -566,7 +585,7 @@ def read_settings(filename):
     f = open(filename,'r')
 
     # Read the casename
-    av['casename'] = f.readline()
+    av['casename'] = f.readline().strip()
 
     # Read two gas constants and calculate the rest
     av['rgas'], av['gam'] = [float(x) for x in f.readline().split()]
@@ -574,10 +593,10 @@ def read_settings(filename):
     av['cv'] = av['cp'] / av['gam']
 
     # Read the CFL, smoothing factor and convergence limit
-    av['cfl'],av['sfac'],av['d_max'],av['d_var'],av['facsec'],av['fcorr'] = [float(x) for x in f.readline().split()]
+    av['cfl'],av['sfac'],av['sfac_res'],av['d_max'],av['d_var'],av['facsec'],av['fcorr'] = [float(x) for x in f.readline().split()]
 
     # Read the number of steps
-    av['nsteps'] = [int(x) for x in f.readline().split()]
+    av['nsteps'], av['nrkuts'], av['guess_method'], av['tstep_method'] = [int(x) for x in f.readline().split()]
 
     # Read the grid size
     av['ni'],av['nj'] = [int(x) for x in f.readline().split()]
@@ -587,7 +606,7 @@ def read_settings(filename):
         [float(x) for x in f.readline().split()]
  
     # Read the outlet boundary condition
-    av['p'] = [float(x) for x in f.readline().split()]
+    av['p'] = [float(x) for x in f.readline().split()][0]
 
     # Close the file 
     f.close()
@@ -677,6 +696,9 @@ def read_conv(filename):
     # Store the columns in the log dictionary
     fieldnames = ['nstep', 'dro_avg', 'droe_avg', 'drovx_avg', 'drovy_avg', 
         'dro_max', 'droe_max', 'drovx_max', 'drovy_max']
+    
+    assert arr.shape[1] == len(fieldnames), 'Number of columns in file does not match expected'
+    
     for n,name in enumerate(fieldnames):
         l[name] = arr[:,n]
 
@@ -697,14 +719,17 @@ def default_settings(casename):
     av['rgas'] = 287; av['gam'] = 1.4
 
     # CFL, smoothing factor and convergence limit
-    av['cfl'] = 0.4; av['sfac'] = 0.5; av['d_max'] = 0.0001;
+    av['cfl'] = 0.4; av['sfac'] = 0.5; av['sfac_res'] = 0.5; av['d_max'] = 0.0001;
     av['d_var'] = 0.01; av['facsec'] = 0.0; av['fcorr'] = 0.0
     # added variables
     av['d_var'] = 0.01
     av['facsec'] = 0.5
 
     # Number of steps
-    av['nsteps'] = 5000; 
+    av['nsteps'] = 5000;
+    av['nrkuts'] = 4
+    av['guess_method'] = 1
+    av['tstep_method'] = 2
 
     # Grid size
     av['ni'] = 53; av['nj'] = 37;
@@ -719,11 +744,13 @@ def default_settings(casename):
 
 ################################################################################
 
-def write_settings(av, casedir = 'cases/'):
+def write_settings(av, casedir = 'cases'):
     # Create an input file with settings and boundary conditions
 
     # Open the file to write
-    filename = casedir / (av['casename'] +  '/input_' + av['casename'] + '.txt')
+    casepath = pathlib.Path(casedir) / av['casename']
+    casepath.mkdir(exist_ok=True)
+    filename = casepath / f"input_{av['casename']}.txt"
 
     f = open(filename,'w')
 
@@ -734,10 +761,10 @@ def write_settings(av, casedir = 'cases/'):
     f.write('%f %f\n' % (av['rgas'], av['gam']))
 
     # Write the CFL, smoothing factor and convergence limit
-    f.write('%f %f %f %f %f %f\n' % (av['cfl'],av['sfac'],av['d_max'], av['d_var'], av['facsec'], av['fcorr']))
+    f.write('%f %f %f %f %f %f %f\n' % (av['cfl'],av['sfac'],av['sfac_res'],av['d_max'], av['d_var'], av['facsec'], av['fcorr']))
 
     # Write the number of steps
-    f.write('%d\n' % (av['nsteps']))
+    f.write('%d %d %d %d\n' % (av['nsteps'], av['nrkuts'], av['guess_method'], av['tstep_method']))
 
     # Write the grid size
     f.write('%d %d\n' % (av['ni'],av['nj']))
@@ -755,11 +782,13 @@ def write_settings(av, casedir = 'cases/'):
 
 ################################################################################
 
-def write_geom(av,geom, casedir = 'cases/'):
+def write_geom(av,geom, casedir = 'cases'):
     # Create an input file with settings and boundary conditions
 
     # Open the file to write
-    filename = casedir / (av['casename'] + '/geom_' + av['casename'] + '.txt')
+    casepath = pathlib.Path(casedir) / av['casename']
+    #casepath.mkdir(exist_ok=True)
+    filename = casepath / f"geom_{av['casename']}.txt"
     
     f = open(filename,'w')
 
@@ -784,11 +813,13 @@ def write_geom(av,geom, casedir = 'cases/'):
 
 ################################################################################
 
-def write_mesh(av,g, casedir = 'cases/'):
+def write_mesh(av,g, casedir = 'cases'):
     # Write grid coordinates and connectivity data to file directly
 
     # Open the file to write
-    filename = casedir / (av['casename'] + '/geom_' + av['casename'] + '.txt')
+    casepath = pathlib.Path(casedir) / av['casename']
+    #casepath.mkdir(exist_ok=True)
+    filename = casepath / f"mesh_{av['casename']}.bin"
 
     f = open(filename,'w')
 

@@ -1,6 +1,7 @@
 
 #include "fortranBridge.h"
 #include <iostream>
+#include <atomic>
 
 static ConsoleWidget* globalConsoleWidget = nullptr;
 static VisWidget* globalVisWidget = nullptr;
@@ -31,6 +32,8 @@ void setGlobalConvWidget(ConvWidget* widget) {
 }
 
 extern "C" {
+
+static std::atomic<bool> stopit(false);
 
 // These functions are called by fortran to emit signals to the main GUI thread
 
@@ -71,4 +74,5 @@ void emit_conv_point_signal(t_conv_point cp) {
         emit globalConvWidget->newConvPoint(cp);
     }
 }
+
 }

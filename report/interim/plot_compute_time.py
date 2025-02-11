@@ -102,7 +102,7 @@ def collect_run_data(casename, cfl, sfac, ni, nj, n=3):
 def cfl_sfac_grid_run(casename):
     
     try:
-        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+        history = np.loadtxt(f'report/interim/data/{casename}_runs_{appver}.txt')
     except FileNotFoundError:
         history = np.zeros((0, 9))
 
@@ -131,17 +131,17 @@ def cfl_sfac_grid_run(casename):
 
             if i % saveinterval == 0:
                 # learnt to have this in the hard way
-                np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
+                np.savetxt(f'report/interim/data/{casename}_runs_{appver}.txt', history)
 
             i += 1
 
-    np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
+    np.savetxt(f'report/interim/data/{casename}_runs_{appver}.txt', history)
 
 
 def increase_resolution_cfl_sfac_grid_boundary(casename):
 
     try:
-        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+        history = np.loadtxt(f'report/interim/data/{casename}_runs_{appver}.txt')
     except FileNotFoundError:
         history = np.zeros((0, 9))
 
@@ -185,7 +185,7 @@ def increase_resolution_cfl_sfac_grid_boundary(casename):
                 newrow = collect_run_data(casename, cfl, sfac, ni, nj)
                 history = np.vstack((history, newrow))
 
-    np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
+    np.savetxt(f'report/interim/data/{casename}_runs_{appver}.txt', history)
 
 def plot_cfl_sfac_time(casename):
 
@@ -203,7 +203,7 @@ def plot_cfl_sfac_time(casename):
     )
 
     try:
-        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+        history = np.loadtxt(f'report/interim/data/{casename}_runs_{appver}.txt')
     except FileNotFoundError:
         return ax
 
@@ -292,7 +292,7 @@ def plot_cfl_sfac_residual(casename):
     )
 
     try:
-        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+        history = np.loadtxt(f'report/interim/data/{casename}_runs_{appver}.txt')
     except FileNotFoundError:
         return ax
 
@@ -372,7 +372,7 @@ def d_avg_cfl_run(casename):
     nj = 37
 
     try:
-        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+        history = np.loadtxt(f'report/interim/data/{casename}_runs_{appver}.txt')
     except FileNotFoundError:
         history = np.zeros((0, 9))
 
@@ -384,13 +384,13 @@ def d_avg_cfl_run(casename):
         newrow = collect_run_data(casename, cfl, sfac, ni, nj, 3)
         history = np.vstack((history, newrow))
 
-    np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
+    np.savetxt(f'report/interim/data/{casename}_runs_{appver}.txt', history)
 
 
 def ni_cfl_grid_run(casename):
 
     try:
-        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+        history = np.loadtxt(f'report/interim/data/{casename}_runs_{appver}.txt')
     except FileNotFoundError:
         history = np.zeros((0, 9))
 
@@ -419,11 +419,11 @@ def ni_cfl_grid_run(casename):
 
             if i % saveinterval == 0:
                 # learnt to have this in the hard way
-                np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
+                np.savetxt(f'report/interim/data/{casename}_runs_{appver}.txt', history)
 
             i += 1
 
-    np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
+    np.savetxt(f'report/interim/data/{casename}_runs_{appver}.txt', history)
 
 def d_avg_ni_run(casename):
 
@@ -434,7 +434,7 @@ def d_avg_ni_run(casename):
     nj = 37
 
     try:
-        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+        history = np.loadtxt(f'report/interim/data/{casename}_runs_{appver}.txt')
     except FileNotFoundError:
         history = np.zeros((0, 9))
 
@@ -446,11 +446,11 @@ def d_avg_ni_run(casename):
         newrow = collect_run_data(casename, cfl, sfac, ni, nj, 3)
         history = np.vstack((history, newrow))
 
-    np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
+    np.savetxt(f'report/interim/data/{casename}_runs_{appver}.txt', history)
 
 def reshape_saved_data(casename):
     
-    history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+    history = np.loadtxt(f'report/interim/data/{casename}_runs_{appver}.txt')
     # add two columns to end with ni and nj
     ni = 53
     nj = 37
@@ -459,7 +459,7 @@ def reshape_saved_data(casename):
     newdata[:, -2] = ni
     newdata[:, -1] = nj
 
-    np.savetxt(f'report/data/{casename}_runs_{appver}.txt', newdata)
+    np.savetxt(f'report/interim/data/{casename}_runs_{appver}.txt', newdata)
 
 def plot_d_avg_cfl(casename):
 
@@ -468,7 +468,7 @@ def plot_d_avg_cfl(casename):
     fig,ax = plt.subplots()
 
     try:
-        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+        history = np.loadtxt(f'report/interim/data/{casename}_runs_{appver}.txt')
     except FileNotFoundError:
         return fig, ax
     
@@ -504,7 +504,7 @@ def plot_d_avg_ni(casename):
     fig, ax = plt.subplots()
 
     try:
-        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+        history = np.loadtxt(f'report/interim/data/{casename}_runs_{appver}.txt')
     except FileNotFoundError:
         return ax
     
@@ -536,7 +536,7 @@ def plot_d_avg_ni(casename):
 def plot_time_cfl(casename):
     
         try:
-            history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+            history = np.loadtxt(f'report/interim/data/{casename}_runs_{appver}.txt')
         except FileNotFoundError:
             return
     
@@ -573,7 +573,7 @@ def plot_time_ni(casename):
         d_avg_ni_run(casename)
     
         try:
-            history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+            history = np.loadtxt(f'report/interim/data/{casename}_runs_{appver}.txt')
         except FileNotFoundError:
             return
     
@@ -622,7 +622,7 @@ def plot_ni_cfl_residual(casename):
     )
 
     try:
-        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+        history = np.loadtxt(f'report/interim/data/{casename}_runs_{appver}.txt')
     except FileNotFoundError:
         return ax
     
@@ -714,7 +714,7 @@ def plot_ni_cfl_time(casename):
     )
 
     try:
-        history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+        history = np.loadtxt(f'report/interim/data/{casename}_runs_{appver}.txt')
     except FileNotFoundError:
         return ax
     
@@ -788,12 +788,12 @@ def plot_ni_cfl_time(casename):
 
 def delete_saved_data(casename):
 
-    history = np.loadtxt(f'report/data/{casename}_runs_{appver}.txt')
+    history = np.loadtxt(f'report/interim/data/{casename}_runs_{appver}.txt')
     # filter by ni
     ni = 53
     history = history[(history[:, 7] == ni)]
     # save again
-    np.savetxt(f'report/data/{casename}_runs_{appver}.txt', history)
+    np.savetxt(f'report/interim/data/{casename}_runs_{appver}.txt', history)
 
 if __name__ == '__main__':
     

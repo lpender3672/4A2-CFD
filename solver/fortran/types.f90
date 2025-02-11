@@ -21,9 +21,9 @@
           real(C_FLOAT) :: rgas, gam, cp, cv, fgam
 
 !         Timestepping, smoothing and other run options
-          real(C_FLOAT) ::  cfl, sfac, dt, dt_total, d_max, d_avg
-          real(C_FLOAT) :: d_var, facsec, fcorr
-          integer(C_INT) :: nsteps, nstep
+          real(C_FLOAT) ::  cfl, sfac, sfac_res, dt, dt_total, d_max, d_avg
+          real(C_FLOAT) :: d_var, facsec, fcorr, l_min
+          integer(C_INT) :: nsteps, nstep, nrkuts, guess_method, tstep_method
 
 !         Reference values of the primary flow variables
           real(C_FLOAT) :: ro_ref, roe_ref, rov_ref
@@ -43,7 +43,7 @@
           character(kind = C_CHAR, len=128) :: casefolder
 
           real(C_FLOAT) :: rgas, gam, cp, cv, fgam
-          real(C_FLOAT) :: cfl, sfac, dt, d_max, d_avg
+          real(C_FLOAT) :: cfl, sfac, sfac_res, dt, d_max, d_avg
           real(C_FLOAT) :: d_var, facsec, fcorr
           integer(C_INT) :: nsteps, nstep
           real(C_FLOAT) :: ro_ref, roe_ref, rov_ref
@@ -124,6 +124,7 @@
           
 !         Variables to hold cell increments
           real(C_FLOAT), dimension(:,:), pointer :: dro, droe, drovx, drovy
+          real(C_FLOAT), dimension(:,:), pointer :: dro_1, droe_1, drovx_1, drovy_1
 !         Secondary variables at nodes
           real(C_FLOAT), dimension(:,:), pointer :: p, hstag, vx, vy 
           

@@ -23,6 +23,7 @@
       read(5,*) tempname
 
       av%crashed = .false.
+      av%l_min = 1.0e10
 
 !     You should read in the following variables sequentially and store them in
 !     the dervived "av" datatype with the % syntax:
@@ -31,8 +32,8 @@
 !         nsteps
 !         ni, nj
       read(5,*) av%rgas, av%gam
-      read(5,*) av%cfl, av%sfac, av%d_max, av%d_var, av%facsec, av%fcorr
-      read(5,*) av%nsteps
+      read(5,*) av%cfl, av%sfac, av%sfac_res, av%d_max, av%d_var, av%facsec, av%fcorr
+      read(5,*) av%nsteps, av%nrkuts, av%guess_method, av%tstep_method
       read(5,*) av%ni, av%nj
 
 !     Calculate other gas constants used throughout the calculation
@@ -75,6 +76,10 @@
       write(msg_bfr,*) '  rgas =', av%rgas, 'cp =', av%cp, 'cv =', av%cv, 'gam =', av%gam
       call write_to_qt(msg_bfr)
       write(msg_bfr,*) '  CFL =', av%cfl, 'sfac =', av%sfac, 'rfin =', bcs%rfin
+      call write_to_qt(msg_bfr)
+      write(msg_bfr,*) '  sfac_res =', av%sfac_res, 'fcorr =', av%fcorr, 'facsec =', av%facsec
+      call write_to_qt(msg_bfr)
+      write(msg_bfr,*) '  flow_guess_method =', av%guess_method, 'tstep method =', av%tstep_method, 'nrkuts = ', av%nrkuts
       call write_to_qt(msg_bfr)
       write(msg_bfr,*) '  Convergence  d_max =', av%d_max
       call write_to_qt(msg_bfr)

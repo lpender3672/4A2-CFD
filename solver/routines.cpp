@@ -28,8 +28,8 @@ void read_settings(const std::string& fpath, t_appvars& av, t_bconds& bcs) {
     av.crashed = false;
 
     infile >> av.rgas >> av.gam;
-    infile >> av.cfl >> av.sfac >> av.d_max >> av.d_var >> av.facsec >> av.fcorr;
-    infile >> av.nsteps;
+    infile >> av.cfl >> av.sfac >> av.sfac_res >> av.d_max >> av.d_var >> av.facsec >> av.fcorr;
+    infile >> av.nsteps >> av.nkruts >> av.guess_method >> av.tstep_method;
     infile >> av.ni >> av.nj;
 
     av.cp = av.rgas * av.gam / (av.gam - 1.0);
@@ -48,8 +48,8 @@ void write_settings(const std::string& fpath, const t_appvars& av, const t_bcond
 
     outfile << av.casename << std::endl;
     outfile << av.rgas << " " << av.gam << std::endl;
-    outfile << av.cfl << " " << av.sfac << " " << av.d_max << " " << av.d_var << " " << av.facsec << " " << av.fcorr << std::endl;
-    outfile << av.nsteps << std::endl;
+    outfile << av.cfl << " " << av.sfac << " " << av.sfac_res << " " << av.d_max << " " << av.d_var << " " << av.facsec << " " << av.fcorr << std::endl;
+    outfile << av.nsteps << " " << av.nkruts << " " << av.guess_method << " " << av.tstep_method << std::endl;
     outfile << av.ni << " " << av.nj << std::endl;
     outfile << bcs.pstag << " " << bcs.tstag << " " << bcs.alpha << " " << bcs.rfin << std::endl;
     outfile << bcs.p_out << std::endl;

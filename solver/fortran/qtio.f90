@@ -2,6 +2,26 @@
 ! This file handles some input and output functions for the solver
 ! the big one being  console output to the GUI which can be seen below
 
+
+    module solver_flags
+        use iso_c_binding
+        implicit none
+        logical(C_BOOL) :: stopit
+    end module solver_flags
+
+    subroutine set_stopit_flag() bind(C, name="set_stopit_flag")
+        use iso_c_binding
+        use solver_flags
+        implicit none
+        ! Update the stopit flag in Fortran
+        stopit = .true.
+        if (stopit) then
+            print *, "Stopit flag set to true in Fortran."
+        else
+            print *, "Stopit flag set to false in Fortran."
+        end if
+    end subroutine set_stopit_flag
+
     module io_module
         use iso_c_binding
         use types

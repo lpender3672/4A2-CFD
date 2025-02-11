@@ -1,5 +1,5 @@
       
-      subroutine calc_areas(g)
+      subroutine calc_areas(av, g)
 
 !     Calculate the area of the quadrilateral cells and the lengths of the side
 !     facets
@@ -8,6 +8,7 @@
       use types
       use routines
       implicit none
+      type(t_appvars), intent(inout) :: av
       type(t_grid), intent(inout) :: g
       real, dimension(:, :), allocatable :: ax, ay, bx, by, li, lj
       integer :: ni, nj
@@ -77,12 +78,14 @@
           end do
       end do
 
+      av%l_min = min(av%l_min, minval(g%l_min))
+
       ! could do something like this if still want to see output
       ! av%l_min = min( av%l_min, minval(g%l_min))
 !
 !     Print the overall minimum length size that has been calculated
       write(6,*) 'Calculated cell areas and facet lengths'
-      write(6,*) '  Overall minimum element size = ', g%l_min
+      write(6,*) '  Overall minimum element size = ', av%l_min
       write(6,*)
 
       end subroutine calc_areas

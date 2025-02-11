@@ -131,6 +131,9 @@ signals:
     void newGridVector(const QVector<t_grid> &message);
 
 private:
+    //StringList tabNames;
+    QStringList tabNames;
+
     QVBoxLayout *mainLayout; // No error should occur here now
     QTabWidget *tabWidget;
     QChartView *chartView1;
@@ -138,6 +141,12 @@ private:
     QVector<QCustomPlot*> customPlots;
     QVector<QCPColorScale*> colorScales;
     QVector<QMeshPlot*> meshPlots;
+
+    QCPRange sharedXAxisRange;
+    QCPRange sharedYAxisRange;
+
+    int lastTabIndex = 0;
+    bool resetAxis = true;
 
     void setupTabs();
 
