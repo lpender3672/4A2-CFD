@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-# use ifx not ifort
-set (CMAKE_Fortran_COMPILER "ifx")
-
-project(solver VERSION 1.1.0 LANGUAGES CXX Fortran)
+project(solver VERSION 1.2.0 LANGUAGES CXX Fortran)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

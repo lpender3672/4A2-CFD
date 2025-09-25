@@ -1,7 +1,7 @@
 
       module types
       
-      use iso_c_binding, only: C_INT, C_FLOAT, C_PTR, C_CHAR
+      use iso_c_binding, only: C_INT, C_FLOAT, C_PTR, C_CHAR, C_BOOL
 
 
 !     Define the derived data types used in the main program and subroutines,
@@ -34,13 +34,14 @@
 !         Number of blocks and matching patches for multi-block extension
           integer(C_INT) :: nn, nm
 
-          logical(C_INT) :: crashed
+          logical(C_BOOL) :: crashed
 
       end type t_appvars
 
-      type, bind(C) :: t_appvars_c
-          character(kind = C_CHAR, len=128) :: casename
-          character(kind = C_CHAR, len=128) :: casefolder
+        type, bind(C) :: t_appvars_c
+              ! represent fixed-size C strings as arrays of C_CHAR
+              character(kind = C_CHAR), dimension(128) :: casename
+              character(kind = C_CHAR), dimension(128) :: casefolder
 
           real(C_FLOAT) :: rgas, gam, cp, cv, fgam
           real(C_FLOAT) :: cfl, sfac, sfac_res, dt, d_max, d_avg
@@ -129,7 +130,7 @@
           real(C_FLOAT), dimension(:,:), pointer :: p, hstag, vx, vy 
           
 !         Logical array to store wall locations for the nodes
-          logical(C_INT), dimension(:,:), pointer :: wall
+          logical(C_BOOL), dimension(:,:), pointer :: wall
 
       end type t_grid
 
@@ -264,26 +265,27 @@
             type(t_appvars_c), intent(in) :: av_c  ! Incoming C-compatible struct
             type(t_appvars), intent(out) :: av     ! Fortran-specific struct
 
-            integer :: null_pos
-            !call c_f_pointer(av_c%casename, av%casename, [128])
-            !call c_f_pointer(av_c%casefolder, av%casefolder, [128])
-            ! copy the strings
-            !av%casename = av_c%casename
-            !av%casefolder = av_c%casefolder
+            integer :: null_pos, i
+            character(kind=C_CHAR, len=128) :: tmp_cas, tmp_folder
 
-            null_pos = index(av_c%casefolder, c_null_char)
+            ! av_c%casefolder and av_c%casename are arrays of C_CHAR(1),
+            ! transfer them into scalar C_CHAR strings for easy processing
+            tmp_folder = transfer(av_c%casefolder, tmp_folder)
+            tmp_cas = transfer(av_c%casename, tmp_cas)
+
+            null_pos = index(tmp_folder, c_null_char)
             if (null_pos == 0) then
-                  null_pos = len(av_c%casefolder) + 1
+                  null_pos = len(tmp_folder) + 1
             end if
             allocate(character(len=null_pos-1) :: av%casefolder)
-            av%casefolder = av_c%casefolder(1:null_pos-1)
+            av%casefolder = tmp_folder(1:null_pos-1)
 
-            null_pos = index(av_c%casename, c_null_char)
+            null_pos = index(tmp_cas, c_null_char)
             if (null_pos == 0) then
-                  null_pos = len(av_c%casename) + 1
+                  null_pos = len(tmp_cas) + 1
             end if
             allocate(character(len=null_pos-1) :: av%casename)
-            av%casename = av_c%casename(1:null_pos-1)
+            av%casename = tmp_cas(1:null_pos-1)
 
             !write(6,*) 'casefolder: ', av%casefolder
         
@@ -310,7 +312,8 @@
             av%nj = av_c%nj
             av%nn = av_c%nn
             av%nm = av_c%nm
-            av%crashed = av_c%crashed
+            ! Convert integer flag from C to Fortran logical
+            av%crashed = (av_c%crashed /= 0)
             
       end subroutine appvars_from_c
 
