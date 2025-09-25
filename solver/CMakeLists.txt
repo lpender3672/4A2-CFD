@@ -17,25 +17,15 @@ endif()
 
 target_link_libraries(solverApp PRIVATE Qt6::Core Qt6::Widgets Qt6::Charts Qt6::PrintSupport)
 
-find_path(MKL_INCLUDE_DIR mkl.h HINTS ENV MKLROOT PATH_SUFFIXES include)
-find_library(MKL_LIBRARY mkl_rt HINTS ENV MKLROOT PATH_SUFFIXES lib lib/intel64)
-
-if(MKL_INCLUDE_DIR AND MKL_LIBRARY)
-    message(STATUS "Found MKL: ${MKL_LIBRARY}")
-
-    include_directories(${MKL_INCLUDE_DIR})
-
-    target_link_libraries(solverApp PRIVATE ${MKL_LIBRARY})
-    
-    target_link_options(solverApp PRIVATE "-Wl,--start-group ${MKL_LIBRARY} -Wl,--end-group")
-else()
-    message(FATAL_ERROR "MKL not found. Please ensure MKL is installed and MKLROOT is set.")
-endif()
-
 
 if(WIN32)
     set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} /O2")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:100485760") # 10 MB stack
+    # Only add the /STACK linker flag for MSVC targets. MinGW's ld doesn't accept /STACK.
+    if (MSVC)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:100485760") # 10 MB stack
+    else()
+        message(VERBOSE "Not MSVC: skipping /STACK linker flag")
+    endif()
 
     find_program(WINDEPLOYQT_EXECUTABLE windeployqt
         HINTS "${QT_INSTALL_DIR}/bin"
@@ -49,19 +39,6 @@ if(WIN32)
         message(WARNING "windeployqt not found! Ensure Qt DLLs are included manually.")
     endif()
 
-    set(INTEL_DLLS
-        "C:/Program Files (x86)/Intel/oneAPI/compiler/2024.2/bin/libifcoremd.dll"
-        "C:/Program Files (x86)/Intel/oneAPI/compiler/2024.2/bin/libmmd.dll"
-        "C:/Program Files (x86)/Intel/oneAPI/compiler/2024.2/bin/libiomp5md.dll"
-    )
-    
-    foreach(DLL ${INTEL_DLLS})
-        if(EXISTS ${DLL})
-            file(COPY ${DLL} DESTINATION ${CMAKE_BINARY_DIR}/bin)
-        else()
-            message(WARNING "Intel DLL not found: ${DLL}")
-        endif()
-    endforeach()
 endif()
 
 install(TARGETS solverApp
