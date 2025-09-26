@@ -1,5 +1,5 @@
 
-      subroutine solver(av_c, bcs_c, g_c) bind(C, name="solver")
+      subroutine block_mesh_solver(av_c, bcs_c, g_c) bind(C, name="block_mesh_solver")
 
 !     The main body of the CFD solver, calls all subroutines to march towards a
 !     flow solution
@@ -271,6 +271,6 @@
 !     Close open convergence history file
       close(3)
 
-      end subroutine solver
+      end subroutine block_mesh_solver
 
 

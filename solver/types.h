@@ -7,6 +7,8 @@
 #define TYPES_H
 
 extern "C" {
+
+    // block mesh grid structs
     struct t_grid {
         int ni, nj;
 
@@ -38,7 +40,7 @@ extern "C" {
         float* vx;
         float* vy;
 
-    int* wall;
+        int* wall;
     };
 
     struct t_appvars {
@@ -71,6 +73,9 @@ extern "C" {
         int iter;
         float d_max, d_avg;
     };
+
+    // curve fill mesh structs
+
 }
 
 #endif // TYPES_H

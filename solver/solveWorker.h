@@ -14,6 +14,9 @@ public:
     SolveWorker();
     ~SolveWorker();
 
+    enum class SolverType { BlockMesh, CurveFill };
+    void setSolverType(SolverType t);
+
 public slots:
     void setPath(const QString &newPath);
     void runSolver();
@@ -24,6 +27,8 @@ signals:
 
 private:
     QString path;
+    void (*solverFunc)(t_appvars*, t_bconds*, t_grid*);
+    SolverType solver;
     t_appvars av;
     t_bconds bcs;
     t_grid g;
