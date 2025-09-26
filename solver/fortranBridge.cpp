@@ -33,7 +33,7 @@ void setGlobalConvWidget(ConvWidget* widget) {
 
 extern "C" {
 
-static std::atomic<bool> stopit(false);
+static std::atomic<std::int8_t> stopit(0);
 
 // These functions are called by fortran to emit signals to the main GUI thread
 

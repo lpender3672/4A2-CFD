@@ -26,7 +26,7 @@ void read_settings(const std::string& fpath, t_appvars& av, t_bconds& bcs) {
         av.casefolder[0] = '\0'; 
     }
 
-    av.crashed = false;
+    av.crashed = 0;
 
     infile >> av.rgas >> av.gam;
     infile >> av.cfl >> av.sfac >> av.sfac_res >> av.d_max >> av.d_var >> av.facsec >> av.fcorr;

@@ -79,8 +79,8 @@ module gen_mesh
 !     and communicate the position of the walls to the solver in a more 
 !     flexible way. The "wall" variable is an "ni * nj" logical array where 
 !     "true" indicates the node is on a wall.
-      g(1)%wall = .false.
-      g(1)%wall(:,[1,g%nj]) = .true.
+      g(1)%wall = 0
+      g(1)%wall(:,[1,g%nj]) = 1
 
 !     Print that the mesh has been created
       write(6,*) 'Interpolated mesh from the bounding geometry curves'
