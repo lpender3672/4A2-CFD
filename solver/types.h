@@ -1,4 +1,5 @@
 #include <string>
+#include <cstdint>
 
 #pragma once
 
@@ -37,7 +38,7 @@ extern "C" {
         float* vx;
         float* vy;
 
-        int* wall;
+    int* wall;
     };
 
     struct t_appvars {
@@ -51,7 +52,7 @@ extern "C" {
         float ro_ref, roe_ref, rov_ref;
         int ni, nj;
         int nn, nm;
-        bool crashed;
+    std::int8_t crashed;
 
     };
     

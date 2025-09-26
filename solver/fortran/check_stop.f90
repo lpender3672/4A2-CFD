@@ -30,7 +30,7 @@ module check_stop_mod
 !     Check for NaNs in the density
       do ng = 1, av%nn
             if(isnan(sum(g(ng)%ro))) then
-            av%crashed = .true.
+            av%crashed = 1
             write(msg_bfr,*) 'NaN detected, stopping the solver'
             call write_to_qt(msg_bfr)
             exit
@@ -46,12 +46,12 @@ module check_stop_mod
 !      end if
  
 !     Finish the calculation if stop file equals 2
-      if(av%crashed) then
-          write(msg_bfr,*) 'Solver stopped prematurely'
-          call write_to_qt(msg_bfr)
-          !stop
-          av%crashed = .true.
-      end if
+        if(av%crashed /= 0) then
+              write(msg_bfr,*) 'Solver stopped prematurely'
+              call write_to_qt(msg_bfr)
+              !stop
+              av%crashed = 1
+        end if
 
 !     Reset the stop file      
       !ifstop = 0
