@@ -1,7 +1,7 @@
 
       module types
       
-      use iso_c_binding, only: C_INT, C_FLOAT, C_PTR, C_CHAR, C_BOOL
+      use iso_c_binding, only: C_INT, C_FLOAT, C_PTR, C_CHAR, C_BOOL, C_INT8_T
 
 
 !     Define the derived data types used in the main program and subroutines,
@@ -34,7 +34,7 @@
 !         Number of blocks and matching patches for multi-block extension
           integer(C_INT) :: nn, nm
 
-          logical(C_BOOL) :: crashed
+          INTEGER(C_INT8_T) :: crashed
 
       end type t_appvars
 
@@ -50,7 +50,7 @@
           real(C_FLOAT) :: ro_ref, roe_ref, rov_ref
           integer(C_INT) :: ni, nj
           integer(C_INT) :: nn, nm
-          integer(C_INT) :: crashed  ! Logical becomes int in C
+          integer(C_INT8_T) :: crashed  ! Logical becomes 8-bit int in C
       end type t_appvars_c
 
 !     Boundary condition type contains inlet and outlet data
@@ -130,7 +130,7 @@
           real(C_FLOAT), dimension(:,:), pointer :: p, hstag, vx, vy 
           
 !         Logical array to store wall locations for the nodes
-          logical(C_BOOL), dimension(:,:), pointer :: wall
+          INTEGER(C_INT), dimension(:,:), pointer :: wall
 
       end type t_grid
 
@@ -312,8 +312,8 @@
             av%nj = av_c%nj
             av%nn = av_c%nn
             av%nm = av_c%nm
-            ! Convert integer flag from C to Fortran logical
-            av%crashed = (av_c%crashed /= 0)
+            ! Convert integer flag from C (int8) to Fortran integer flag
+            av%crashed = av_c%crashed
             
       end subroutine appvars_from_c
 

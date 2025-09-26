@@ -246,10 +246,10 @@
               call grids_to_qt(g, av%nn)
           end if
 
-          if (av%crashed) then
+          if (av%crashed /= 0) then
               exit
           end if
-          if (stopit) then
+          if (stopit /= 0) then
               write(msg_bfr,*) 'Solver stopped manually'
               call write_to_qt(msg_bfr)
               exit
@@ -263,7 +263,7 @@
       call write_to_qt(msg_bfr)
       call write_output(av,g,3)
 
-      stopit = .false. ! reset stopit flag in a not thread safe way
+    stopit = 0 ! reset stopit flag in a not thread safe way
       ! should be ok because nobody can click the buttons fast enough
 
       call grids_to_qt(g, av%nn)

@@ -4,18 +4,18 @@
 
 
     module solver_flags
-        use iso_c_binding
+        use iso_c_binding, only: C_INT8_T
         implicit none
-        logical(C_BOOL) :: stopit
+        INTEGER(C_INT8_T) :: stopit
     end module solver_flags
 
     subroutine set_stopit_flag() bind(C, name="set_stopit_flag")
         use iso_c_binding
         use solver_flags
         implicit none
-        ! Update the stopit flag in Fortran
-        stopit = .true.
-        if (stopit) then
+        ! Update the stopit flag in Fortran (use 1/0 integer)
+        stopit = 1
+        if (stopit /= 0) then
             print *, "Stopit flag set to true in Fortran."
         else
             print *, "Stopit flag set to false in Fortran."
