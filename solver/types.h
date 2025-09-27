@@ -1,4 +1,5 @@
 #include <string>
+#include <cstdint>
 
 #pragma once
 
@@ -6,6 +7,8 @@
 #define TYPES_H
 
 extern "C" {
+
+    // block mesh grid structs
     struct t_grid {
         int ni, nj;
 
@@ -51,7 +54,7 @@ extern "C" {
         float ro_ref, roe_ref, rov_ref;
         int ni, nj;
         int nn, nm;
-        bool crashed;
+    std::int8_t crashed;
 
     };
     
@@ -70,6 +73,9 @@ extern "C" {
         int iter;
         float d_max, d_avg;
     };
+
+    // curve fill mesh structs
+
 }
 
 #endif // TYPES_H

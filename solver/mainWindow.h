@@ -5,8 +5,10 @@
 #include "gui/convWidget.h"
 #include "solveWorker.h"
 #include "routines.h"
+#include "types.h"
 #include <QPushButton>
 #include <QThread>
+class QCheckBox;
 
 enum class t_mode
 {
@@ -36,6 +38,7 @@ private:
     InputWidget *inputWidget;
     VisWidget *visWidget;
     ConvWidget *convWidget;
+    QCheckBox *solverToggle;
 
     QString path;
     t_mode mode;

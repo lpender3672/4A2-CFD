@@ -22,7 +22,7 @@
       ! open(5, file = 'cases/bump/input_bump.txt', status='old')
       read(5,*) tempname
 
-      av%crashed = .false.
+      av%crashed = 0
       av%l_min = 1.0e10
 
 !     You should read in the following variables sequentially and store them in

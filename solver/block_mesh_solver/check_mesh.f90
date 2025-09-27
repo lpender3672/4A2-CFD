@@ -30,7 +30,7 @@
               merge(ni, ni-1, area_min == g%area(ni,nj)), &
               merge(nj, nj-1, area_min == g%area(ni,nj))
           !stop
-          av%crashed = .true.
+          av%crashed = 1
       end if
 
 !     Next check that the sum of the edge vectors around every quadrilateral is 
@@ -45,7 +45,7 @@
       if (dx_error > tol .or. dy_error > tol) then
           write(6,*) 'Edge vector sum error: ', dx_error, dy_error
           !stop
-          av%crashed = .true.
+          av%crashed = 1
       end if
 
 !     It may be worthwhile to complete some other checks, the prevous call to
