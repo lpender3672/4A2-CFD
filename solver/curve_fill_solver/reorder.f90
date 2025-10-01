@@ -1,117 +1,88 @@
-      MODULE SFC_REORDER
-      IMPLICIT NONE
-      INTEGER, PARAMETER :: I4 = 4
-      INTEGER, PARAMETER :: I8 = 8
-      INTEGER, PARAMETER :: RK = 8
-      CONTAINS
+module sfc_reorder
+   use cfill_types
+   implicit none
+   intrinsic :: merge
 
-      INTEGER*4 FUNCTION QUANTIZE(V, VMIN, VMAX, B)
-      REAL*8, INTENT(IN) :: V, VMIN, VMAX
-      INTEGER,  INTENT(IN) :: B
-      REAL*8 :: T
-      IF (VMAX .LE. VMIN) THEN
-         QUANTIZE = 0
-         RETURN
-      END IF
-      T = (V - VMIN) / (VMAX - VMIN)
-      IF (T .LT. 0.0D0) T = 0.0D0
-      IF (T .GT. 1.0D0) T = 1.0D0
-      QUANTIZE = INT( T * DBLE(2**B - 1) )
-      END FUNCTION QUANTIZE
+contains
 
-      INTEGER*8 FUNCTION MORTON3(IX,IY,IZ,B)
-      INTEGER*4, INTENT(IN) :: IX,IY,IZ
-      INTEGER,   INTENT(IN) :: B
-      INTEGER :: I
-      INTEGER*8 :: K
-      MORTON3 = 0_8
-      DO I = 0, B-1
-         IF (BTEST(IX,I)) THEN
-            K = 1_8
-         ELSE
-            K = 0_8
-         END IF
-         MORTON3 = IOR(MORTON3, ISHFT(K, 3*I+2))
-         IF (BTEST(IY,I)) THEN
-            K = 1_8
-         ELSE
-            K = 0_8
-         END IF
-         MORTON3 = IOR(MORTON3, ISHFT(K, 3*I+1))
-         IF (BTEST(IZ,I)) THEN
-            K = 1_8
-         ELSE
-            K = 0_8
-         END IF
-         MORTON3 = IOR(MORTON3, ISHFT(K, 3*I))
-      END DO
-      END FUNCTION MORTON3
+  integer(i4) function quantize(v,vmin,vmax,bits) result(q)
+    real(rk), intent(in) :: v, vmin, vmax
+    integer,  intent(in) :: bits
+    real(rk) :: t
+    if (vmax <= vmin) then
+       q = 0
+       return
+    end if
+    t = (v - vmin) / (vmax - vmin)
+    if (t < 0.0_rk) t = 0.0_rk
+    if (t > 1.0_rk) t = 1.0_rk
+    q = int(t * real(2**bits - 1, rk), i4)
+  end function quantize
 
-      SUBROUTINE BUILD_KEYS_3D(XC,YC,ZC,BB,B,KEYS,NC)
-      REAL*8, INTENT(IN) :: XC(NC), YC(NC), ZC(NC)
-      REAL*8, INTENT(IN) :: BB(6)
-      INTEGER, INTENT(IN) :: B, NC
-      INTEGER*8, INTENT(OUT) :: KEYS(NC)
-      INTEGER :: C
-      INTEGER*4 :: IX,IY,IZ
-      DO C = 1, NC
-         IX = QUANTIZE(XC(C), BB(1), BB(2), B)
-         IY = QUANTIZE(YC(C), BB(3), BB(4), B)
-         IZ = QUANTIZE(ZC(C), BB(5), BB(6), B)
-         KEYS(C) = MORTON3(IX,IY,IZ,B)
-      END DO
-      END SUBROUTINE BUILD_KEYS_3D
+  integer(i8) function morton3(ix,iy,iz,bits) result(key)
+    integer(i4), intent(in) :: ix,iy,iz
+    integer,    intent(in)  :: bits
+    integer :: i
+    integer(i8) :: k
+    key = 0_i8
+    do i = 0, bits-1
+       k = merge(1_i8, 0_i8, btest(ix,i)); key = ior(key, ishft(k,3*i+2))
+       k = merge(1_i8, 0_i8, btest(iy,i)); key = ior(key, ishft(k,3*i+1))
+       k = merge(1_i8, 0_i8, btest(iz,i)); key = ior(key, ishft(k,3*i  ))
+    end do
+  end function morton3
 
-      SUBROUTINE ARGSORT_KEYS(KEYS,P,N)
-      INTEGER, INTENT(IN) :: N
-      INTEGER*8, INTENT(IN)  :: KEYS(N)
-      INTEGER*4, INTENT(OUT) :: P(N)
-      INTEGER :: I
-      DO I=1,N
-         P(I)=I
-      END DO
-      CALL MERGESORT(KEYS,P,1,N)
-      END SUBROUTINE ARGSORT_KEYS
+  subroutine build_keys(mesh, max_bits, bb)
+    type(cell), intent(inout) :: mesh(:)
+    integer, intent(in)       :: max_bits
+    real(rk), intent(in)      :: bb(6)
+    integer(i4) :: ix,iy,iz
+    integer :: i
+    do i=1,size(mesh)
+       ix = quantize(mesh(i)%x, bb(1), bb(2), max_bits)
+       iy = quantize(mesh(i)%y, bb(3), bb(4), max_bits)
+       iz = quantize(mesh(i)%z, bb(5), bb(6), max_bits)
+       mesh(i)%key = morton3(ix,iy,iz,max_bits)
+    end do
+  end subroutine build_keys
 
-      RECURSIVE SUBROUTINE MERGESORT(K,IDX,L,R)
-      INTEGER*8, INTENT(IN) :: K(:)
-      INTEGER*4, INTENT(INOUT) :: IDX(:)
-      INTEGER, INTENT(IN) :: L,R
-      INTEGER :: M
-      IF (L .GE. R) RETURN
-      M = (L+R)/2
-      CALL MERGESORT(K,IDX,L,M)
-      CALL MERGESORT(K,IDX,M+1,R)
-      CALL MERGE(K,IDX,L,M,R)
-      END SUBROUTINE MERGESORT
+  recursive subroutine mergesort(mesh,l,r)
+    type(cell), intent(inout) :: mesh(:)
+    integer, intent(in) :: l,r
+    integer :: m
+    if (l >= r) return
+    m = (l+r)/2
+    call mergesort(mesh,l,m)
+    call mergesort(mesh,m+1,r)
+    call merge_cells(mesh,l,m,r)
+  end subroutine mergesort
 
-      SUBROUTINE MERGE(K,IDX,L,M,R)
-      INTEGER*8, INTENT(IN) :: K(:)
-      INTEGER*4, INTENT(INOUT) :: IDX(:)
-      INTEGER, INTENT(IN) :: L,M,R
-      INTEGER :: N1,N2,I,J,POS,T
-      INTEGER*4, ALLOCATABLE :: LIDX(:), RIDX(:)
-      N1 = M-L+1
-      N2 = R-M
-      ALLOCATE(LIDX(N1),RIDX(N2))
-      LIDX = IDX(L:M)
-      RIDX = IDX(M+1:R)
-      I=1; J=1; POS=L
-      DO WHILE (I<=N1 .AND. J<=N2)
-         IF (K(LIDX(I)) .LE. K(RIDX(J))) THEN
-            IDX(POS)=LIDX(I); I=I+1
-         ELSE
-            IDX(POS)=RIDX(J); J=J+1
-         END IF
-         POS=POS+1
-      END DO
-      DO T=I,N1
-         IDX(POS)=LIDX(T); POS=POS+1
-      END DO
-      DO T=J,N2
-         IDX(POS)=RIDX(T); POS=POS+1
-      END DO
-      DEALLOCATE(LIDX,RIDX)
-      END SUBROUTINE MERGE
+  subroutine merge_cells(mesh,l,m,r)
+    type(cell), intent(inout) :: mesh(:)
+    integer, intent(in) :: l,m,r
+    integer :: n1,n2,i,j,pos,t
+    type(cell), allocatable :: left(:), right(:)
+    n1 = m-l+1
+    n2 = r-m
+    allocate(left(n1), right(n2))
+    left = mesh(l:m)
+    right = mesh(m+1:r)
+    i=1; j=1; pos=l
+    do while (i<=n1 .and. j<=n2)
+       if (left(i)%key <= right(j)%key) then
+          mesh(pos)=left(i); i=i+1
+       else
+          mesh(pos)=right(j); j=j+1
+       end if
+       pos=pos+1
+    end do
+    do t=i,n1
+       mesh(pos)=left(t); pos=pos+1
+    end do
+    do t=j,n2
+       mesh(pos)=right(t); pos=pos+1
+    end do
+    deallocate(left,right)
+  end subroutine merge_cells
 
-      END MODULE SFC_REORDER
+end module sfc_reorder
