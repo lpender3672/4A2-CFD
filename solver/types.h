@@ -76,6 +76,15 @@ extern "C" {
 
     // curve fill mesh structs
 
+    struct cell2d {
+        double xmin;
+        double xmax;
+        double ymin;
+        double ymax;
+        int    level;
+        long long key;
+        int    id;
+    };
 }
 
 #endif // TYPES_H

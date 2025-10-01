@@ -69,6 +69,11 @@ void emit_grid_vector_signal(t_grid *g, int length) {
     }
 }
 
+void emit_mesh(cell2d *g, int length) {
+    // Placeholder for future implementation
+    // This function can be used to emit mesh data if needed
+}
+
 void emit_conv_point_signal(t_conv_point cp) {
     if (globalConvWidget) {
         emit globalConvWidget->newConvPoint(cp);

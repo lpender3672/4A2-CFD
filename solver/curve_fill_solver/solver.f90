@@ -2,6 +2,7 @@
 subroutine curve_fill_solver() bind(C, name="curve_fill_solver")
   
   use sfc_quadtree_airfoil
+  use types
   use waffle
   implicit none
 

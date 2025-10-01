@@ -1,6 +1,6 @@
 
 module sfc_quadtree_airfoil
-  use cfill_types
+  use types
   implicit none
 
 contains

@@ -1,5 +1,5 @@
 module sfc_reorder
-   use cfill_types
+   use types
    implicit none
    intrinsic :: merge
 

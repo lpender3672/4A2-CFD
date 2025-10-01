@@ -1,7 +1,11 @@
 
       module types
       
-      use iso_c_binding, only: C_INT, C_FLOAT, C_PTR, C_CHAR, C_BOOL, C_INT8_T
+      use iso_c_binding, only: C_INT, C_FLOAT, C_PTR, C_CHAR, C_BOOL, C_INT8_T, C_LONG_LONG, C_DOUBLE
+      implicit none
+      integer, parameter :: rk = 8
+      integer, parameter :: i4 = selected_int_kind(9)
+      integer, parameter :: i8 = selected_int_kind(18)
 
 
 !     Define the derived data types used in the main program and subroutines,
@@ -148,6 +152,24 @@
             integer(C_INT) :: iters
             real(C_FLOAT) :: d_max, d_avg
       end type t_conv_point
+
+
+      type :: cell
+            real(rk)    :: x, y, z
+            integer     :: level
+            integer(i8) :: key
+            integer(i4) :: id
+      end type cell
+
+
+      type, bind(c) :: cell2d
+
+            real(c_double)    :: xmin, xmax, ymin, ymax
+            integer(c_int)    :: level
+            integer(c_long_long) :: key
+            integer(c_int)    :: id
+      end type cell2d
+
 
       end module types
 
@@ -318,7 +340,3 @@
       end subroutine appvars_from_c
 
       end module conversion
-
-
-
-

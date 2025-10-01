@@ -1,6 +1,6 @@
 
 
-file(GLOB SOURCES *.cpp gui/*.cpp block_mesh_solver/*.f90 curve_fill_solver/*.f90)
+file(GLOB SOURCES *.cpp **.f90 gui/*.cpp block_mesh_solver/*.f90 curve_fill_solver/*.f90)
 
 qt_add_resources(RESOURCE_FILES gui/resources.qrc)
 

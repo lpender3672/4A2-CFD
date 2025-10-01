@@ -52,6 +52,15 @@
                 type(c_ptr), intent(in), value :: g
                 integer(c_int), intent(in), value :: length
             end subroutine emit_grid_vector_signal
+
+            subroutine emit_mesh(mesh, length) bind(C, name="emit_mesh")
+                use iso_c_binding, only: c_ptr, c_int
+                use types
+                ! mesh is a pointer to an array of cell
+                type(c_ptr), intent(in), value :: mesh
+                integer(c_int), intent(in), value :: length
+            end subroutine emit_mesh
+            
         end interface
     
     contains
