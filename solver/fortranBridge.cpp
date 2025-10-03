@@ -21,7 +21,10 @@ void setGlobalVisWidget(VisWidget* widget) {
                      globalVisWidget, &VisWidget::outputGrid, Qt::BlockingQueuedConnection);
 
     QObject::connect(globalVisWidget, &VisWidget::newGridVector,
-                        globalVisWidget, &VisWidget::outputGridVector, Qt::BlockingQueuedConnection);
+                    globalVisWidget, &VisWidget::outputGridVector, Qt::BlockingQueuedConnection);
+
+    QObject::connect(globalVisWidget, &VisWidget::newLodMesh,
+                    globalVisWidget, &VisWidget::outputLodMesh, Qt::BlockingQueuedConnection);
 }
 
 void setGlobalConvWidget(ConvWidget* widget) {
@@ -69,9 +72,13 @@ void emit_grid_vector_signal(t_grid *g, int length) {
     }
 }
 
-void emit_mesh(cell2d *g, int length) {
+void emit_mesh(lod_mesh m) {
     // Placeholder for future implementation
     // This function can be used to emit mesh data if needed
+
+    if (globalVisWidget) {
+        emit globalVisWidget->newLodMesh(m);
+    }
 }
 
 void emit_conv_point_signal(t_conv_point cp) {

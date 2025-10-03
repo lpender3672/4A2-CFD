@@ -1,9 +1,11 @@
 
 subroutine curve_fill_solver() bind(C, name="curve_fill_solver")
   
+  use iso_c_binding, only: c_loc
   use sfc_quadtree_airfoil
   use types
   use waffle
+  use io_module
   implicit none
 
   ! example: simple symmetric airfoil polyline (replace with your data)
@@ -15,8 +17,9 @@ subroutine curve_fill_solver() bind(C, name="curve_fill_solver")
   integer  :: max_level, bits
   real(rk) :: hmin, beta
 
-  type(cell2d), allocatable :: leaves(:)
-  integer :: nleaf, i
+  type(lod_mesh) :: m
+  !type(cell2d), allocatable :: leaves(:)
+  integer :: i
 
   print *, 'entered curve_fill_solver'
 
@@ -26,21 +29,25 @@ subroutine curve_fill_solver() bind(C, name="curve_fill_solver")
   bb = (/ -5.0_rk, 10.0_rk, -5.0_rk, 5.0_rk /)
 
   ! meshing parameters
-  max_level = 2        ! maximum quadtree depth
+  max_level = 10        ! maximum quadtree depth
   hmin      = 0.01_rk   ! minimum target cell size near the airfoil
   beta      = 0.5_rk    ! growth factor in h_target = max(hmin, beta * dist)
   bits      = 20        ! quantization bits for morton keys (>= max_level is fine)
 
-  call build_quadtree(xa,ya,n, bb, max_level, hmin, beta, leaves, nleaf)
+  call build_quadtree(xa,ya,n, bb, max_level, hmin, beta, m%cells, m%length)
   print *, 'built mesh starting sort'
-  call build_keys_and_sort(leaves, nleaf, bits, bb)
+  call build_keys_and_sort(m%cells, m%length, bits, bb)
 
-  print *, 'nleaf = ', nleaf
+  print *, 'nleaf = ', m%length
   print *, 'first 10 morton keys (key, level, centroid):'
-  do i=1, min(nleaf,10)
-     write(*,'(i12,1x,i3,1x,3f12.6)') leaves(i)%key, leaves(i)%level, &
-          0.5_rk*(leaves(i)%xmin+leaves(i)%xmax), 0.5_rk*(leaves(i)%ymin+leaves(i)%ymax), 0.0_rk
+  do i=1, min(m%length,10)
+     write(*,'(i12,1x,i3,1x,3f12.6)') m%cells(i)%key, m%cells(i)%level, &
+          0.5_rk*(m%cells(i)%xmin+m%cells(i)%xmax), 0.5_rk*(m%cells(i)%ymin+m%cells(i)%ymax), 0.0_rk
   end do
+
+  ! emit mesh to C++ side (for visualization, etc)
+  call lod_mesh_to_qt(m)
+
 end subroutine curve_fill_solver
 
 module waffle

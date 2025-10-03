@@ -125,10 +125,14 @@ public:
 
     void outputGridVector(const QVector<t_grid> &gridVector);
 
+    void outputLodMesh(const lod_mesh &mesh);
+
 signals:
     void newGrid(const t_grid &message);
 
     void newGridVector(const QVector<t_grid> &message);
+
+    void newLodMesh(const lod_mesh &message);
 
 private:
     //StringList tabNames;
@@ -155,7 +159,19 @@ private:
     void createScatterGraph(QChartView *chartView, QLineSeries *series, QString title, QString xTitle, QString yTitle);
     void createMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, QString title, QString xTitle, QString yTitle);
 
-    void updateMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const QVector<t_grid> &grids,  const QVector<const float *> &mesh_data, t_data_type mesh_data_type);
+    void updateBlockMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const QVector<t_grid> &grids,  const QVector<const float *> &mesh_data, t_data_type mesh_data_type);
+    void updateLodMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const lod_mesh &mesh);
+
+    // Optional: move file-local helper into class if reuse/testing is desired
+    static bool computeGlobalRanges(const QVector<t_grid> &grids,
+                                    const QVector<const float *> &mesh_datas,
+                                    t_data_type mesh_data_type,
+                                    float &outGlobalMinValue,
+                                    float &outGlobalMaxValue,
+                                    float &outGlobalMinX,
+                                    float &outGlobalMaxX,
+                                    float &outGlobalMinY,
+                                    float &outGlobalMaxY);
 
 private slots:
     void onTabChanged(int index);

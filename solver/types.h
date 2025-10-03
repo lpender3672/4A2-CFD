@@ -85,6 +85,12 @@ extern "C" {
         long long key;
         int    id;
     };
+
+    struct lod_mesh {
+        int length;
+        cell2d* cells;
+        long long* morton;
+    };
 }
 
 #endif // TYPES_H

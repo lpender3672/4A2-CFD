@@ -170,6 +170,18 @@
             integer(c_int)    :: id
       end type cell2d
 
+      type :: lod_mesh
+            integer                   :: length = 0
+            type(cell2d), allocatable :: cells(:)
+            integer(i8), allocatable    :: morton(:)  ! optional raw morton array for C side
+      end type lod_mesh
+
+      type, bind(C) :: lod_mesh_c
+            integer(c_int) :: length
+            type(c_ptr)    :: cells   ! pointer to array of cell2d
+            type(c_ptr)    :: morton  ! pointer to array of int64 (C_LONG_LONG)
+      end type lod_mesh_c
+
 
       end module types
 
