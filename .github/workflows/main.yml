@@ -37,7 +37,10 @@ jobs:
         run: |
           cmake -S . -B build -G "Ninja" \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=$PWD/install
+            -DCMAKE_INSTALL_PREFIX=$PWD/install \
+            -DQT_NO_DEPRECATED_WARNINGS=ON \
+            -DQT_NO_CREATE_TARGETS=ON \
+            -DQT_FEATURE_deployqt=OFF
 
       # Build all targets
       - name: Build all targets
