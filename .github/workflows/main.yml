@@ -39,11 +39,18 @@ jobs:
           cp -r . /c/msys64/home/runner/workspace/
           cd /c/msys64/home/runner/workspace
           ls -la
-      
-      - name: Configure and build
+
+          
+      - name: Configure and build (Qt + Fortran)
         shell: msys2 {0}
-        working-directory: /c/msys64/home/runner/workspace
+        env:
+          # keep paths as POSIX inside MSYS2
+          MSYS2_ARG_CONV_EXCL: "/*"
         run: |
+          # Make sure we’re using a path MSYS2 can see as /c/...
+          cd /c/a/${GITHUB_REPOSITORY#*/}/${GITHUB_REPOSITORY#*/}
+          echo "Building from $(pwd)"
+      
           cmake -S . -B build -G "Ninja" \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=$PWD/install
