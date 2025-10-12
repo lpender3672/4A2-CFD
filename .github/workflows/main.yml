@@ -1,0 +1,62 @@
+name: Build Solver and Advection
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      # Checkout source
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install MSYS2 + MinGW toolchain + Qt6 + Fortran + CMake
+      - name: Set up MSYS2 environment
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            base-devel
+            git
+            cmake
+            ninja
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-gcc-fortran
+            mingw-w64-x86_64-qt6-base
+            mingw-w64-x86_64-qt6-tools
+            mingw-w64-x86_64-qt6-charts
+            mingw-w64-x86_64-qt6-svg
+            mingw-w64-x86_64-qt6-quickcontrols2
+            mingw-w64-x86_64-qt6-printsupport
+
+      # Configure (top-level CMakeLists builds both subdirs)
+      - name: Configure CMake
+        shell: msys2 {0}
+        run: |
+          cmake -S . -B build -G "Ninja" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$PWD/install
+
+      # Build all targets
+      - name: Build all targets
+        shell: msys2 {0}
+        run: cmake --build build --config Release --parallel
+
+      # Install binaries
+      - name: Install
+        shell: msys2 {0}
+        run: cmake --install build
+
+      # Upload artifacts for download/debugging
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: solver-binaries
+          path: |
+            build/**
+            !**/CMakeFiles/
+            !**/*.obj
