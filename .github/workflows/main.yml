@@ -30,7 +30,6 @@ jobs:
             mingw-w64-x86_64-qt6-tools
             mingw-w64-x86_64-qt6-charts
             mingw-w64-x86_64-qt6-svg
-            mingw-w64-x86_64-qt6-printsupport
 
       # Configure (top-level CMakeLists builds both subdirs)
       - name: Configure CMake
