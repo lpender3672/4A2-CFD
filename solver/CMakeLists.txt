@@ -4,8 +4,6 @@ file(GLOB SOURCES *.cpp **.f90 gui/*.cpp block_mesh_solver/*.f90 curve_fill_solv
 
 qt_add_resources(RESOURCE_FILES gui/resources.qrc)
 
-
-
 include_directories(${CMAKE_Fortran_INCLUDE_DIRECTORIES})
 
 if (WIN32)
@@ -16,7 +14,6 @@ else()
 endif()
 
 target_link_libraries(solverApp PRIVATE Qt6::Core Qt6::Widgets Qt6::Charts Qt6::PrintSupport)
-
 
 if(WIN32)
     set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} /O2")
