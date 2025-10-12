@@ -1,6 +1,7 @@
 build/
 postprocessing/__pycache__/
 preprocessing/__pycache__/
+case_env/
 
 *.egg-info/
 
