@@ -31,19 +31,23 @@ jobs:
             mingw-w64-x86_64-qt6-charts
             mingw-w64-x86_64-qt6-svg
 
-      # Configure (top-level CMakeLists builds both subdirs)
-      - name: Configure CMake
+      
+      - name: Prepare build directory
         shell: msys2 {0}
+        run: |
+          mkdir -p /c/msys64/home/runner/workspace
+          cp -r . /c/msys64/home/runner/workspace/
+          cd /c/msys64/home/runner/workspace
+          ls -la
+      
+      - name: Configure and build
+        shell: msys2 {0}
+        working-directory: /c/msys64/home/runner/workspace
         run: |
           cmake -S . -B build -G "Ninja" \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=$PWD/install \
-            -DQT_DEPLOY_SUPPORT=OFF
-
-      # Build all targets
-      - name: Build all targets
-        shell: msys2 {0}
-        run: cmake --build build --config Release --parallel
+            -DCMAKE_INSTALL_PREFIX=$PWD/install
+          cmake --build build --config Release --parallel
 
       # Install binaries
       - name: Install
