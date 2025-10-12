@@ -15,7 +15,7 @@ def main():
     filename = 'cases/'+ sys.argv[-1] + '/out_coord_' + sys.argv[-1] + '.bin'
 
     # Read the case from file
-    g = read_case(filename)
+    gs = read_case(filename)
 
     # Open figure window and set the axes to be equal
     plt.figure(figsize=[9.6,7.2]); ax = plt.axes(); cols = gen_cols();
@@ -23,12 +23,16 @@ def main():
     ax.set_aspect('equal',adjustable='box'); ax.tick_params(direction='in')
 
     # Plot the mesh coordinates to show the cells
-    ax.plot(g['x'],g['y'],color=cols[0,:],linewidth=0.5)
-    ax.plot(np.transpose(g['x']),np.transpose(g['y']),color=cols[0,:],
-        linewidth=0.5)
+    for g in gs:
+        g['x']
+        g['y']
+        cols[0,:]
+        ax.plot(g['x'],g['y'],color=cols[0,:],linewidth=0.5)
+        ax.plot(np.transpose(g['x']),np.transpose(g['y']),color=cols[0,:],
+            linewidth=0.5)
 
-    # Draw the boundary of the block
-    plot_bound(ax,g)
+        # Draw the boundary of the block
+        plot_bound(ax,g)
 
     # Show all the plots
     plt.show()

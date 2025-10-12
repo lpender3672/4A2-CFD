@@ -10,10 +10,14 @@ import re
 import numpy as np
 import matplotlib.pyplot as plt 
 import scipy.interpolate as interp
+import pathlib
 
 # Set default directory to save figures in, plot resolution and font sizes
 plt.rcParams["savefig.directory"] = '.'; plt.rcParams['savefig.dpi'] = 600;
 plt.rc('font',size=14); plt.rc('axes',titlesize=16); plt.rc('axes',labelsize=16)
+
+plt.rcParams["text.usetex"] = True
+plt.rcParams["font.family"] = "serif"
 
 ################################################################################
 
@@ -28,7 +32,8 @@ def calc_secondary(av,b):
     #g%hstag = g%roe / g%ro
     b['vx'] = b['rovx'] / b['ro']
     b['vy'] = b['rovy'] / b['ro']
-    b['p'] = b['roe'] - 0.5 * b['ro'] * (b['rovx']**2 + b['rovy']**2)
+    b['p'] = (b['roe'] - 0.5 * b['ro'] * (b['rovx']**2 + b['rovy']**2)) * (av['gam'] - 1)
+    
     b['hstag'] = (b['roe'] + b['p']) / b['ro']
 
     # actually need pstag too
@@ -57,6 +62,20 @@ def cut_i(b,i):
 
     # Store the projected lengths in the i-direction
     c['lx'] = b['lx_i'][i,:]; c['ly'] = b['ly_i'][i,:];
+
+    return c
+
+def cut_j(b, j):
+    c = {}
+    for var in b:
+        if isinstance(b[var],np.ndarray):
+            if j < np.shape(b[var])[1]:
+                c[var] = np.squeeze(b[var][:,j])
+        else:
+            c[var] = b[var]
+
+    # Store the projected lengths in the j-direction
+    c['lx'] = b['lx_j'][:,j]; c['ly'] = b['ly_j'][:,j];
 
     return c
 
@@ -566,7 +585,7 @@ def read_settings(filename):
     f = open(filename,'r')
 
     # Read the casename
-    av['casename'] = f.readline()
+    av['casename'] = f.readline().strip()
 
     # Read two gas constants and calculate the rest
     av['rgas'], av['gam'] = [float(x) for x in f.readline().split()]
@@ -574,10 +593,10 @@ def read_settings(filename):
     av['cv'] = av['cp'] / av['gam']
 
     # Read the CFL, smoothing factor and convergence limit
-    av['cfl'],av['sfac'],av['d_max'],av['d_var'],av['facsec'] = [float(x) for x in f.readline().split()]
+    av['cfl'],av['sfac'],av['sfac_res'],av['d_max'],av['d_var'],av['facsec'],av['fcorr'] = [float(x) for x in f.readline().split()]
 
     # Read the number of steps
-    av['nsteps'] = [int(x) for x in f.readline().split()]
+    av['nsteps'], av['nrkuts'], av['guess_method'], av['tstep_method'] = [int(x) for x in f.readline().split()]
 
     # Read the grid size
     av['ni'],av['nj'] = [int(x) for x in f.readline().split()]
@@ -587,7 +606,7 @@ def read_settings(filename):
         [float(x) for x in f.readline().split()]
  
     # Read the outlet boundary condition
-    av['p'] = [float(x) for x in f.readline().split()]
+    av['p'] = [float(x) for x in f.readline().split()][0]
 
     # Close the file 
     f.close()
@@ -608,54 +627,60 @@ def read_case(filename):
         outtype = 3
 
     # Initialise the dictionary to store the data
-    g = {}
 
     # Open the file to read
     f = open(filename,'r')
+    nn = np.fromfile(f,dtype=np.int32,count=1).item()
+    outlist = []
 
-    # Read the size of the mesh
-    g['ni'] = np.fromfile(f,dtype=np.int32,count=1).item()
-    g['nj'] = np.fromfile(f,dtype=np.int32,count=1).item()
-    ni = g['ni']; nj = g['nj'];
-    
-    # Define the names and sizes of the mesh coordinate fields to read
-    fieldnames = ['x','y','area','lx_i','ly_i','lx_j','ly_j']
-    ni_mesh = np.array([0,0,-1,0,0,-1,-1]) + g['ni']
-    nj_mesh = np.array([0,0,-1,-1,-1,0,0]) + g['nj']
+    for i in range(nn):
+        g = {}
 
-    # Always read the mesh coordinates and projected lengths etc.
-    for n,name in enumerate(fieldnames):
+        # Read the size of the mesh
+        g['ni'] = np.fromfile(f,dtype=np.int32,count=1).item()
+        g['nj'] = np.fromfile(f,dtype=np.int32,count=1).item()
+        ni = g['ni']; nj = g['nj'];
+        
+        # Define the names and sizes of the mesh coordinate fields to read
+        fieldnames = ['x','y','area','lx_i','ly_i','lx_j','ly_j']
+        ni_mesh = np.array([0,0,-1,0,0,-1,-1]) + g['ni']
+        nj_mesh = np.array([0,0,-1,-1,-1,0,0]) + g['nj']
 
-        # Read the data elementwise and keep 1D temporarily
-        g[name] = np.fromfile(f,dtype=np.float32,count=ni_mesh[n]*nj_mesh[n]) 
-
-        # Reshape the data into the correct numpy array shape, note Fortran
-        # writes the data with the dimensions in the reverse order
-        g[name] = np.reshape(g[name],[ni_mesh[n],nj_mesh[n]],order='F')
-
-    # Always read the logical array describing the wall position
-    g['wall'] = np.fromfile(f,dtype=np.int32,count=ni*nj) == 1
-    g['wall'] = np.reshape(g['wall'],[ni,nj],order='F')
-
-    # Read the flowfield data if written as an initial guess or full solution
-    if outtype > 1:
-        fieldnames = ['ro','roe','rovx','rovy']
+        # Always read the mesh coordinates and projected lengths etc.
         for n,name in enumerate(fieldnames):
-            g[name] = np.fromfile(f,dtype=np.float32,count=ni*nj)
-            g[name] = np.reshape(g[name],[ni,nj],order='F')
 
-    # Read the cell increment only if the file is a full solution
-    if outtype > 2:
-        fieldnames = ['dro','droe','drovx','drovy']
-        ni = g['ni']-1; nj = g['nj']-1;
-        for n,name in enumerate(fieldnames):
-            g[name] = np.fromfile(f,dtype=np.float32,count=ni*nj)
-            g[name] = np.reshape(g[name],[ni,nj],order='F')
+            # Read the data elementwise and keep 1D temporarily
+            g[name] = np.fromfile(f,dtype=np.float32,count=ni_mesh[n]*nj_mesh[n]) 
+
+            # Reshape the data into the correct numpy array shape, note Fortran
+            # writes the data with the dimensions in the reverse order
+            g[name] = np.reshape(g[name],[ni_mesh[n],nj_mesh[n]],order='F')
+
+        # Always read the logical array describing the wall position
+        g['wall'] = np.fromfile(f,dtype=np.int32,count=ni*nj) == 1
+        g['wall'] = np.reshape(g['wall'],[ni,nj],order='F')
+
+        # Read the flowfield data if written as an initial guess or full solution
+        if outtype > 1:
+            fieldnames = ['ro','roe','rovx','rovy']
+            for n,name in enumerate(fieldnames):
+                g[name] = np.fromfile(f,dtype=np.float32,count=ni*nj)
+                g[name] = np.reshape(g[name],[ni,nj],order='F')
+
+        # Read the cell increment only if the file is a full solution
+        if outtype > 2:
+            fieldnames = ['dro','droe','drovx','drovy']
+            ni = g['ni']-1; nj = g['nj']-1;
+            for n,name in enumerate(fieldnames):
+                g[name] = np.fromfile(f,dtype=np.float32,count=ni*nj)
+                g[name] = np.reshape(g[name],[ni,nj],order='F')
+
+        outlist.append(g)
 
     # Close the file
     f.close()
 
-    return(g)
+    return(outlist)
    
 ################################################################################
 
@@ -671,6 +696,9 @@ def read_conv(filename):
     # Store the columns in the log dictionary
     fieldnames = ['nstep', 'dro_avg', 'droe_avg', 'drovx_avg', 'drovy_avg', 
         'dro_max', 'droe_max', 'drovx_max', 'drovy_max']
+    
+    assert arr.shape[1] == len(fieldnames), 'Number of columns in file does not match expected'
+    
     for n,name in enumerate(fieldnames):
         l[name] = arr[:,n]
 
@@ -691,13 +719,17 @@ def default_settings(casename):
     av['rgas'] = 287; av['gam'] = 1.4
 
     # CFL, smoothing factor and convergence limit
-    av['cfl'] = 0.4; av['sfac'] = 0.5; av['d_max'] = 0.0001;
+    av['cfl'] = 0.4; av['sfac'] = 0.5; av['sfac_res'] = 0.5; av['d_max'] = 0.0001;
+    av['d_var'] = 0.01; av['facsec'] = 0.0; av['fcorr'] = 0.0
     # added variables
     av['d_var'] = 0.01
     av['facsec'] = 0.5
 
     # Number of steps
-    av['nsteps'] = 5000; 
+    av['nsteps'] = 5000;
+    av['nrkuts'] = 4
+    av['guess_method'] = 1
+    av['tstep_method'] = 2
 
     # Grid size
     av['ni'] = 53; av['nj'] = 37;
@@ -712,11 +744,14 @@ def default_settings(casename):
 
 ################################################################################
 
-def write_settings(av):
+def write_settings(av, casedir = 'cases'):
     # Create an input file with settings and boundary conditions
 
     # Open the file to write
-    filename = 'cases/' + av['casename'] +  '/input_' + av['casename'] + '.txt'
+    casepath = pathlib.Path(casedir) / av['casename']
+    casepath.mkdir(exist_ok=True)
+    filename = casepath / f"input_{av['casename']}.txt"
+
     f = open(filename,'w')
 
     # Write the casename
@@ -726,10 +761,10 @@ def write_settings(av):
     f.write('%f %f\n' % (av['rgas'], av['gam']))
 
     # Write the CFL, smoothing factor and convergence limit
-    f.write('%f %f %f %f %f\n' % (av['cfl'],av['sfac'],av['d_max'], av['d_var'], av['facsec']))
+    f.write('%f %f %f %f %f %f %f\n' % (av['cfl'],av['sfac'],av['sfac_res'],av['d_max'], av['d_var'], av['facsec'], av['fcorr']))
 
     # Write the number of steps
-    f.write('%d\n' % (av['nsteps']))
+    f.write('%d %d %d %d\n' % (av['nsteps'], av['nrkuts'], av['guess_method'], av['tstep_method']))
 
     # Write the grid size
     f.write('%d %d\n' % (av['ni'],av['nj']))
@@ -747,11 +782,14 @@ def write_settings(av):
 
 ################################################################################
 
-def write_geom(av,geom):
+def write_geom(av,geom, casedir = 'cases'):
     # Create an input file with settings and boundary conditions
 
     # Open the file to write
-    filename = 'cases/' + av['casename'] + '/geom_' + av['casename'] + '.txt'
+    casepath = pathlib.Path(casedir) / av['casename']
+    #casepath.mkdir(exist_ok=True)
+    filename = casepath / f"geom_{av['casename']}.txt"
+    
     f = open(filename,'w')
 
     # Write each curve in turn
@@ -775,11 +813,14 @@ def write_geom(av,geom):
 
 ################################################################################
 
-def write_mesh(av,g):
+def write_mesh(av,g, casedir = 'cases'):
     # Write grid coordinates and connectivity data to file directly
 
     # Open the file to write
-    filename = 'cases/' + av['casename'] +  '/mesh_' + av['casename'] + '.bin'
+    casepath = pathlib.Path(casedir) / av['casename']
+    #casepath.mkdir(exist_ok=True)
+    filename = casepath / f"mesh_{av['casename']}.bin"
+
     f = open(filename,'w')
 
     # Write the number of blocks

@@ -2,7 +2,7 @@
 
 qt_add_executable(advectionApp
     advection.cpp
-    ../solver/fortran/routines.f90
+    ../solver/block_mesh_solver/routines.f90
     advection.f90
     example.f90
 )

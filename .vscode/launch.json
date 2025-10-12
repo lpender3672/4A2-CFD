@@ -7,7 +7,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/solverApp.exe",
             "args": [
-                //"--path", "cases/bump/input_bump.txt"
+                //"--path", "C:/Users/louis/source/repos/4A2-CFD/cases/bump/input_bump.txt"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

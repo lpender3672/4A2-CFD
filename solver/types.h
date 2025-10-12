@@ -1,9 +1,14 @@
 #include <string>
+#include <cstdint>
+
+#pragma once
 
 #ifndef TYPES_H
 #define TYPES_H
 
 extern "C" {
+
+    // block mesh grid structs
     struct t_grid {
         int ni, nj;
 
@@ -35,14 +40,7 @@ extern "C" {
         float* vx;
         float* vy;
 
-        // Logical array for wall locations
-
-        float *ro_start;
-        float *roe_start;
-        float *rovx_start;
-        float *rovy_start;
-
-        bool* wall;
+        int* wall;
     };
 
     struct t_appvars {
@@ -50,13 +48,13 @@ extern "C" {
         char casefolder[128];
         
         float rgas, gam, cp, cv, fgam;
-        float cfl, sfac, dt, d_max, d_avg;
+        float cfl, sfac, sfac_res, dt, d_max, d_avg;
         float d_var, facsec, fcorr;
-        int nsteps, nstep;
+        int nsteps, nstep, nkruts, guess_method, tstep_method;
         float ro_ref, roe_ref, rov_ref;
         int ni, nj;
         int nn, nm;
-        bool crashed;
+    std::int8_t crashed;
 
     };
     
@@ -74,6 +72,24 @@ extern "C" {
     struct t_conv_point {
         int iter;
         float d_max, d_avg;
+    };
+
+    // curve fill mesh structs
+
+    struct cell2d {
+        double xmin;
+        double xmax;
+        double ymin;
+        double ymax;
+        int    level;
+        long long key;
+        int    id;
+    };
+
+    struct lod_mesh {
+        int length;
+        cell2d* cells;
+        long long* morton;
     };
 }
 

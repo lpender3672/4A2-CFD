@@ -15,7 +15,7 @@ def main():
     filename = 'cases/' + sys.argv[-1] + '/out_guess_' + sys.argv[-1] + '.bin'
 
     # Read the case from file
-    g = read_case(filename)
+    gs = read_case(filename)
 
     # Open figure window and open four subplots
     fig,ax = plt.subplots(2,2,sharex=True,sharey=True,figsize=[14.4,7.2]); 
@@ -29,15 +29,24 @@ def main():
     # Plot the primary flow variables to show the guess
     fieldnames = ['ro','roe','rovx','rovy']
     for n,name in enumerate(fieldnames):
+
+        min_col = np.inf
+        max_col = -np.inf
+
+        for g in gs:
+            min_col = min(min_col, np.min(g[name]))
+            max_col = max(max_col, np.max(g[name]))
  
         # Plot filled contour levels
-        hc = ax[n].pcolormesh(g['x'],g['y'],g[name],shading='gouraud')
+        for g in gs:
+            hc = ax[n].pcolormesh(g['x'],g['y'],g[name],shading='gouraud', vmax = max_col, vmin = min_col)
 
   	# Add colorbar with variable name
         colorbar(hc,name)
 
         # Draw the walls of the block
-        plot_wall(ax[n],g)
+        for g in gs:
+            plot_wall(ax[n],g)
 
     # Show all the plots
     plt.show()

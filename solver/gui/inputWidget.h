@@ -6,6 +6,7 @@
 #include <QLineEdit>
 #include <QVBoxLayout>
 #include "../types.h"
+#include "../fortranBridge.h"
 
 class InputWidget : public QWidget
 {
@@ -28,6 +29,7 @@ public slots:
 
 private slots:
     void choosePath();
+    void stopButtonPressed();
 
     void updateInputFields();
     void saveInputFields();
@@ -35,6 +37,7 @@ private slots:
 private:
     QPushButton *choosePathButton;
     QPushButton *runButton;
+    QPushButton *stopButton;
     QLineEdit *pathInput;
     QString path;
 
@@ -43,10 +46,17 @@ private:
 
     QLineEdit *cflInput;
     QLineEdit *sfacInput;
+    QLineEdit *sfacResInput;
     QLineEdit *dMaxInput;
     QLineEdit *dVarInput;
     QLineEdit *facSecInput;
     QLineEdit *fCorrInput;
+    QLineEdit *nstepsInput;
+
+    QLineEdit *alphaInput;
+    QLineEdit *pstagInput;
+    QLineEdit *tstagInput;
+    QLineEdit *poutInput;
 };
 
 #endif // INPUTWIDGET_H

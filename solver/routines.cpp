@@ -1,13 +1,14 @@
 
 #include "routines.h"
+#include <cstring>
 
 #define M_PI 3.14159265358979323846
 
-void read_settings(const std::string& fpath, t_appvars& av, t_bconds& bcs) {
+bool read_settings(const std::string& fpath, t_appvars& av, t_bconds& bcs) {
     std::ifstream infile(fpath);
     if (!infile.is_open()) {
         std::cerr << "Error opening file: " << fpath << std::endl;
-        return;
+        return false;
     }
 
     // Read and trim the case name
@@ -25,11 +26,11 @@ void read_settings(const std::string& fpath, t_appvars& av, t_bconds& bcs) {
         av.casefolder[0] = '\0'; 
     }
 
-    av.crashed = false;
+    av.crashed = 0;
 
     infile >> av.rgas >> av.gam;
-    infile >> av.cfl >> av.sfac >> av.d_max >> av.d_var >> av.facsec >> av.fcorr;
-    infile >> av.nsteps;
+    infile >> av.cfl >> av.sfac >> av.sfac_res >> av.d_max >> av.d_var >> av.facsec >> av.fcorr;
+    infile >> av.nsteps >> av.nkruts >> av.guess_method >> av.tstep_method;
     infile >> av.ni >> av.nj;
 
     av.cp = av.rgas * av.gam / (av.gam - 1.0);
@@ -41,6 +42,8 @@ void read_settings(const std::string& fpath, t_appvars& av, t_bconds& bcs) {
     infile >> bcs.p_out;
 
     infile.close();
+
+    return true;
 }
 
 void write_settings(const std::string& fpath, const t_appvars& av, const t_bconds& bcs) {
@@ -48,8 +51,8 @@ void write_settings(const std::string& fpath, const t_appvars& av, const t_bcond
 
     outfile << av.casename << std::endl;
     outfile << av.rgas << " " << av.gam << std::endl;
-    outfile << av.cfl << " " << av.sfac << " " << av.d_max << " " << av.d_var << " " << av.facsec << " " << av.fcorr << std::endl;
-    outfile << av.nsteps << std::endl;
+    outfile << av.cfl << " " << av.sfac << " " << av.sfac_res << " " << av.d_max << " " << av.d_var << " " << av.facsec << " " << av.fcorr << std::endl;
+    outfile << av.nsteps << " " << av.nkruts << " " << av.guess_method << " " << av.tstep_method << std::endl;
     outfile << av.ni << " " << av.nj << std::endl;
     outfile << bcs.pstag << " " << bcs.tstag << " " << bcs.alpha << " " << bcs.rfin << std::endl;
     outfile << bcs.p_out << std::endl;

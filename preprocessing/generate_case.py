@@ -189,7 +189,7 @@ def gen_tube(casename):
 
 ################################################################################
 
-def gen_naca(casename):
+def gen_naca4(casename, code='2412'):
     # Create a single cambered NACA aerofoil in a straight wind tunnel
 
     # Optional elliptic grid smoothing
@@ -204,7 +204,13 @@ def gen_naca(casename):
     geom = {};
 
     # Specify NACA 2412 coefficients and surface resolution
-    m = 0.02; p = 0.4; t = 0.12; ns = 101; 
+    m = 0.01 * int(code[0]) 
+    p = 0.1 * int(code[1])
+    t = 0.01 * int(code[2:])
+
+    print(m, p, t)
+
+    ns = 101
 
     # Construct the camberline
     x = polyspace(0,1,0.005/float(ns),1.0/float(ns),ns); yc = np.zeros(ns);  
@@ -422,7 +428,7 @@ def gen_multi(casename):
 
 ################################################################################
 
-def generate_case(casename):
+def generate_case(casename, casedir = 'cases/'):
     # Create the curves for the desired case and set the boundary conditions
     if casename == 'bend':
         av,geom = gen_bend(casename)
@@ -434,8 +440,12 @@ def generate_case(casename):
         av,geom = gen_waves(casename)
     elif casename == 'tube':
         av,geom = gen_tube(casename)
-    elif casename == 'naca':
-        av,geom,g = gen_naca(casename)
+    elif casename[:4] == 'naca':
+        if len(casename[4:]) == 4:
+            av,geom,g = gen_naca4(casename, casename[4:])
+        else:
+            av,geom,g = gen_naca4(casename)
+
     elif casename == 'turbine_c':
         av,geom,g = gen_turbine_c(casename)
     elif casename == 'turbine_h':
@@ -444,42 +454,44 @@ def generate_case(casename):
         av,geom = gen_multi(casename)
 
     # Save the settings and curves to their input files
-    write_settings(av)
-    write_geom(av,geom)
+    write_settings(av, casedir)
+    write_geom(av,geom, casedir)
 
     # Open figure window to plot the curves
-    plt.figure(figsize=[9.6,7.2]); ax = plt.axes(); cols = gen_cols();
-    ax.set_xlabel('x / m'); ax.set_ylabel('y / m');
-    ax.set_aspect('equal',adjustable='box'); ax.tick_params(direction='in')
-    ax.grid(linestyle='-',color=[0.6,0.6,0.6],linewidth=0.5)
+    if not casedir:
+        plt.figure(figsize=[9.6,7.2]); ax = plt.axes(); cols = gen_cols();
+        ax.set_xlabel('x / m'); ax.set_ylabel('y / m');
+        ax.set_aspect('equal',adjustable='box'); ax.tick_params(direction='in')
+        ax.grid(linestyle='-',color=[0.6,0.6,0.6],linewidth=0.5)
 
-    # Plot the geometry curves
-    ax.plot(geom['x_a'],geom['y_a'],'.-',color=cols[0,:])
-    ax.plot(geom['x_b'],geom['y_b'],'.-',color=cols[1,:])
+        # Plot the geometry curves
+        ax.plot(geom['x_a'],geom['y_a'],'.-',color=cols[0,:])
+        ax.plot(geom['x_b'],geom['y_b'],'.-',color=cols[1,:])
 
-    # Plot the domain curves if present
-    if 'x_c' in geom:
-        ax.plot(geom['x_c'],geom['y_c'],'.-',color=cols[2,:])
-        ax.plot(geom['x_d'],geom['y_d'],'.-',color=cols[3,:])
-    
+        # Plot the domain curves if present
+        if 'x_c' in geom:
+            ax.plot(geom['x_c'],geom['y_c'],'.-',color=cols[2,:])
+            ax.plot(geom['x_d'],geom['y_d'],'.-',color=cols[3,:])
+        
     # Plot the mesh coordinates and patches if present
     if 'g' in locals():
         
         # Open a new figure window
-        plt.figure(figsize=[9.6,7.2]); ax = plt.axes(); cols = gen_cols();
-        ax.set_xlabel('x / m'); ax.set_ylabel('y / m');
-        ax.set_aspect('equal',adjustable='box'); ax.tick_params(direction='in')
+        if not casedir:
+            plt.figure(figsize=[9.6,7.2]); ax = plt.axes(); cols = gen_cols();
+            ax.set_xlabel('x / m'); ax.set_ylabel('y / m');
+            ax.set_aspect('equal',adjustable='box'); ax.tick_params(direction='in')
 
-        # Plot the mesh coordinates and walls
-        for n in range(g['nn']):
+            # Plot the mesh coordinates and walls
+            for n in range(g['nn']):
 
-            # Mesh in both i and j-directions
-            ax.plot(g['x'][n],g['y'][n],color=cols[n,:],linewidth=0.5)
-            ax.plot(np.transpose(g['x'][n]),np.transpose(g['y'][n]),
-                color=cols[n,:],linewidth=0.5)
+                # Mesh in both i and j-directions
+                ax.plot(g['x'][n],g['y'][n],color=cols[n,:],linewidth=0.5)
+                ax.plot(np.transpose(g['x'][n]),np.transpose(g['y'][n]),
+                    color=cols[n,:],linewidth=0.5)
 
-            # Extract the block and plot the walls
-            plot_wall(ax,cut_block(g,n),False);
+                # Extract the block and plot the walls
+                plot_wall(ax,cut_block(g,n),False);
 
         # Plot the patch matching data
         for m in range(g['nm']):
@@ -494,8 +506,9 @@ def generate_case(casename):
             x_2 = g['x'][n_2][i_2,j_2]; y_2 = g['y'][n_2][i_2,j_2];
 
             # Plot both sides of the patch with different symbols
-            ax.plot(x_1,y_1,'+',color=cols[m,:])
-            ax.plot(x_2,y_2,'x',color=cols[m,:])
+            if not casedir:
+                ax.plot(x_1,y_1,'+',color=cols[m,:])
+                ax.plot(x_2,y_2,'x',color=cols[m,:])
 
             # Calculate and print the error
             d_max = np.max(np.hypot(x_2 - x_1,y_2 - y_1))
@@ -504,13 +517,14 @@ def generate_case(casename):
         # Plot the inlet and outlets, these are assumed to be at i = 1 and i = ni
         x_in = np.squeeze(g['x'][g['n_in']-1][0,:])
         y_in = np.squeeze(g['y'][g['n_in']-1][0,:])
-        ax.plot(x_in,y_in,color=[0.8,0.8,0.8])
         x_out = np.squeeze(g['x'][g['n_out']-1][-1,:])
         y_out = np.squeeze(g['y'][g['n_out']-1][-1,:])
-        ax.plot(x_out,y_out,color=[0.8,0.8,0.8])
+        if not casedir:
+            ax.plot(x_in,y_in,color=[0.8,0.8,0.8])
+            ax.plot(x_out,y_out,color=[0.8,0.8,0.8])
 
         # Write the entire grid definition to file
-        write_mesh(av,g)
+        write_mesh(av,g, casedir)
 
 def generate_all():
 
