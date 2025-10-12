@@ -5,7 +5,7 @@ project(solver VERSION 1.2.0 LANGUAGES CXX Fortran)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Charts PrintSupport)
+find_package(Qt6 REQUIRED COMPONENTS LinguistTools Core Widgets Charts PrintSupport)
 include(CPack)
 qt_standard_project_setup()
 
