@@ -71,7 +71,7 @@ def transform_airfoil(poly01, chord=1.0, alpha_deg=0.0, origin=(0.0, 0.0)):
     pts[:, 1] += origin[1]
     return pts
 
-
+@numba.njit
 def distance_point_to_polyline(px, py, poly):
     """
     Compute unsigned Euclidean distance from point (px,py) to a polyline (Nx2).
@@ -96,6 +96,60 @@ def distance_point_to_polyline(px, py, poly):
     dy = py - projy
     d2 = dx*dx + dy*dy
     return float(np.sqrt(np.min(d2)))
+
+def curvature_at_nearest_point(px, py, poly):
+    """
+    Return (distance, curvature) of the nearest point on a polyline to (px, py).
+
+    poly : (N,2) array of coordinates.
+    curvature computed via centered finite differences.
+
+    Curvature κ = |x'y'' - y'x''| / (x'^2 + y'^2)^(3/2)
+    """
+    poly = np.asarray(poly)
+    P = poly[:-1]
+    Q = poly[1:]
+
+    vx = Q[:, 0] - P[:, 0]
+    vy = Q[:, 1] - P[:, 1]
+    wx = px - P[:, 0]
+    wy = py - P[:, 1]
+    vv = vx * vx + vy * vy
+    vv = np.where(vv == 0.0, 1e-16, vv)
+
+    # projection parameter along each segment
+    t = (wx * vx + wy * vy) / vv
+    t = np.clip(t, 0.0, 1.0)
+
+    projx = P[:, 0] + t * vx
+    projy = P[:, 1] + t * vy
+    dx = px - projx
+    dy = py - projy
+    d2 = dx * dx + dy * dy
+    i_min = np.argmin(d2)
+    dist = np.sqrt(d2[i_min])
+
+    # index of nearest vertex (for curvature estimation)
+    # choose the closer endpoint of that segment
+    if t[i_min] < 0.5:
+        idx = i_min
+    else:
+        idx = i_min + 1
+    idx = np.clip(idx, 1, len(poly) - 2)
+
+    # local curvature (central finite difference)
+    x_prev, x_curr, x_next = poly[idx - 1: idx + 2, 0]
+    y_prev, y_curr, y_next = poly[idx - 1: idx + 2, 1]
+
+    dx1 = x_next - x_prev
+    dy1 = y_next - y_prev
+    ddx = x_next - 2 * x_curr + x_prev
+    ddy = y_next - 2 * y_curr + y_prev
+    denom = (dx1 * dx1 + dy1 * dy1) ** 1.5
+    denom = 1e-16 if denom == 0.0 else denom
+    curvature = abs(dx1 * ddy - dy1 * ddx) / denom
+
+    return dist, curvature
 
 # ======================================================
 # Point-in-polygon (with on-edge = inside)
@@ -748,62 +802,10 @@ def fast_shading_fraction(cells, polygon):
 # Hilbert traversal + LOD
 # ======================================================
 
+@numba.njit
 def rect_intersects_rect(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1):
     return not (ax1 <= bx0 or bx1 <= ax0 or ay1 <= by0 or by1 <= ay0)
 
-def stop_level_from_distance(dist, bands):
-    """
-    bands: list of (radius, stop_level), sorted by radius.
-    Returns the stop_level for the first band with dist ≤ radius.
-    """
-    for r, lvl in bands:
-        if dist <= r:
-            return int(lvl)
-    return int(bands[-1][1])
-
-def hilbert_adaptive_airfoil(x0, y0, xi, xj, yi, yj, level,
-                             domain_w, domain_h,
-                             bands, airfoil_poly, poly_bbox,
-                             out_cells):
-    """
-    Recursive Hilbert traversal that emits leaf cells as (py, px, side, phi),
-    where phi is the solid (airfoil) area fraction within the cell.
-    """
-    # Region AABB (fine-grid coords)
-    rx0 = min(x0, x0 + xi, x0 + yi, x0 + xi + yi)
-    rx1 = max(x0, x0 + xi, x0 + yi, x0 + xi + yi)
-    ry0 = min(y0, y0 + xj, y0 + yj, y0 + xj + yj)
-    ry1 = max(y0, y0 + xj, y0 + yj, y0 + xj + yj)
-
-    # Completely outside domain? skip
-    if not rect_intersects_rect(rx0, ry0, rx1, ry1, 0, 0, domain_w, domain_h):
-        return
-
-    # Region center
-    px = x0 + 0.5*(xi + yi)
-    py = y0 + 0.5*(xj + yj)
-
-    # Distance to airfoil polyline in domain units
-    dist = distance_point_to_polyline(px, py, airfoil_poly)
-    stop_level = stop_level_from_distance(dist, bands)
-
-    if level <= stop_level:
-        # Leaf cell → compute solid fraction over [rx0,rx1]×[ry0,ry1]
-        #phi = rect_solid_fraction(airfoil_poly, rx0, ry0, rx1, ry1, poly_bbox=poly_bbox)
-        side = max(rx1 - rx0, ry1 - ry0)  # == 2**stop_level in fine-grid units
-        if 0 <= px < domain_w and 0 <= py < domain_h:
-            out_cells.append((py, px, side))
-        return
-
-    # Recurse in Hilbert order
-    hilbert_adaptive_airfoil(x0,                     y0,                      yi/2,  yj/2,  xi/2,  xj/2,  level-1,
-                             domain_w, domain_h, bands, airfoil_poly, poly_bbox, out_cells)
-    hilbert_adaptive_airfoil(x0 + xi/2,             y0 + xj/2,               xi/2,  xj/2,  yi/2,  yj/2,  level-1,
-                             domain_w, domain_h, bands, airfoil_poly, poly_bbox, out_cells)
-    hilbert_adaptive_airfoil(x0 + xi/2 + yi/2,      y0 + xj/2 + yj/2,        xi/2,  xj/2,  yi/2,  yj/2,  level-1,
-                             domain_w, domain_h, bands, airfoil_poly, poly_bbox, out_cells)
-    hilbert_adaptive_airfoil(x0 + xi/2 + yi,        y0 + xj/2 + yj,         -yi/2, -yj/2, -xi/2, -xj/2, level-1,
-                             domain_w, domain_h, bands, airfoil_poly, poly_bbox, out_cells)
 
 def generate_hilbert_airfoil_lod(n, m, airfoil_poly, band_spec, extra_global_levels=1):
     """
@@ -826,19 +828,85 @@ def generate_hilbert_airfoil_lod(n, m, airfoil_poly, band_spec, extra_global_lev
     bx1, by1 = np.max(af[:,0]), np.max(af[:,1])
     poly_bbox = (bx0, by0, bx1, by1)
 
-    cells = []
+    out_cells = []
+
+    @numba.njit
+    def stop_level_from_distance(dist, bands):
+        """
+        bands: list of (radius, stop_level), sorted by radius.
+        Returns the stop_level for the first band with dist ≤ radius.
+        """
+        for r, lvl in bands:
+            if dist <= r:
+                return int(lvl)
+        return int(bands[-1][1])
+    
+    def stop_level_from_curvature(kappa, dist, bands):
+        """
+        bands: list of (threshold, level)
+        Higher curvature → deeper refinement
+        """
+        alpha = 200
+        beta = 0.7
+
+        M = (kappa ** beta) / (1.0 + alpha * dist) * 1e7
+
+        # Assign level based on descending thresholds
+        for thresh, lvl in bands:
+            if M <= thresh:
+                return int(lvl)
+        return int(bands[-1][1])
+    
+    domain_w=float(m)
+    domain_h=float(n)
+
+    def hilbert_adaptive_airfoil(x0, y0, xi, xj, yi, yj, level):
+        """
+        Recursive Hilbert traversal that emits leaf cells as (py, px, side, phi),
+        where phi is the solid (airfoil) area fraction within the cell.
+        """
+        # Region AABB (fine-grid coords)
+        rx0 = min(x0, x0 + xi, x0 + yi, x0 + xi + yi)
+        rx1 = max(x0, x0 + xi, x0 + yi, x0 + xi + yi)
+        ry0 = min(y0, y0 + xj, y0 + yj, y0 + xj + yj)
+        ry1 = max(y0, y0 + xj, y0 + yj, y0 + xj + yj)
+
+        # Completely outside domain? skip
+        if not rect_intersects_rect(rx0, ry0, rx1, ry1, 0, 0, domain_w, domain_h):
+            return
+
+        # Region center
+        px = x0 + 0.5*(xi + yi)
+        py = y0 + 0.5*(xj + yj)
+
+        # Distance to airfoil polyline in domain units
+        #dist = distance_point_to_polyline(px, py, airfoil_poly)
+        #stop_level = stop_level_from_distance(dist, band_spec)
+
+        dist, kappa = curvature_at_nearest_point(px, py, airfoil_poly)
+        stop_level = stop_level_from_curvature(kappa, dist, band_spec)
+
+        if level <= stop_level:
+            # Leaf cell → compute solid fraction over [rx0,rx1]×[ry0,ry1]
+            #phi = rect_solid_fraction(airfoil_poly, rx0, ry0, rx1, ry1, poly_bbox=poly_bbox)
+            side = max(rx1 - rx0, ry1 - ry0)  # == 2**stop_level in fine-grid units
+            if 0 <= px < domain_w and 0 <= py < domain_h:
+                out_cells.append((py, px, side))
+            return
+
+        # Recurse in Hilbert order
+        hilbert_adaptive_airfoil(x0,                     y0,                      yi/2,  yj/2,  xi/2,  xj/2,  level-1)
+        hilbert_adaptive_airfoil(x0 + xi/2,             y0 + xj/2,               xi/2,  xj/2,  yi/2,  yj/2,  level-1)
+        hilbert_adaptive_airfoil(x0 + xi/2 + yi/2,      y0 + xj/2 + yj/2,        xi/2,  xj/2,  yi/2,  yj/2,  level-1)
+        hilbert_adaptive_airfoil(x0 + xi/2 + yi,        y0 + xj/2 + yj,         -yi/2, -yj/2, -xi/2, -xj/2, level-1)
+
     hilbert_adaptive_airfoil(
         x0=0.0, y0=0.0,
         xi=N, xj=0.0,
         yi=0.0, yj=N,
         level=fine_bits,
-        domain_w=float(m), domain_h=float(n),
-        bands=band_spec,
-        airfoil_poly=airfoil_poly,
-        poly_bbox=poly_bbox,
-        out_cells=cells,
     )
-    return cells, fine_bits
+    return out_cells, fine_bits
 
 def bands_from_chord_fractions(chord, pairs):
     """pairs: [(frac, stop_level), ...] sorted asc."""
@@ -996,7 +1064,7 @@ def shade_cells_by_phi(
     alpha=1.0,
     draw_edges=False,
     edgecolor="black",
-    linewidth=0.0,
+    linewidth=0.5,
     add_colorbar=True,
     colorbar_label="solid fraction φ"
 ):
@@ -1097,10 +1165,10 @@ if __name__ == "__main__":
 
     # LOD bands as fractions of chord (closer gets smaller stop_level = finer)
     band_fracs = [
-        (0.06, 1),    # ultra-fine skin
-        (0.15, 2),
-        (0.30, 3),
-        (1e9,  4),    # everything else
+        (0.06, 4),    # ultra-fine skin
+        (0.15, 3),
+        (0.30, 2),
+        (1e9,  1),    # everything else
     ]
 
     plot_hilbert_with_airfoil_lod(
