@@ -8,6 +8,7 @@ from matplotlib.patches import Rectangle
 import matplotlib.colors as mcolors
 import matplotlib.cm as cm
 
+from lod import calc_lod
 # ======================================================
 # Geometry helpers
 # ======================================================
@@ -828,7 +829,19 @@ def generate_hilbert_airfoil_lod(n, m, airfoil_poly, band_spec, extra_global_lev
     bx1, by1 = np.max(af[:,0]), np.max(af[:,1])
     poly_bbox = (bx0, by0, bx1, by1)
 
+    max_level = 5
+
     out_cells = []
+
+    # calc lod contours for interpolation
+    X, Y, LOD = calc_lod(n, m, airfoil_poly, max_level)
+
+    def lod_from_xy(x, y):
+        """Simple integer lookup of LOD at (x,y) in domain units."""
+
+        ix = int(np.clip(np.floor(x * (X.shape[1]-1) / m), 0, X.shape[1]-1))
+        iy = int(np.clip(np.floor(y * (Y.shape[0]-1) / n), 0, Y.shape[0]-1))
+        return int(LOD[iy, ix])
 
     @numba.njit
     def stop_level_from_distance(dist, bands):
@@ -879,16 +892,11 @@ def generate_hilbert_airfoil_lod(n, m, airfoil_poly, band_spec, extra_global_lev
         px = x0 + 0.5*(xi + yi)
         py = y0 + 0.5*(xj + yj)
 
-        # Distance to airfoil polyline in domain units
-        #dist = distance_point_to_polyline(px, py, airfoil_poly)
-        #stop_level = stop_level_from_distance(dist, band_spec)
-
-        dist, kappa = curvature_at_nearest_point(px, py, airfoil_poly)
-        stop_level = stop_level_from_curvature(kappa, dist, band_spec)
+        stop_level = lod_from_xy(px, py)
 
         if level <= stop_level:
             # Leaf cell → compute solid fraction over [rx0,rx1]×[ry0,ry1]
-            #phi = rect_solid_fraction(airfoil_poly, rx0, ry0, rx1, ry1, poly_bbox=poly_bbox)
+
             side = max(rx1 - rx0, ry1 - ry0)  # == 2**stop_level in fine-grid units
             if 0 <= px < domain_w and 0 <= py < domain_h:
                 out_cells.append((py, px, side))
@@ -973,7 +981,7 @@ def plot_hilbert_with_airfoil_lod(n=256, m=128,
     # Generate Hilbert cells with solid fraction
     cells, fine_bits = generate_hilbert_airfoil_lod(n, m, foil, bands, extra_global_levels=extra_global_levels)
 
-    print("hilbert traversed")
+    print("hilbert traversed with", len(cells), "cells at fine_bits =", fine_bits)
 
     bins_tuple = build_uniform_bins(foil, 
                                 bin_w=np.median([c[2] for c in cells]),
