@@ -198,4 +198,6 @@ def demo():
     plt.show()
     
 
-demo()
+if __name__ == "__main__":
+    demo()
+    

@@ -808,7 +808,7 @@ def rect_intersects_rect(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1):
     return not (ax1 <= bx0 or bx1 <= ax0 or ay1 <= by0 or by1 <= ay0)
 
 
-def generate_hilbert_airfoil_lod(n, m, airfoil_poly, band_spec, extra_global_levels=1):
+def generate_hilbert_airfoil_lod(n, m, airfoil_poly, extra_global_levels=1):
     """
     n, m: domain height/width (grid units)
     airfoil_poly: (K,2) array in same coordinate system as domain
@@ -842,33 +842,6 @@ def generate_hilbert_airfoil_lod(n, m, airfoil_poly, band_spec, extra_global_lev
         ix = int(np.clip(np.floor(x * (X.shape[1]-1) / m), 0, X.shape[1]-1))
         iy = int(np.clip(np.floor(y * (Y.shape[0]-1) / n), 0, Y.shape[0]-1))
         return int(LOD[iy, ix])
-
-    @numba.njit
-    def stop_level_from_distance(dist, bands):
-        """
-        bands: list of (radius, stop_level), sorted by radius.
-        Returns the stop_level for the first band with dist ≤ radius.
-        """
-        for r, lvl in bands:
-            if dist <= r:
-                return int(lvl)
-        return int(bands[-1][1])
-    
-    def stop_level_from_curvature(kappa, dist, bands):
-        """
-        bands: list of (threshold, level)
-        Higher curvature → deeper refinement
-        """
-        alpha = 200
-        beta = 0.7
-
-        M = (kappa ** beta) / (1.0 + alpha * dist) * 1e7
-
-        # Assign level based on descending thresholds
-        for thresh, lvl in bands:
-            if M <= thresh:
-                return int(lvl)
-        return int(bands[-1][1])
     
     domain_w=float(m)
     domain_h=float(n)
@@ -916,9 +889,6 @@ def generate_hilbert_airfoil_lod(n, m, airfoil_poly, band_spec, extra_global_lev
     )
     return out_cells, fine_bits
 
-def bands_from_chord_fractions(chord, pairs):
-    """pairs: [(frac, stop_level), ...] sorted asc."""
-    return [(chord*frac, lvl) for (frac, lvl) in pairs]
 
 # ======================================================
 # Postprocessing helpers
@@ -955,7 +925,6 @@ def plot_hilbert_with_airfoil_lod(n=256, m=128,
                                   chord=90.0,
                                   alpha_deg=5.0,
                                   origin=(20.0, 64.0),
-                                  band_fracs=((0.01, 1), (0.03, 2), (0.08, 3), (1e9, 4)),
                                   airfoil_pts=401,
                                   extra_global_levels=1):
     """
@@ -975,11 +944,8 @@ def plot_hilbert_with_airfoil_lod(n=256, m=128,
     if not np.allclose(foil[0], foil[-1]):
         foil = np.vstack([foil, foil[0]])
 
-    # Bands from chord fractions → absolute units
-    bands = bands_from_chord_fractions(chord, band_fracs)
-
     # Generate Hilbert cells with solid fraction
-    cells, fine_bits = generate_hilbert_airfoil_lod(n, m, foil, bands, extra_global_levels=extra_global_levels)
+    cells, fine_bits = generate_hilbert_airfoil_lod(n, m, foil, extra_global_levels=extra_global_levels)
 
     print("hilbert traversed with", len(cells), "cells at fine_bits =", fine_bits)
 
@@ -1037,13 +1003,6 @@ def plot_hilbert_with_airfoil_lod(n=256, m=128,
     ax.set_aspect('equal')
     ax.invert_yaxis()
     ax.set_title(f"Hilbert LOD around NACA {naca_code} — interior segments removed")
-
-    # Annotate band spec
-    txt = "\n".join([f"≤ {r:.2f} → stop={lvl}" if r < 1e8 else f"> last → stop={lvl}"
-                     for (r, lvl) in bands])
-    ax.text(0.02, 0.98, txt, transform=ax.transAxes, va='top', ha='left',
-            bbox=dict(boxstyle="round,pad=0.3", fc="w", ec="0.5", alpha=0.9), fontsize=9)
-    
     
     shade_cells_by_phi(
         cells_with_phi,
@@ -1171,21 +1130,12 @@ if __name__ == "__main__":
     origin = (m*0.15, n*0.55)  # leading edge position
     alpha_deg = 6.0
 
-    # LOD bands as fractions of chord (closer gets smaller stop_level = finer)
-    band_fracs = [
-        (0.06, 4),    # ultra-fine skin
-        (0.15, 3),
-        (0.30, 2),
-        (1e9,  1),    # everything else
-    ]
-
     plot_hilbert_with_airfoil_lod(
         n=n, m=m,
         naca_code="2412",
         chord=chord,
         alpha_deg=alpha_deg,
         origin=origin,
-        band_fracs=band_fracs,
         airfoil_pts=801,
         extra_global_levels=1,
     )
