@@ -22,6 +22,7 @@ module mesh_alloc
         integer :: fine_bits, base_bits
         real(8) :: Nb
         integer :: extra_levels
+        integer, parameter :: unit_out = 33
 
         ! For now, ignore airfoil_poly (no geometry checks)
         extra_levels = 1
@@ -29,11 +30,16 @@ module mesh_alloc
 
         base_bits = ceiling(log(real(max(n, m),8)) / log(2.0_8))
         fine_bits = base_bits + extra_levels
-        Nb = 2.0_8**fine_bits
+        ! Nb = 2.0_8**fine_bits
+        Nb = real(max(n,m), 8)
 
         ncells = 0
+        
+        open(unit_out, file="hilbert_cells.dat", status="replace", action="write", form="formatted")
 
         call traverse_ncells(0.0_8, 0.0_8, Nb, 0.0_8, 0.0_8, Nb, fine_bits, n, m, ILOD, ncells)
+
+        close(unit_out)
 
     end subroutine calc_ncells
 
@@ -49,6 +55,7 @@ module mesh_alloc
         real(8) :: px, py
         integer :: stop_level
         logical :: inside
+        integer, parameter :: unit_out = 33
 
         ! Compute region bounding box (fine grid coords)
         rx0 = min(x0, x0 + xi, x0 + yi, x0 + xi + yi)
@@ -57,7 +64,8 @@ module mesh_alloc
         ry1 = max(y0, y0 + xj, y0 + yj, y0 + xj + yj)
 
         ! Skip if outside domain
-        if (rx1 < 0.0_8 .or. ry1 < 0.0_8 .or. rx0 > real(m,8) .or. ry0 > real(n,8)) return
+        if (rx1 <= 0.0_8 .or. real(m,8) <= rx0 .or. &
+            ry1 <= 0.0_8 .or. real(n,8) <= ry0)  return
 
         ! Region center
         px = x0 + 0.5_8*(xi + yi)
@@ -72,14 +80,20 @@ module mesh_alloc
 
         if (level <= stop_level) then
             ncells = ncells + 1
+            write(unit_out,'(I6,1X,F12.6,1X,F12.6,1X,I3)') level, px, py, stop_level
             return
         end if
 
         ! Recurse in Hilbert order (same pattern as Python)
-        call traverse_ncells(x0,                 y0,                  yi/2.0_8,  yj/2.0_8,  xi/2.0_8,  xj/2.0_8,  level-1, n, m, ILOD, ncells)
-        call traverse_ncells(x0 + xi/2.0_8,     y0 + xj/2.0_8,       xi/2.0_8,  xj/2.0_8,  yi/2.0_8,  yj/2.0_8,  level-1, n, m, ILOD, ncells)
-        call traverse_ncells(x0 + xi/2.0_8 + yi/2.0_8, y0 + xj/2.0_8 + yj/2.0_8, xi/2.0_8,  xj/2.0_8,  yi/2.0_8,  yj/2.0_8,  level-1, n, m, ILOD, ncells)
-        call traverse_ncells(x0 + xi/2.0_8 + yi, y0 + xj/2.0_8 + yj, -yi/2.0_8, -yj/2.0_8, -xi/2.0_8, -xj/2.0_8, level-1, n, m, ILOD, ncells)
+        call traverse_ncells(x0,                  y0,                  yi/2.0_8,  yj/2.0_8,  xi/2.0_8,  xj/2.0_8,  level-1, n, m, ILOD, ncells)
+
+        call traverse_ncells(x0 + xi/2.0_8,       y0 + xj/2.0_8,       xi/2.0_8,  xj/2.0_8,  yi/2.0_8,  yj/2.0_8,  level-1, n, m, ILOD, ncells)
+
+        call traverse_ncells(x0 + xi/2.0_8 + yi/2.0_8, y0 + xj/2.0_8 + yj/2.0_8, &
+                            xi/2.0_8, xj/2.0_8, yi/2.0_8, yj/2.0_8, level-1, n, m, ILOD, ncells)
+
+        call traverse_ncells(x0 + xi/2.0_8 + yi,  y0 + xj/2.0_8 + yj, &
+                            -yi/2.0_8, -yj/2.0_8, -xi/2.0_8, -xj/2.0_8, level-1, n, m, ILOD, ncells)
 
     end subroutine traverse_ncells
 

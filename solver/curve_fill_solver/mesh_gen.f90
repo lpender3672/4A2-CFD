@@ -15,26 +15,20 @@ module mesh_gen
         type(cell2d), allocatable, intent(out) :: cells(:)
 
         integer :: ILOD(n,m)
-        integer :: ncells, max_level, i
+        integer :: ncells, max_level, i, j, unit
         real(8), allocatable :: foil(:,:), foil_t(:,:)
 
 
         ! Build an airfoil in domain units as you like:
         call naca4_airfoil("2412", 400, .true., foil)
         allocate(foil_t(size(foil,1),2))
-        call transform_airfoil(foil, chord, aoa, origin=[real(200, 8), real(260, 8)], poly_out=foil_t)
+        call transform_airfoil(foil, chord, aoa, origin=[real(n*0.5, 8), real(m*0.5, 8)], poly_out=foil_t)
 
         ! Generate airfoil geometry
 
         max_level = 5
         ! Build LOD map based on airfoil geometry and NACA code
         call calc_lod(n, m, foil_t, max_level, ILOD)
-
-        ! print ILOD
-
-        do i=1, n
-            write(*,'(100i4)') ILOD(i,1:m)
-        end do
 
         ! Calculate number of cells needed
         call calc_ncells(n, m, ILOD, 1, ncells)

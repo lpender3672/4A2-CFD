@@ -26,7 +26,7 @@ subroutine curve_fill_solver() bind(C, name="curve_fill_solver")
 
   print *, 'entered curve_fill_solver'
 
-  call generate_cmesh(400, 400, "2412", real(120.0, 8), real(5.0, 8), cells)
+  call generate_cmesh(300, 300, "2412", real(2, 8), real(6.0, 8), cells)
 
   call build_example_airfoil(xa, ya)
 
