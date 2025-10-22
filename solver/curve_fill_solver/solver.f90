@@ -2,8 +2,9 @@
 subroutine curve_fill_solver() bind(C, name="curve_fill_solver")
   
   use iso_c_binding, only: c_loc
-  use sfc_quadtree_airfoil
   use types
+  use sfc_quadtree_airfoil
+  use mesh_gen
   use waffle
   use io_module
   implicit none
@@ -18,10 +19,14 @@ subroutine curve_fill_solver() bind(C, name="curve_fill_solver")
   real(rk) :: hmin, beta
 
   type(lod_mesh) :: m
-  !type(cell2d), allocatable :: leaves(:)
+  type(cell2d), allocatable :: leaves(:)
   integer :: i
 
+  type(cell2d), allocatable :: cells(:)
+
   print *, 'entered curve_fill_solver'
+
+  call generate_cmesh(400, 400, "2412", real(120.0, 8), real(5.0, 8), cells)
 
   call build_example_airfoil(xa, ya)
 

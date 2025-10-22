@@ -1,4 +1,6 @@
 module mesh_utils
+  use iso_fortran_env, only: real64
+  use types
   implicit none
   private
   public :: rotate_points, naca4_airfoil, transform_airfoil
@@ -294,14 +296,14 @@ contains
     end do
   end subroutine smooth2d
 
-  subroutine calc_lod(n, m, foil, max_level, X, Y, ILOD)
+  subroutine calc_lod(n, m, foil, max_level, ILOD)
     integer, intent(in) :: n, m, max_level
     real(8), intent(in) :: foil(:, :)              ! (Nf,2) polyline
-    real(8), intent(out):: X(n, m), Y(n, m)
     integer, intent(out):: ILOD(n, m)
 
+    real(8) :: X(n, m), Y(n, m)
     real(8), allocatable :: xv(:), yv(:), KAPPA(:,:), DIST(:,:), LOD(:,:)
-    real(8), allocatable :: NLOD(:,:), tmp(:,:)
+    real(8), allocatable :: NLOD(:,:)
     real(8) :: min_k_pos, max_dist, min_nlod, max_nlod
     integer :: i, j
 
