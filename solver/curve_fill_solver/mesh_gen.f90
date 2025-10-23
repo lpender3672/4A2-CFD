@@ -2,17 +2,19 @@ module mesh_gen
     use types
     use mesh_utils
     use mesh_alloc
+    use mesh_build
     ! use iso_fortran_env, only: real64
 
     implicit none
     contains
 
-    subroutine generate_cmesh(n, m, naca_code, chord, aoa, cells)
+    subroutine generate_cmesh(n, m, naca_code, chord, aoa, mesh)
         implicit none
         integer, intent(in) :: n, m
         character(len=*), intent(in) :: naca_code
         real(8), intent(in) :: chord, aoa
-        type(cell2d), allocatable, intent(out) :: cells(:)
+        !type(cell2d), allocatable, intent(out) :: cells(:)
+        type(lod_mesh), intent(out) :: mesh
 
         integer :: ILOD(n,m)
         integer :: ncells, max_level, i, j, unit
@@ -31,11 +33,11 @@ module mesh_gen
         call calc_lod(n, m, foil_t, max_level, ILOD)
 
         ! Calculate number of cells needed
-        call calc_ncells(n, m, ILOD, 1, ncells)
+        call alloc_ncells(n, m, ILOD, 1, mesh%length, mesh%cells)
 
-        allocate(cells(ncells))
+        call build_cells(n, m, ILOD, 1, mesh%cells)
 
-        print *, 'Number of cells to allocate: ', ncells
+        print *, 'Number of cells to allocate: ', mesh%length
 
     end subroutine generate_cmesh
     
