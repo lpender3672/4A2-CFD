@@ -107,5 +107,6 @@
         "*.inc": "cpp",
         "qgridlayout": "cpp",
         "qcommandlineparser": "cpp"
-    }
+    },
+    "cmake.buildArgs": ["--parallel", "1"]
 }

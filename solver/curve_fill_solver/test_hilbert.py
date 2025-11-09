@@ -196,6 +196,15 @@ def plot_hilbert_with_airfoil_lod(n=256, m=128,
     band_fracs: list[(fraction_of_chord, stop_level)] sorted asc;
                 last one may use a very large number for "everything else".
     """
+
+    rotated = False
+
+    if m > n:
+        rotated = True
+        n,m = m,n  # swap to make n the larger dimension for plotting
+        alpha_deg += 90 # and rotate airfoil accordingly
+        origin = (origin[1], origin[0])  # swap coords
+        
     # Build airfoil in domain coords (x right, y up — but plotting later inverts y)
     poly01 = naca4_airfoil(naca_code, n=airfoil_pts, closed_te=True)
     foil = transform_airfoil(poly01, chord=chord, alpha_deg=alpha_deg, origin=origin)
@@ -212,13 +221,22 @@ def plot_hilbert_with_airfoil_lod(n=256, m=128,
     ys = [p[0] for p in pts]
 
     fig, ax = plt.subplots(figsize=(8, 6))
+
+    if rotated:
+        xs, ys = ys, xs  # swap back for plotting
+        foil = foil[:, ::-1]  # swap foil coords too
+        ax.set_xlim(0, n)
+        ax.set_ylim(0, m)
+    else:
+        ax.set_xlim(0, m)
+        ax.set_ylim(0, n)
+
     ax.plot(xs, ys, '-', lw=1)
     ax.plot(foil[:, 0], foil[:, 1], lw=2)  # airfoil outline
 
     # Draw band radii as offsets from airfoil? (for reference we’ll just annotate text)
     ax.set_title(f"Hilbert with Quantized LOD around NACA {naca_code}")
-    ax.set_xlim(0, m)
-    ax.set_ylim(0, n)
+    
     ax.set_aspect('equal')
     ax.invert_yaxis()  # make y downwards like raster grids
 
@@ -236,7 +254,7 @@ def plot_hilbert_with_airfoil_lod(n=256, m=128,
 # ---------------------------
 if __name__ == "__main__":
     # Domain (height n, width m)
-    n, m = 256, 512
+    n, m = 1024, 2048
 
     # Airfoil placement: chord 45% of width, centered in height, slight incidence
     chord = 0.45 * m

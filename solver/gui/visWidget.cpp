@@ -1,5 +1,6 @@
 #include "visWidget.h"
 #include <iostream>
+#include <fstream>
 #include <algorithm> // added for min_element
 #include <vector>    // added for RAII buffers
 
@@ -410,39 +411,21 @@ void VisWidget::updateLodMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlo
 
     // --- New: connect centers in Morton-key order --------------------------
     // Build index array and sort by cell key (Morton)
-    std::vector<int> indices(mesh.length);
-    for (int i = 0; i < mesh.length; ++i) indices[i] = i;
-    std::sort(indices.begin(), indices.end(),
-              [&mesh](int a, int b) {
-                  // use unsigned to get sensible ordering for 64-bit keys
-                  const unsigned long long ka = static_cast<unsigned long long>(mesh.cells[a].key);
-                  const unsigned long long kb = static_cast<unsigned long long>(mesh.cells[b].key);
-                  return ka < kb;
-              });
-
-    // Compute centers in sorted order
-    QVector<double> cx;
-    QVector<double> cy;
-    cx.reserve(mesh.length);
-    cy.reserve(mesh.length);
-    for (int idx : indices) {
-        const auto &c = mesh.cells[idx];
-        cx.append(0.5 * ((double)c.xmin + (double)c.xmax));
-        cy.append(0.5 * ((double)c.ymin + (double)c.ymax));
+    
+    if (mesh.length > 1) {
+    QVector<double> cx(mesh.length), cy(mesh.length), t(mesh.length);
+    for (int i = 0; i < mesh.length; ++i) {
+        const auto &c = mesh.cells[i];
+        cx[i] = 0.5 * (c.xmin + c.xmax);
+        cy[i] = 0.5 * (c.ymin + c.ymax);
+        t[i]  = i;
     }
 
-    // Clear previous graphs and add one polyline graph connecting centers
-    while (customPlot->graphCount() > 0) {
-        customPlot->removeGraph(0);
-    }
-
-    if (cx.size() > 1) {
-        QCPGraph *g = customPlot->addGraph(customPlot->xAxis, customPlot->yAxis);
-        g->setData(cx, cy);
-        g->setPen(QPen(Qt::black, 1));
-        g->setLineStyle(QCPGraph::lsLine);
-        g->setScatterStyle(QCPScatterStyle::ssNone);
-        g->setName("Morton path");
+    auto *curve = new QCPCurve(customPlot->xAxis, customPlot->yAxis);
+    curve->setData(t, cx, cy);
+    curve->setPen(QPen(Qt::white, 1));
+    curve->setName("Hilbert path (sequential)");
+    curve->setScatterStyle(QCPScatterStyle::ssNone);
     }
     // -----------------------------------------------------------------------
 
@@ -494,9 +477,7 @@ void VisWidget::outputGridVector(const QVector<t_grid> &gridVector)
 
 void VisWidget::outputLodMesh(const lod_mesh &mesh)
 {
-
     currentGrids.clear();
 
     updateLodMeshGraph(customPlots[0], meshPlots[0], colorScales[0], mesh);
-
 }
