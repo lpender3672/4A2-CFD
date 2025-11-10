@@ -3,6 +3,7 @@ module mesh_gen
     use mesh_utils
     use mesh_alloc
     use mesh_build
+    use neighbouring
     ! use iso_fortran_env, only: real64
 
     implicit none
@@ -38,6 +39,12 @@ module mesh_gen
         call build_cells(n, m, ILOD, 1, mesh%cells)
 
         print *, 'Number of cells to allocate: ', mesh%length
+
+        call build_indicies(mesh)
+
+        print *, size(mesh%neigh_indices)
+
+        call print_first_five_neighbors(mesh)
 
     end subroutine generate_cmesh
     

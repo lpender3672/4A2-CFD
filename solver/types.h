@@ -54,7 +54,7 @@ extern "C" {
         float ro_ref, roe_ref, rov_ref;
         int ni, nj;
         int nn, nm;
-    std::int8_t crashed;
+        uint8_t crashed;
 
     };
     
@@ -82,14 +82,16 @@ extern "C" {
         double ymin;
         double ymax;
         int    level;
-        long long key;
         int    id;
+        int    neigh_offset;
+        uint8_t neigh_count;
+        uint8_t sc1, sc2, sc3, sc4;
     };
 
     struct lod_mesh {
         int length;
         cell2d* cells;
-        long long* morton;
+        int* neigh_indices;
     };
 }
 
