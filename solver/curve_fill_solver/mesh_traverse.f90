@@ -231,8 +231,9 @@ module mesh_build
 
         integer :: fine_bits, base_bits
         real(8) :: Nb
+        real(8) :: tempxmin, tempxmax, tempymin, tempymax
         integer :: extra_levels
-        integer :: cidx
+        integer :: cidx, i
         
 
         extra_levels = 1
@@ -246,6 +247,19 @@ module mesh_build
         cidx = 1
         
         call traverse_cells(0.0_8, 0.0_8, Nb, 0.0_8, 0.0_8, Nb, fine_bits, n, m, ILOD, cidx, cells)
+
+        ! fix min and max
+        do i = 1, size(cells)
+            tempxmin = min(cells(i)%xmin, cells(i)%xmax)
+            tempxmax = max(cells(i)%xmin, cells(i)%xmax)
+            tempymin = min(cells(i)%ymin, cells(i)%ymax)
+            tempymax = max(cells(i)%ymin, cells(i)%ymax)
+
+            cells(i)%xmin = tempxmin
+            cells(i)%xmax = tempxmax
+            cells(i)%ymin = tempymin
+            cells(i)%ymax = tempymax
+        end do
 
     end subroutine build_cells
 

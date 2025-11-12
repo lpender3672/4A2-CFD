@@ -24,7 +24,7 @@ subroutine curve_fill_solver() bind(C, name="curve_fill_solver")
 
   print *, 'entered curve_fill_solver'
 
-  call generate_cmesh(64, 64, "2412", real(2, 8), real(6.0, 8), m)
+  call generate_cmesh(32, 32, "2412", real(2, 8), real(6.0, 8), m)
 
   ! emit mesh to C++ side (for visualization, etc)
   call lod_mesh_to_qt(m)
