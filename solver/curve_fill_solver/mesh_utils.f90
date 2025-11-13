@@ -1,90 +1,97 @@
 module mesh_utils
   use iso_fortran_env, only: real64
   use types
+  use general_utils
   implicit none
   private
-  public :: rotate_points, naca4_airfoil, transform_airfoil
+  public :: lod_from_xy, dist_from_xy
+  public :: naca4_airfoil, transform_airfoil
   public :: curvature_at_nearest_point
-  public :: gaussian_kernel_2d, smooth2d
   public :: calc_lod
-
-  real(8), parameter :: PI = 3.1415926535897932384626433832795D0
-  real(8), parameter :: EPS = 1.0D-16
 
 contains
 
-  pure function clamp(x, a, b) result(y)
-    real(8), intent(in) :: x, a, b
-    real(8) :: y
-    y = max(a, min(b, x))
-  end function clamp
+  integer function lod_from_xy(x, y, n, m, ILOD) result(lod)
+      implicit none
+      real(8), intent(in) :: x, y        ! coordinates in full-resolution domain [0, m), [0, n)
+      integer, intent(in) :: n, m        ! fine domain size (for normalization)
+      integer, intent(in) :: ILOD(:,:)   ! coarse integer LOD map (nL × mL)
+      integer :: nL, mL
+      real(8) :: rx, ry, gx, gy
+      integer :: ix, iy
+      real(8) :: f00, f10, f01, f11, wx, wy, interp
 
-  pure function reflect_index(i, n) result(r)
+      ! size of coarse grid
+      nL = size(ILOD, 1)
+      mL = size(ILOD, 2)
 
-    integer, intent(in) :: i, n
-    integer :: r, t
-    if (n <= 1) then
-      r = 1
-      return
-    end if
-    t = i
-    do
-      if (t < 1) then
-        t = 2 - t
-      else if (t > n) then
-        t = 2*n - t
-      else
-        exit
-      end if
-    end do
-    r = t
-  end function reflect_index
+      ! fractional position in coarse grid
+      gx = x * real(mL - 1,8) / real(m,8)
+      gy = y * real(nL - 1,8) / real(n,8)
 
-  pure subroutine linspace(a, b, n, x)
-    real(8), intent(in) :: a, b
-    integer, intent(in) :: n
-    real(8), intent(out) :: x(n)
-    integer :: i
-    if (n == 1) then
-      x(1) = a
-    else
-      do i = 1, n
-        x(i) = a + (b - a) * real(i - 1,8) / real(n - 1,8)
-      end do
-    end if
-  end subroutine linspace
+      ! integer base indices (0-based)
+      ix = int(floor(gx))
+      iy = int(floor(gy))
 
-  pure subroutine meshgrid_xy(xv, yv, X, Y)
+      ! fractional parts
+      wx = gx - real(ix,8)
+      wy = gy - real(iy,8)
 
-    real(8), intent(in)  :: xv(:), yv(:)
-    real(8), intent(out) :: X(size(yv), size(xv)), Y(size(yv), size(xv))
-    integer :: i, j, n, m
+      ! clamp to valid interior range
+      ix = max(0, min(mL-2, ix))
+      iy = max(0, min(nL-2, iy))
 
-    n = size(yv)
-    m = size(xv)
+      ! get corner values (convert to real for interpolation)
+      f00 = real(ILOD(iy+1, ix+1), 8)
+      f10 = real(ILOD(iy+1, ix+2), 8)
+      f01 = real(ILOD(iy+2, ix+1), 8)
+      f11 = real(ILOD(iy+2, ix+2), 8)
 
-    do i = 1, n
-        do j = 1, m
-        X(i,j) = xv(j)
-        Y(i,j) = yv(i)
-        end do
-    end do
-    end subroutine meshgrid_xy
+      ! bilinear interpolation
+      interp = f00*(1.0-wx)*(1.0-wy) + f10*wx*(1.0-wy) + f01*(1.0-wx)*wy + f11*wx*wy
 
-  subroutine rotate_points(points_in, angle_rad, points_out)
-    ! points_in/out: (N,2)
-    real(8), intent(in)  :: points_in(:, :)
-    real(8), intent(in)  :: angle_rad
-    real(8), intent(out) :: points_out(size(points_in,1), 2)
-    integer :: n
-    real(8) :: c, s
-    n = size(points_in,1)
-    c = cos(angle_rad)
-    s = sin(angle_rad)
-    ! R^T = [[c, s],[-s, c]]
-    points_out(:,1) =  points_in(:,1)*c + points_in(:,2)*s
-    points_out(:,2) = -points_in(:,1)*s + points_in(:,2)*c
-  end subroutine rotate_points
+      ! round back to nearest integer
+      lod = int(nint(interp))
+    end function lod_from_xy
+
+
+    real(8) function dist_from_xy(x, y, n, m, DIST) result(phi)
+        implicit none
+        real(8), intent(in) :: x, y        ! coordinates in [0, m) x [0, n)
+        integer, intent(in) :: n, m        ! fine domain grid dims
+        real(8), intent(in) :: DIST(n, m)  ! distance field array
+        real(8) :: gx, gy, wx, wy
+        integer :: ix, iy
+        real(8) :: d00, d10, d01, d11
+
+        ! fractional position in grid index space
+        gx = x
+        gy = y
+
+        ! integer base indices (0-based in math, 1-based in Fortran)
+        ix = int(floor(gx))
+        iy = int(floor(gy))
+
+        ! clamp valid range [0 .. m-2], [0 .. n-2] because we sample ix+1 etc.
+        ix = max(0, min(m-2, ix))
+        iy = max(0, min(n-2, iy))
+
+        ! fractional offsets inside cell
+        wx = gx - real(ix, 8)
+        wy = gy - real(iy, 8)
+
+        ! sample the four corners, Fortran arrays are 1-based
+        d00 = DIST(iy+1, ix+1)
+        d10 = DIST(iy+1, ix+2)
+        d01 = DIST(iy+2, ix+1)
+        d11 = DIST(iy+2, ix+2)
+
+        ! bilinear interpolation
+        phi = d00*(1.0d0-wx)*(1.0d0-wy) + &
+            d10*(wx)*(1.0d0-wy)       + &
+            d01*(1.0d0-wx)*(wy)       + &
+            d11*(wx)*(wy)
+  end function dist_from_xy
 
   subroutine naca4_airfoil(code, n, closed_te, poly)
     character(len=*), intent(in) :: code
@@ -242,67 +249,14 @@ contains
     curvature = abs(dx1*ddy - dy1*ddx) / denom
   end subroutine curvature_at_nearest_point
 
-  subroutine gaussian_kernel_2d(size_k, sigma, kernel)
-    integer, intent(in) :: size_k
-    real(8), intent(in) :: sigma
-    real(8), allocatable, intent(out) :: kernel(:,:)  ! (size_k,size_k)
-
-    integer :: i, j, half, idx, jdx
-    real(8) :: s2, val, sumv
-
-    half = size_k/2
-    allocate(kernel(size_k, size_k))
-    s2 = 2.0D0 * sigma*sigma
-    sumv = 0.0D0
-    do i = 1, size_k
-      do j = 1, size_k
-        idx = i - half - 1
-        jdx = j - half - 1
-        val = exp(-(real(idx,8)**2 + real(jdx,8)**2) / s2)
-        kernel(i,j) = val
-        sumv = sumv + val
-      end do
-    end do
-    if (sumv <= 0.0D0) sumv = 1.0D0
-    kernel = kernel / sumv
-  end subroutine gaussian_kernel_2d
-
-  subroutine smooth2d(data, size_k, sigma, out)
-    real(8), intent(in)  :: data(:, :)
-    integer, intent(in)  :: size_k
-    real(8), intent(in)  :: sigma
-    real(8), intent(out) :: out(size(data,1), size(data,2))
-
-    integer :: n, m, i, j, ii, jj, di, dj, half
-    real(8), allocatable :: ker(:,:)
-    real(8) :: acc
-
-    n = size(data,1); m = size(data,2)
-    call gaussian_kernel_2d(size_k, sigma, ker)
-    half = size_k/2
-
-    do i = 1, n
-      do j = 1, m
-        acc = 0.0D0
-        do di = -half, +half
-          do dj = -half, +half
-            ii = reflect_index(i + di, n)
-            jj = reflect_index(j + dj, m)
-            acc = acc + data(ii, jj) * ker(di+half+1, dj+half+1)
-          end do
-        end do
-        out(i,j) = acc
-      end do
-    end do
-  end subroutine smooth2d
-
-  subroutine calc_lod(n, m, foil, max_level, ILOD)
+  subroutine calc_lod(n, m, foil, max_level, ILOD, DIST)
     integer, intent(in) :: n, m, max_level
     real(8), intent(in) :: foil(:, :)              ! (Nf,2) polyline
     integer, intent(out):: ILOD(n, m)
+    real(8), allocatable, intent(out):: DIST(:,:)
 
     real(8) :: X(n, m), Y(n, m)
-    real(8), allocatable :: xv(:), yv(:), KAPPA(:,:), DIST(:,:), LOD(:,:)
+    real(8), allocatable :: xv(:), yv(:), KAPPA(:,:), LOD(:,:)
     real(8), allocatable :: NLOD(:,:)
     real(8) :: min_k_pos, max_dist, min_nlod, max_nlod
     integer :: i, j

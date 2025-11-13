@@ -115,49 +115,6 @@ module mesh_traverse
 
     end subroutine traverse_cells
 
-    integer function lod_from_xy(x, y, n, m, ILOD) result(lod)
-        implicit none
-        real(8), intent(in) :: x, y        ! coordinates in full-resolution domain [0, m), [0, n)
-        integer, intent(in) :: n, m        ! fine domain size (for normalization)
-        integer, intent(in) :: ILOD(:,:)   ! coarse integer LOD map (nL × mL)
-        integer :: nL, mL
-        real(8) :: rx, ry, gx, gy
-        integer :: ix, iy
-        real(8) :: f00, f10, f01, f11, wx, wy, interp
-
-        ! size of coarse grid
-        nL = size(ILOD, 1)
-        mL = size(ILOD, 2)
-
-        ! fractional position in coarse grid
-        gx = x * real(mL - 1,8) / real(m,8)
-        gy = y * real(nL - 1,8) / real(n,8)
-
-        ! integer base indices (0-based)
-        ix = int(floor(gx))
-        iy = int(floor(gy))
-
-        ! fractional parts
-        wx = gx - real(ix,8)
-        wy = gy - real(iy,8)
-
-        ! clamp to valid interior range
-        ix = max(0, min(mL-2, ix))
-        iy = max(0, min(nL-2, iy))
-
-        ! get corner values (convert to real for interpolation)
-        f00 = real(ILOD(iy+1, ix+1), 8)
-        f10 = real(ILOD(iy+1, ix+2), 8)
-        f01 = real(ILOD(iy+2, ix+1), 8)
-        f11 = real(ILOD(iy+2, ix+2), 8)
-
-        ! bilinear interpolation
-        interp = f00*(1.0-wx)*(1.0-wy) + f10*wx*(1.0-wy) + f01*(1.0-wx)*wy + f11*wx*wy
-
-        ! round back to nearest integer
-        lod = int(nint(interp))
-    end function lod_from_xy
-    
 end module mesh_traverse
 
 module mesh_alloc

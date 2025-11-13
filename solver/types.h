@@ -83,6 +83,7 @@ extern "C" {
         double ymax;
         int    level;
         int    id;
+        int    iswall;
         int    neigh_offset;
         uint8_t neigh_count;
         uint8_t sc1, sc2, sc3, sc4;
@@ -91,6 +92,8 @@ extern "C" {
     struct lod_mesh {
         int length;
         cell2d* cells;
+        int wall_count;
+        double* wall_normals;
         int* neigh_indices;
     };
 }

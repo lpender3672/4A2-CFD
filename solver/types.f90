@@ -168,6 +168,8 @@
             integer(c_int)    :: level
             integer(c_int)    :: id
 
+            integer(c_int) :: iswall
+
             integer(c_int)    :: neigh_offset   ! start index in global neighbour array
             integer(c_int8_t)    :: neigh_count    ! total number of neighbours (all sides)
             integer(c_int8_t)    :: side_count(4)  ! how many neighbours per side (xi, xi+1, yi, yi+1)
@@ -177,7 +179,11 @@
       type :: lod_mesh
             integer(c_int)            :: length = 0
             type(cell2d), allocatable :: cells(:)
+            integer(c_int)          :: wall_count
+            real(c_double), allocatable :: solid_fractions
+            real(c_double), allocatable :: wall_normals(:,:)
             integer(c_int), allocatable  :: neigh_indices(:)
+
       end type lod_mesh
 
       type, bind(C) :: lod_mesh_c

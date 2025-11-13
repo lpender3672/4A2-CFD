@@ -79,9 +79,10 @@ module neighbouring
     do i = 2, n_cells
         mesh%cells(i)%neigh_offset = mesh%cells(i-1)%neigh_offset + mesh%cells(i-1)%neigh_count
     end do
-    total_neigh = mesh%cells(n_cells)%neigh_offset + mesh%cells(i)%neigh_count - 1
+    total_neigh = mesh%cells(n_cells)%neigh_offset + mesh%cells(n_cells)%neigh_count - 1
     
     allocate(mesh%neigh_indices(total_neigh))
+    mesh%neigh_indices = 0
 
     ! fill 
     do i = 1, n_cells

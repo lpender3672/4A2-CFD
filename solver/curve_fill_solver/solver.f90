@@ -16,7 +16,7 @@ subroutine curve_fill_solver() bind(C, name="curve_fill_solver")
   integer  :: max_level, bits
   real(rk) :: hmin, beta
 
-  type(lod_mesh) :: m
+  type(lod_mesh) :: mesh
   type(cell2d), allocatable :: leaves(:)
   integer :: i
 
@@ -24,10 +24,10 @@ subroutine curve_fill_solver() bind(C, name="curve_fill_solver")
 
   print *, 'entered curve_fill_solver'
 
-  call generate_cmesh(32, 32, "2412", real(2, 8), real(6.0, 8), m)
+  call generate_cmesh(128, 128, "2412", real(2, 8), real(6.0, 8), mesh)
 
   ! emit mesh to C++ side (for visualization, etc)
-  call lod_mesh_to_qt(m)
+  call lod_mesh_to_qt(mesh)
 
 
 end subroutine curve_fill_solver
