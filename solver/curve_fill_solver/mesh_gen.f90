@@ -36,7 +36,7 @@ module mesh_gen
 
         integer :: ILOD(n,m)
         integer :: ncells, max_level, i, j, unit
-        real(8), allocatable :: foil(:,:), foil_t(:,:), DIST(:,:)
+        real(8), allocatable :: foil(:,:), foil_t(:,:), DIST(:,:), KAPPA(:,:)
 
 
         ! Build an airfoil in domain units as you like:
@@ -46,9 +46,10 @@ module mesh_gen
 
         ! Generate airfoil geometry
 
-        max_level = 5
+        max_level = 8
         ! Build LOD map based on airfoil geometry and NACA code
-        call calc_lod(n, m, foil_t, max_level, ILOD, DIST)
+        ! also gives distance and curvature maps for walls
+        call calc_lod(n, m, foil_t, max_level, DIST, KAPPA, ILOD)
 
         ! Calculate full mesh
         call alloc_ncells(n, m, ILOD, 1, full_mesh%length, full_mesh%cells)
@@ -58,7 +59,7 @@ module mesh_gen
         !call write_mesh_csv(full_mesh, 'mesh.csv')
 
         ! now function to reduce mesh
-        call build_walls(full_mesh, foil_t, DIST, mesh)
+        call build_walls(full_mesh, foil_t, DIST, KAPPA, mesh)
 
         print *, 'Reduced mesh cells allocated: ', mesh%length
 
@@ -71,23 +72,27 @@ module mesh_gen
 
     end subroutine generate_cmesh
 
-    subroutine build_walls(full_mesh, poly, distance, reduced_mesh)
+    subroutine build_walls(full_mesh, poly, distance, curvature, reduced_mesh)
         type(lod_mesh), intent(in) :: full_mesh
-        real(8), intent(in) :: poly(:,:), distance(:,:)
+        real(8), intent(in) :: poly(:,:), distance(:,:), curvature(:,:)
         type(lod_mesh), intent(out) :: reduced_mesh
-        real(8) :: xc, yc, distance_threshold
-        integer :: n, m
+        real(8) :: phis(full_mesh%length)
+        real(8) :: distance_threshold, curvature_threshold
+        integer :: i
 
         distance_threshold = 1d-2 ! idk
-        n = size(distance, 1)
-        m = size(distance, 2)
+        curvature_threshold = 1d-1 ! idk
 
         do i=1, full_mesh%length
-            xc = (full_mesh%cells(i)%xmax + full_mesh%cells(i)%xmin)/2
-            yc = (full_mesh%cells(i)%ymax + full_mesh%cells(i)%ymin)/2
-            
-            if (dist_from_xy(xc, yc, n, m, distance) < distance_threshold) then
-                ! compute phi
+            if (interp_from_cell(full_mesh%cells(i), distance) < distance_threshold) then
+                ! if curvature high then do poly intersection
+                if (interp_from_cell(full_mesh%cells(i), curvature) < curvature_threshold) then
+                    ! simple straight line intersection
+                    call linear_cell_phi(full_mesh%cells(i), poly, phis(i))
+                else
+                    ! complex curve intersection
+                    call poly_cell_phi(full_mesh%cells(i), poly, phis(i))
+                end if
             end if
         end do
 
@@ -98,5 +103,25 @@ module mesh_gen
 
         reduced_mesh = full_mesh
     end subroutine
+
+    subroutine linear_cell_phi(cell, poly, phi)
+        type(cell2d), intent(in) :: cell
+        real(8), intent(in) :: poly(:,:)
+        real(8), intent(out) :: phi
+
+        !TODO
+
+        phi = 0.0d0
+    end subroutine linear_cell_phi
+
+    subroutine poly_cell_phi(cell, poly, phi)
+        type(cell2d), intent(in) :: cell
+        real(8), intent(in) :: poly(:,:)
+        real(8), intent(out) :: phi
+
+        !TODO
+
+        phi = 0.0d0
+    end subroutine poly_cell_phi
     
 end module mesh_gen

@@ -4,7 +4,7 @@ module mesh_utils
   use general_utils
   implicit none
   private
-  public :: lod_from_xy, dist_from_xy
+  public :: lod_from_xy, interp_from_cell
   public :: naca4_airfoil, transform_airfoil
   public :: curvature_at_nearest_point
   public :: calc_lod
@@ -55,43 +55,44 @@ contains
     end function lod_from_xy
 
 
-    real(8) function dist_from_xy(x, y, n, m, DIST) result(phi)
-        implicit none
-        real(8), intent(in) :: x, y        ! coordinates in [0, m) x [0, n)
-        integer, intent(in) :: n, m        ! fine domain grid dims
-        real(8), intent(in) :: DIST(n, m)  ! distance field array
-        real(8) :: gx, gy, wx, wy
-        integer :: ix, iy
-        real(8) :: d00, d10, d01, d11
+    real(8) function interp_from_cell(cell, map) result(phi)
+    implicit none
+    type(cell2d), intent(in) :: cell
+    real(8), intent(in) :: map(:, :)
+    integer :: n, m
 
-        ! fractional position in grid index space
-        gx = x
-        gy = y
+    real(8) :: gx, gy
+    real(8) :: wx, wy
+    integer :: ix, iy
+    real(8) :: d00, d10, d01, d11
 
-        ! integer base indices (0-based in math, 1-based in Fortran)
-        ix = int(floor(gx))
-        iy = int(floor(gy))
+    n = size(map, 1)
+    m = size(map, 2)
 
-        ! clamp valid range [0 .. m-2], [0 .. n-2] because we sample ix+1 etc.
-        ix = max(0, min(m-2, ix))
-        iy = max(0, min(n-2, iy))
+    gx = 0.5d0 * (cell%xmin + cell%xmax)
+    gy = 0.5d0 * (cell%ymin + cell%ymax)
 
-        ! fractional offsets inside cell
-        wx = gx - real(ix, 8)
-        wy = gy - real(iy, 8)
+    ix = int(floor(gx))
+    iy = int(floor(gy))
 
-        ! sample the four corners, Fortran arrays are 1-based
-        d00 = DIST(iy+1, ix+1)
-        d10 = DIST(iy+1, ix+2)
-        d01 = DIST(iy+2, ix+1)
-        d11 = DIST(iy+2, ix+2)
+    ix = max(0, min(m-2, ix))
+    iy = max(0, min(n-2, iy))
 
-        ! bilinear interpolation
-        phi = d00*(1.0d0-wx)*(1.0d0-wy) + &
-            d10*(wx)*(1.0d0-wy)       + &
-            d01*(1.0d0-wx)*(wy)       + &
-            d11*(wx)*(wy)
-  end function dist_from_xy
+    wx = gx - real(ix, 8)
+    wy = gy - real(iy, 8)
+
+    d00 = map(iy+1, ix+1)
+    d10 = map(iy+1, ix+2)
+    d01 = map(iy+2, ix+1)
+    d11 = map(iy+2, ix+2)
+
+    phi = d00*(1d0-wx)*(1d0-wy) + &
+          d10*(wx)*(1d0-wy)     + &
+          d01*(1d0-wx)*(wy)     + &
+          d11*(wx)*(wy)
+
+  end function interp_from_cell
+  
 
   subroutine naca4_airfoil(code, n, closed_te, poly)
     character(len=*), intent(in) :: code
@@ -249,14 +250,14 @@ contains
     curvature = abs(dx1*ddy - dy1*ddx) / denom
   end subroutine curvature_at_nearest_point
 
-  subroutine calc_lod(n, m, foil, max_level, ILOD, DIST)
+  subroutine calc_lod(n, m, foil, max_level, DIST, KAPPA, ILOD)
     integer, intent(in) :: n, m, max_level
     real(8), intent(in) :: foil(:, :)              ! (Nf,2) polyline
     integer, intent(out):: ILOD(n, m)
-    real(8), allocatable, intent(out):: DIST(:,:)
+    real(8), allocatable, intent(out):: DIST(:,:), KAPPA(:, :)
 
     real(8) :: X(n, m), Y(n, m)
-    real(8), allocatable :: xv(:), yv(:), KAPPA(:,:), LOD(:,:)
+    real(8), allocatable :: xv(:), yv(:), LOD(:,:)
     real(8), allocatable :: NLOD(:,:)
     real(8) :: min_k_pos, max_dist, min_nlod, max_nlod
     integer :: i, j

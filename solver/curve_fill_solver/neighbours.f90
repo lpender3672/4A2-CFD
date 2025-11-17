@@ -6,17 +6,16 @@ module neighbouring
 
   contains
 
-  logical function cells_share_edge(a, b, eps, side)
+  integer pure function cells_share_edge(a, b, eps)
 
     type(cell2d), intent(in) :: a, b
     real(c_double), intent(in) :: eps
-    integer, intent(out) :: side
 
     real(c_double) :: x1a, x1b, y1a, y1b
     real(c_double) :: x2a, x2b, y2a, y2b
     logical :: horiz_touch, horiz_overlap, vert_touch, vert_overlap
 
-    side = 0
+    cells_share_edge = 0
 
     ! Bounds from your cell2d structure
     x1a = a%xmin;  x1b = a%xmax
@@ -32,15 +31,10 @@ module neighbouring
     vert_touch    = (abs(x1a - x2b) < eps) .or. (abs(x1b - x2a) < eps)
     vert_overlap  = min(y1b, y2b) > max(y1a, y2a) + eps
 
-    cells_share_edge = (horiz_touch .and. horiz_overlap) .or. &
-                       (vert_touch  .and. vert_overlap)
-
-    if (cells_share_edge) then
-        if (vert_touch .and. x1a > x2a) side = 1  ! left
-        if (vert_touch .and. x1a < x2a) side = 2  ! right
-        if (horiz_touch .and. y1a > y2a) side = 3 ! bottom
-        if (horiz_touch .and. y1a < y2a) side = 4 ! top
-    end if
+    if (vert_touch .and. vert_overlap .and. x1a > x2a) cells_share_edge = 1  ! left
+    if (vert_touch .and. vert_overlap .and. x1a < x2a) cells_share_edge = 2  ! right
+    if (horiz_touch .and. horiz_overlap .and. y1a > y2a) cells_share_edge = 3 ! bottom
+    if (horiz_touch .and. horiz_overlap .and. y1a < y2a) cells_share_edge = 4 ! top
     
   end function cells_share_edge
 
@@ -55,10 +49,12 @@ module neighbouring
     ! necessary because looping through a curve could give neighbours at any side
     integer, parameter :: MAX_SIDE_NEIGH = 32
     integer :: tmp_sides(4, MAX_SIDE_NEIGH)
+    integer :: cached_side(mesh%length, mesh%length)
 
     tol = 1d-9
     n_cells = mesh%length
     tmp_sides = 0
+    cached_side = 0
 
     ! count neighbours to determine size to allocate
     do i = 1, n_cells
@@ -67,9 +63,9 @@ module neighbouring
         do j = 1, n_cells
             if (j == i) cycle
 
-            if (cells_share_edge(mesh%cells(i), mesh%cells(j), tol, side)) then
-                tmp_count = tmp_count + 1
-            end if
+            side = cells_share_edge(mesh%cells(i), mesh%cells(j), tol)
+            if (side > 0) tmp_count = tmp_count + 1
+            cached_side(i, j) = side
         end do
 
         mesh%cells(i)%neigh_count = tmp_count
@@ -93,7 +89,8 @@ module neighbouring
         do j = 1, n_cells
             if (j == i) cycle
 
-            if (cells_share_edge(mesh%cells(i), mesh%cells(j), tol, side)) then
+            side = cached_side(i, j)
+            if (side > 0) then
                 mesh%cells(i)%side_count(side) = mesh%cells(i)%side_count(side) + 1
                 tmp_sides(side, mesh%cells(i)%side_count(side)) = j
             end if
