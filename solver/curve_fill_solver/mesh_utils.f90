@@ -6,7 +6,7 @@ module mesh_utils
   private
   public :: lod_from_xy, interp_from_cell
   public :: naca4_airfoil, transform_airfoil
-  public :: curvature_at_nearest_point
+  public :: nearest_idx, dist_curvature_at_idx
   public :: calc_lod
 
 contains
@@ -185,70 +185,68 @@ contains
     poly_out(:,2) = poly_out(:,2) + origin(2)
   end subroutine transform_airfoil
 
-  subroutine curvature_at_nearest_point(px, py, poly, dist, curvature)
+  subroutine nearest_idx(px, py, poly, idx_near)
     real(8), intent(in) :: px, py
     real(8), intent(in) :: poly(:, :)        ! (N,2)
-    real(8), intent(out):: dist, curvature
+    integer, intent(out):: idx_near
 
-    integer :: n, i, idx, i_min
-    real(8) :: vx, vy, wx, wy, vv, t, projx, projy, dx, dy, d2, d2_min
-    real(8) :: x_prev, x_curr, x_next, y_prev, y_curr, y_next
-    real(8) :: dx1, dy1, ddx, ddy, denom
+    integer :: n, i
+    real(8) :: dx, dy, d2, d2_min
 
     n = size(poly,1)
-    if (n < 3) then
-      dist = 0.0D0; curvature = 0.0D0
-      return
-    end if
-
     d2_min = 1.0D300
-    i_min = 1
-    t = 0.0D0
+    idx_near = 1
 
-    do i = 1, n-1
-      vx = poly(i+1,1) - poly(i,1)
-      vy = poly(i+1,2) - poly(i,2)
-      wx = px - poly(i,1)
-      wy = py - poly(i,2)
-      vv = vx*vx + vy*vy
-      if (vv <= 0.0D0) vv = EPS
-      ! projection parameter clamped
-      t = (wx*vx + wy*vy) / vv
-      if (t < 0.0D0) t = 0.0D0
-      if (t > 1.0D0) t = 1.0D0
-
-      projx = poly(i,1) + t*vx
-      projy = poly(i,2) + t*vy
-      dx = px - projx
-      dy = py - projy
+    do i = 1, n
+      dx = px - poly(i,1)
+      dy = py - poly(i,2)
       d2 = dx*dx + dy*dy
       if (d2 < d2_min) then
         d2_min = d2
-        i_min = i
+        idx_near = i
       end if
     end do
+  end subroutine nearest_idx
 
-    dist = sqrt(d2_min)
+  
+  subroutine dist_curvature_at_idx(px, py, poly, idx, dist, curvature)
+    real(8), intent(in)  :: px, py
+    real(8), intent(in)  :: poly(:, :)    ! (N,2)
+    integer, intent(in) :: idx
+    real(8), intent(out) :: dist, curvature
 
-    ! choose closer endpoint of segment i_min
-    if (t < 0.5D0) then
-      idx = i_min
-    else
-      idx = i_min + 1
+    integer :: n, im1, ip1, cidx
+    real(8) :: dx, dy, d2
+    real(8) :: dx1, dy1, ddx, ddy, denom
+    real(8), parameter :: EPS = 1.0D-12
+
+    n = size(poly,1)
+    if (n < 3) then
+      dist = 0.0D0
+      curvature = 0.0D0
+      return
     end if
-    idx = max(2, min(n-1, idx))
 
-    x_prev = poly(idx-1,1); x_curr = poly(idx,1); x_next = poly(idx+1,1)
-    y_prev = poly(idx-1,2); y_curr = poly(idx,2); y_next = poly(idx+1,2)
+    dx = px - poly(idx,1)
+    dy = py - poly(idx,2)
+    d2 = dx*dx + dy*dy
+    dist = sqrt(d2)
 
-    dx1 = x_next - x_prev
-    dy1 = y_next - y_prev
-    ddx = x_next - 2.0D0*x_curr + x_prev
-    ddy = y_next - 2.0D0*y_curr + y_prev
+    cidx = max(2, min(n-1, idx))
+
+    im1 = cidx-1
+    ip1 = cidx+1
+
+    dx1 = poly(ip1,1) - poly(im1,1)
+    dy1 = poly(ip1,2) - poly(im1,2)
+    ddx = poly(ip1,1) - 2.0D0*poly(cidx,1) + poly(im1,1)
+    ddy = poly(ip1,2) - 2.0D0*poly(cidx,2) + poly(im1,2)
+
     denom = (dx1*dx1 + dy1*dy1)**1.5D0
     if (denom <= 0.0D0) denom = EPS
+
     curvature = abs(dx1*ddy - dy1*ddx) / denom
-  end subroutine curvature_at_nearest_point
+  end subroutine dist_curvature_at_idx
 
   subroutine calc_lod(n, m, foil, max_level, DIST, KAPPA, ILOD)
     integer, intent(in) :: n, m, max_level
@@ -260,7 +258,7 @@ contains
     real(8), allocatable :: xv(:), yv(:), LOD(:,:)
     real(8), allocatable :: NLOD(:,:)
     real(8) :: min_k_pos, max_dist, min_nlod, max_nlod
-    integer :: i, j
+    integer :: i, j, idx
 
     allocate(xv(m), yv(n))
     if (m > 1) then
@@ -281,7 +279,8 @@ contains
 
     do i = 1, n
       do j = 1, m
-        call curvature_at_nearest_point(X(i,j), Y(i,j), foil, DIST(i,j), KAPPA(i,j))
+        call nearest_idx(X(i,j), Y(i,j),foil, idx)
+        call dist_curvature_at_idx(X(i,j), Y(i,j), foil, idx, DIST(i,j), KAPPA(i,j))
       end do
     end do
 

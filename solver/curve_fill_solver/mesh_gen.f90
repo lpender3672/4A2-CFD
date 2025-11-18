@@ -74,25 +74,35 @@ module mesh_gen
 
     subroutine build_walls(full_mesh, poly, distance, curvature, reduced_mesh)
         type(lod_mesh), intent(in) :: full_mesh
+
+        ! precomputed distance and curvature fields used for lod decision
         real(8), intent(in) :: poly(:,:), distance(:,:), curvature(:,:)
+
         type(lod_mesh), intent(out) :: reduced_mesh
         real(8) :: phis(full_mesh%length)
+
+        ! thresholds to decide whether to use linear or curved intersection
         real(8) :: distance_threshold, curvature_threshold
         integer :: i
 
-        distance_threshold = 1d-2 ! idk
         curvature_threshold = 1d-1 ! idk
 
+        phis = 0.0d0
+
         do i=1, full_mesh%length
-            if (interp_from_cell(full_mesh%cells(i), distance) < distance_threshold) then
-                ! if curvature high then do poly intersection
-                if (interp_from_cell(full_mesh%cells(i), curvature) < curvature_threshold) then
-                    ! simple straight line intersection
-                    call linear_cell_phi(full_mesh%cells(i), poly, phis(i))
-                else
-                    ! complex curve intersection
-                    call poly_cell_phi(full_mesh%cells(i), poly, phis(i))
-                end if
+            ! if we're not within a cell size, skip
+            distance_threshold = max(full_mesh%cells(i)%xmax - full_mesh%cells(i)%xmin, &
+                                     full_mesh%cells(i)%ymax - full_mesh%cells(i)%ymin)
+
+            if (interp_from_cell(full_mesh%cells(i), distance) > distance_threshold) cycle
+
+            ! if curvature below arbitrary threshold
+            if (interp_from_cell(full_mesh%cells(i), curvature) < curvature_threshold) then
+                ! simple straight line intersection
+                call linear_cell_phi(full_mesh%cells(i), poly, phis(i))
+            else
+                ! complex curve intersection
+                call poly_cell_phi(full_mesh%cells(i), poly, phis(i))
             end if
         end do
 
