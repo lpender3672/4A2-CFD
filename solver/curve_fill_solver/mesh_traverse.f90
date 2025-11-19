@@ -4,16 +4,16 @@ module mesh_traverse
     implicit none
     contains
 
-    recursive subroutine traverse_ncells(x0, y0, xi, xj, yi, yj, level, n, m, ILOD, ncells)
+    recursive subroutine traverse_ncells(x0, y0, xi, xj, yi, yj, level, n, m, poly, ncells)
         implicit none
         real(8), intent(in) :: x0, y0, xi, xj, yi, yj
         integer, intent(in) :: level, n, m
-        integer, intent(in) :: ILOD(n,m)
+        real(8), intent(in) :: poly(:,:) ! (np,2)
         integer, intent(inout) :: ncells
 
         real(8) :: rx0, rx1, ry0, ry1
-        real(8) :: px, py
-        integer :: stop_level
+        real(8) :: px, py, dist
+        integer :: pidx, stop_level
         logical :: inside
 
         ! Compute region bounding box (fine grid coords)
@@ -35,7 +35,9 @@ module mesh_traverse
         if (.not. inside) return
 
         ! Lookup LOD index
-        stop_level = lod_from_xy(px, py, n, m, ILOD)
+        call nearest_idx(px, py, poly, pidx)
+        call dist_xy_to_xy(px, py, poly(pidx,1), poly(pidx,2), dist)
+        stop_level = dist * 5 / max(n,m)
 
         if (level <= stop_level) then
             ncells = ncells + 1
@@ -43,29 +45,29 @@ module mesh_traverse
         end if
 
         ! Recurse in Hilbert order (same pattern as Python)
-        call traverse_ncells(x0,                  y0,                  yi/2.0_8,  yj/2.0_8,  xi/2.0_8,  xj/2.0_8,  level-1, n, m, ILOD, ncells)
+        call traverse_ncells(x0,                  y0,                  yi/2.0_8,  yj/2.0_8,  xi/2.0_8,  xj/2.0_8,  level-1, n, m, poly, ncells)
 
-        call traverse_ncells(x0 + xi/2.0_8,       y0 + xj/2.0_8,       xi/2.0_8,  xj/2.0_8,  yi/2.0_8,  yj/2.0_8,  level-1, n, m, ILOD, ncells)
+        call traverse_ncells(x0 + xi/2.0_8,       y0 + xj/2.0_8,       xi/2.0_8,  xj/2.0_8,  yi/2.0_8,  yj/2.0_8,  level-1, n, m, poly, ncells)
 
         call traverse_ncells(x0 + xi/2.0_8 + yi/2.0_8, y0 + xj/2.0_8 + yj/2.0_8, &
-                            xi/2.0_8, xj/2.0_8, yi/2.0_8, yj/2.0_8, level-1, n, m, ILOD, ncells)
+                            xi/2.0_8, xj/2.0_8, yi/2.0_8, yj/2.0_8, level-1, n, m, poly, ncells)
 
         call traverse_ncells(x0 + xi/2.0_8 + yi,  y0 + xj/2.0_8 + yj, &
-                            -yi/2.0_8, -yj/2.0_8, -xi/2.0_8, -xj/2.0_8, level-1, n, m, ILOD, ncells)
+                            -yi/2.0_8, -yj/2.0_8, -xi/2.0_8, -xj/2.0_8, level-1, n, m, poly, ncells)
 
     end subroutine traverse_ncells
 
-    recursive subroutine traverse_cells(x0, y0, xi, xj, yi, yj, level, n, m, ILOD, cidx, cells)
+    recursive subroutine traverse_cells(x0, y0, xi, xj, yi, yj, level, n, m, poly, cidx, hmesh)
         implicit none
         real(8), intent(in) :: x0, y0, xi, xj, yi, yj
         integer, intent(in) :: level, n, m
-        integer, intent(in) :: ILOD(n,m)
+        real(8), intent(in) :: poly(:,:) ! (np,2)
         integer, intent(inout) :: cidx
-        type(cell2d), intent(inout) :: cells(:)
+        type(helper_lod_mesh), intent(inout) :: hmesh
 
         real(8) :: rx0, rx1, ry0, ry1
-        real(8) :: px, py
-        integer :: stop_level
+        real(8) :: px, py, dist
+        integer :: pidx, stop_level
         logical :: inside
 
         ! Compute region bounding box (fine grid coords)
@@ -87,15 +89,17 @@ module mesh_traverse
         if (.not. inside) return
 
         ! Lookup LOD index
-        stop_level = lod_from_xy(px, py, n, m, ILOD)
+        call nearest_idx(px, py, poly, pidx)
+        call dist_xy_to_xy(px, py, poly(pidx,1), poly(pidx,2), dist)
+        stop_level = dist * 5 / max(n,m)
 
         if (level <= stop_level) then
             ! fill cells array her
-            cells(cidx)%xmin = x0
-            cells(cidx)%xmax = x0 + xi + yi
-            cells(cidx)%ymin = y0
-            cells(cidx)%ymax = y0 + xj + yj
-            cells(cidx)%level = level
+            hmesh%cells(cidx)%xmin = x0
+            hmesh%cells(cidx)%xmax = x0 + xi + yi
+            hmesh%cells(cidx)%ymin = y0
+            hmesh%cells(cidx)%ymax = y0 + xj + yj
+            hmesh%cells(cidx)%level = level
 
             ! etc
             cidx = cidx + 1
@@ -103,15 +107,15 @@ module mesh_traverse
         end if
 
         ! Recurse in Hilbert order (same pattern as Python)
-        call traverse_cells(x0,                  y0,                  yi/2.0_8,  yj/2.0_8,  xi/2.0_8,  xj/2.0_8,  level-1, n, m, ILOD, cidx, cells)
+        call traverse_cells(x0,                  y0,                  yi/2.0_8,  yj/2.0_8,  xi/2.0_8,  xj/2.0_8,  level-1, n, m, poly, cidx, hmesh)
 
-        call traverse_cells(x0 + xi/2.0_8,       y0 + xj/2.0_8,       xi/2.0_8,  xj/2.0_8,  yi/2.0_8,  yj/2.0_8,  level-1, n, m, ILOD, cidx, cells)
+        call traverse_cells(x0 + xi/2.0_8,       y0 + xj/2.0_8,       xi/2.0_8,  xj/2.0_8,  yi/2.0_8,  yj/2.0_8,  level-1, n, m, poly, cidx, hmesh)
 
         call traverse_cells(x0 + xi/2.0_8 + yi/2.0_8, y0 + xj/2.0_8 + yj/2.0_8, &
-                            xi/2.0_8, xj/2.0_8, yi/2.0_8, yj/2.0_8, level-1, n, m, ILOD, cidx, cells)
+                            xi/2.0_8, xj/2.0_8, yi/2.0_8, yj/2.0_8, level-1, n, m, poly, cidx, hmesh)
 
         call traverse_cells(x0 + xi/2.0_8 + yi,  y0 + xj/2.0_8 + yj, &
-                            -yi/2.0_8, -yj/2.0_8, -xi/2.0_8, -xj/2.0_8, level-1, n, m, ILOD, cidx, cells)
+                            -yi/2.0_8, -yj/2.0_8, -xi/2.0_8, -xj/2.0_8, level-1, n, m, poly, cidx, hmesh)
 
     end subroutine traverse_cells
 
@@ -125,13 +129,12 @@ module mesh_alloc
 
     contains
 
-    subroutine alloc_ncells(n, m, ILOD, extra_global_levels, ncells, cells)
+    subroutine alloc_ncells(n, m, poly, extra_global_levels, hmesh)
         implicit none
         integer, intent(in) :: n, m
-        integer, intent(in) :: ILOD(n,m)             ! precomputed LOD map
+        real(8), intent(in) :: poly(:,:) ! (np,2)
         integer, intent(in), optional :: extra_global_levels
-        integer, intent(out) :: ncells
-        type(cell2d), allocatable, intent(out) :: cells(:)
+        type(helper_lod_mesh), intent(out) :: hmesh
 
         integer :: fine_bits, base_bits
         real(8) :: Nb
@@ -147,11 +150,14 @@ module mesh_alloc
         ! Nb = 2.0_8**fine_bits
         Nb = real(max(n,m), 8)
 
-        ncells = 0
+        hmesh%length = 0
         
-        call traverse_ncells(0.0_8, 0.0_8, Nb, 0.0_8, 0.0_8, Nb, fine_bits, n, m, ILOD, ncells)
+        call traverse_ncells(0.0_8, 0.0_8, Nb, 0.0_8, 0.0_8, Nb, fine_bits, n, m, poly, hmesh%length)
 
-        allocate(cells(ncells))
+        allocate(hmesh%cells(hmesh%length))
+        allocate(hmesh%nearest_cell_poly_idx(hmesh%length))
+        allocate(hmesh%nearest_cell_poly_distance(hmesh%length))
+        allocate(hmesh%nearest_cell_poly_curvature(hmesh%length))
 
     end subroutine alloc_ncells
 
@@ -179,12 +185,12 @@ module mesh_build
 
     contains
 
-    subroutine build_cells(n, m, ILOD, extra_global_levels, cells)
+    subroutine build_cells(n, m, poly, extra_global_levels, hmesh)
         implicit none
         integer, intent(in) :: n, m
-        integer, intent(in) :: ILOD(n,m)             ! precomputed LOD map
+        real(8), intent(in) :: poly(:,:) ! (np,2)
         integer, intent(in), optional :: extra_global_levels
-        type(cell2d), intent(out) :: cells(:)
+        type(helper_lod_mesh), intent(inout) :: hmesh
 
         integer :: fine_bits, base_bits
         real(8) :: Nb
@@ -192,7 +198,6 @@ module mesh_build
         integer :: extra_levels
         integer :: cidx, i
         
-
         extra_levels = 1
         if (present(extra_global_levels)) extra_levels = extra_global_levels
 
@@ -203,19 +208,19 @@ module mesh_build
 
         cidx = 1
         
-        call traverse_cells(0.0_8, 0.0_8, Nb, 0.0_8, 0.0_8, Nb, fine_bits, n, m, ILOD, cidx, cells)
+        call traverse_cells(0.0_8, 0.0_8, Nb, 0.0_8, 0.0_8, Nb, fine_bits, n, m, poly, cidx, hmesh)
 
         ! fix min and max
-        do i = 1, size(cells)
-            tempxmin = min(cells(i)%xmin, cells(i)%xmax)
-            tempxmax = max(cells(i)%xmin, cells(i)%xmax)
-            tempymin = min(cells(i)%ymin, cells(i)%ymax)
-            tempymax = max(cells(i)%ymin, cells(i)%ymax)
+        do i = 1, hmesh%length
+            tempxmin = min(hmesh%cells(i)%xmin, hmesh%cells(i)%xmax)
+            tempxmax = max(hmesh%cells(i)%xmin, hmesh%cells(i)%xmax)
+            tempymin = min(hmesh%cells(i)%ymin, hmesh%cells(i)%ymax)
+            tempymax = max(hmesh%cells(i)%ymin, hmesh%cells(i)%ymax)
 
-            cells(i)%xmin = tempxmin
-            cells(i)%xmax = tempxmax
-            cells(i)%ymin = tempymin
-            cells(i)%ymax = tempymax
+            hmesh%cells(i)%xmin = tempxmin
+            hmesh%cells(i)%xmax = tempxmax
+            hmesh%cells(i)%ymin = tempymin
+            hmesh%cells(i)%ymax = tempymax
         end do
 
     end subroutine build_cells

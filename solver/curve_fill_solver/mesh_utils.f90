@@ -6,7 +6,7 @@ module mesh_utils
   private
   public :: lod_from_xy, interp_from_cell
   public :: naca4_airfoil, transform_airfoil
-  public :: nearest_idx, dist_curvature_at_idx
+  public :: nearest_idx, curvature_at_idx, dist_xy_to_xy
   public :: calc_lod
 
 contains
@@ -208,8 +208,19 @@ contains
     end do
   end subroutine nearest_idx
 
+  subroutine dist_xy_to_xy(ax, ay, bx, by, dist)
+    real(8), intent(in) :: ax, ay, bx, by
+    real(8), intent(out) :: dist
+
+    real(8) :: dx, dy, d2
+
+    dx = ax - bx
+    dy = ay - by
+    d2 = dx*dx + dy*dy
+    dist = sqrt(d2)
+  end subroutine dist_xy_to_xy
   
-  subroutine dist_curvature_at_idx(px, py, poly, idx, dist, curvature)
+  subroutine curvature_at_idx(px, py, poly, idx, dist, curvature)
     real(8), intent(in)  :: px, py
     real(8), intent(in)  :: poly(:, :)    ! (N,2)
     integer, intent(in) :: idx
@@ -227,11 +238,6 @@ contains
       return
     end if
 
-    dx = px - poly(idx,1)
-    dy = py - poly(idx,2)
-    d2 = dx*dx + dy*dy
-    dist = sqrt(d2)
-
     cidx = max(2, min(n-1, idx))
 
     im1 = cidx-1
@@ -246,7 +252,7 @@ contains
     if (denom <= 0.0D0) denom = EPS
 
     curvature = abs(dx1*ddy - dy1*ddx) / denom
-  end subroutine dist_curvature_at_idx
+  end subroutine curvature_at_idx
 
   subroutine calc_lod(n, m, foil, max_level, DIST, KAPPA, ILOD)
     integer, intent(in) :: n, m, max_level
@@ -279,8 +285,9 @@ contains
 
     do i = 1, n
       do j = 1, m
-        call nearest_idx(X(i,j), Y(i,j),foil, idx)
-        call dist_curvature_at_idx(X(i,j), Y(i,j), foil, idx, DIST(i,j), KAPPA(i,j))
+        call nearest_idx(X(i,j), Y(i,j), foil, idx)
+        call dist_xy_to_xy(X(i,j), Y(i,j), foil(idx,1), foil(idx,2), DIST(i,j))
+        call curvature_at_idx(X(i,j), Y(i,j), foil, idx, DIST(i,j), KAPPA(i,j))
       end do
     end do
 
