@@ -144,6 +144,10 @@
 
             mc%length = int(lod%length, c_int)
             mc%cells  = c_loc(lod%cells(1))
+            mc%wall_count = int(lod%wall_count, c_int)
+            mc%wall_indices = c_loc(lod%wall_indices(1))
+            mc%solid_fractions = c_loc(lod%solid_fractions(1))
+            mc%wall_normals = c_loc(lod%wall_normals(1,1))
             mc%neigh_indices = c_loc(lod%neigh_indices(1))
 
             call emit_mesh(mc)

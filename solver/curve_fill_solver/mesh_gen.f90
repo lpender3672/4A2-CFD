@@ -17,10 +17,12 @@ module mesh_gen
         integer :: unit
 
         open(newunit=unit, file=filename, status='replace', action='write', form='formatted')
-        write(unit,'(A)') 'i,xmin,xmax,ymin,ymax'
+        write(unit,'(A)') 'i,xmin,xmax,ymin,ymax,curvature,distance'
         do i = 1, mesh%length
-            write(unit,'(I6,1X,4ES20.10)') i, mesh%cells(i)%xmin, mesh%cells(i)%xmax, &
-                                            mesh%cells(i)%ymin, mesh%cells(i)%ymax
+            write(unit,'(I6,1X,6ES20.10)') i, mesh%cells(i)%xmin, mesh%cells(i)%xmax, &
+                                            mesh%cells(i)%ymin, mesh%cells(i)%ymax, &
+                                            mesh%nearest_cell_poly_curvature(i), &
+                                            mesh%nearest_cell_poly_distance(i)
         end do
         close(unit)
     end subroutine write_mesh_csv
@@ -58,24 +60,25 @@ module mesh_gen
         call build_cells(n, m, foil_t, 1, hmesh)
 
         print *, 'Full mesh cells allocated: ', hmesh%length
-        !call write_mesh_csv(hmesh, 'mesh.csv')
+        call write_mesh_csv(hmesh, 'mesh.csv')
 
         ! now function to reduce mesh
         call build_walls(hmesh, foil_t, fmesh)
 
         print *, 'Reduced mesh cells allocated: ', fmesh%length
+        print *, 'Allocated wall cells: ', fmesh%wall_count
 
         ! now build indicies
         call build_indicies(fmesh)
 
-        print *, size(fmesh%neigh_indices)
+        print *, 'Total neighbour count ', size(fmesh%neigh_indices)
         
         call print_first_five_neighbors(fmesh)
 
     end subroutine generate_cmesh
 
     subroutine build_walls(hmesh, poly, fmesh)
-        type(helper_lod_mesh), intent(inout) :: hmesh
+        type(helper_lod_mesh), intent(in) :: hmesh
 
         ! precomputed distance and curvature fields used for lod decision
         real(8), intent(in) :: poly(:,:)
@@ -89,18 +92,25 @@ module mesh_gen
         integer :: i, cidx, widx
 
         real(8) :: EPS
-        EPS = 1.0d-16
+        EPS = 1.0d-15
 
-        curvature_threshold = 1d-1 ! idk
+        curvature_threshold = sum(hmesh%nearest_cell_poly_curvature) / &
+                                size(hmesh%nearest_cell_poly_curvature) ! idk
 
         phis = 0.0d0
+
+        fmesh%length = 0
+        fmesh%wall_count = 0
 
         do i=1, hmesh%length
             ! if we're not within a cell size, skip
             distance_threshold = max(hmesh%cells(i)%xmax - hmesh%cells(i)%xmin, &
                                      hmesh%cells(i)%ymax - hmesh%cells(i)%ymin)
 
-            if (hmesh%nearest_cell_poly_distance(i) > distance_threshold) cycle
+            if (hmesh%nearest_cell_poly_distance(i) > distance_threshold) then
+                fmesh%length = fmesh%length + 1
+                cycle
+            end if
 
             ! if curvature below arbitrary threshold
             if (hmesh%nearest_cell_poly_curvature(i) < curvature_threshold) then

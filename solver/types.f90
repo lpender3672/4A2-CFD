@@ -195,9 +195,12 @@
       type, bind(C) :: lod_mesh_c
             integer(c_int) :: length
             type(c_ptr)    :: cells   ! pointer to array of cell2d
+            integer(c_int)  :: wall_count
+            type(c_ptr) :: wall_indices
+            type(c_ptr) :: solid_fractions
+            type(c_ptr) :: wall_normals
             type(c_ptr)  :: neigh_indices
       end type lod_mesh_c
-
 
       end module types
 

@@ -1,8 +1,25 @@
 module mesh_traverse
     use types
+    use general_utils
     use mesh_utils
     implicit none
     contains
+
+    pure function calc_stop_level(dist, curvature) result(level)
+        implicit none
+        real(8), intent(in) :: dist, curvature
+        integer :: level
+        real(8) :: d_thresh, c_thresh
+
+        ! thresholds (tunable)
+        d_thresh = 5.0_8
+        c_thresh = 0.1_8
+
+        ! simple heuristic: higher level (finer) for smaller distance and higher curvature
+        level = int( max(0.0_8, min(10.0_8, &
+                    10.0_8 - (dist / d_thresh)*5.0_8 - (curvature / c_thresh)*5.0_8)) )
+
+    end function calc_stop_level
 
     recursive subroutine traverse_ncells(x0, y0, xi, xj, yi, yj, level, n, m, poly, ncells)
         implicit none
@@ -12,7 +29,7 @@ module mesh_traverse
         integer, intent(inout) :: ncells
 
         real(8) :: rx0, rx1, ry0, ry1
-        real(8) :: px, py, dist
+        real(8) :: px, py, dist, curvature
         integer :: pidx, stop_level
         logical :: inside
 
@@ -37,7 +54,9 @@ module mesh_traverse
         ! Lookup LOD index
         call nearest_idx(px, py, poly, pidx)
         call dist_xy_to_xy(px, py, poly(pidx,1), poly(pidx,2), dist)
-        stop_level = dist * 5 / max(n,m)
+        call curvature_at_idx(px, py, poly, pidx, dist, curvature)
+
+        stop_level = calc_stop_level(dist, curvature)
 
         if (level <= stop_level) then
             ncells = ncells + 1
@@ -66,7 +85,7 @@ module mesh_traverse
         type(helper_lod_mesh), intent(inout) :: hmesh
 
         real(8) :: rx0, rx1, ry0, ry1
-        real(8) :: px, py, dist
+        real(8) :: px, py, dist, curvature
         integer :: pidx, stop_level
         logical :: inside
 
@@ -91,7 +110,9 @@ module mesh_traverse
         ! Lookup LOD index
         call nearest_idx(px, py, poly, pidx)
         call dist_xy_to_xy(px, py, poly(pidx,1), poly(pidx,2), dist)
-        stop_level = dist * 5 / max(n,m)
+        call curvature_at_idx(px, py, poly, pidx, dist, curvature)
+
+        stop_level = calc_stop_level(dist, curvature)
 
         if (level <= stop_level) then
             ! fill cells array her
@@ -101,6 +122,9 @@ module mesh_traverse
             hmesh%cells(cidx)%ymax = y0 + xj + yj
             hmesh%cells(cidx)%level = level
 
+            hmesh%nearest_cell_poly_curvature(cidx) = curvature
+            hmesh%nearest_cell_poly_distance(cidx) = dist
+            hmesh%nearest_cell_poly_idx(cidx) = pidx
             ! etc
             cidx = cidx + 1
             return

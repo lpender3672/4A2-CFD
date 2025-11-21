@@ -93,6 +93,8 @@ extern "C" {
         int length;
         cell2d* cells;
         int wall_count;
+        int* wall_indices;
+        double* solid_fractions;
         double* wall_normals;
         int* neigh_indices;
     };
