@@ -89,6 +89,18 @@ extern "C" {
         uint8_t sc1, sc2, sc3, sc4;
     };
 
+    struct cf_state_c {
+        int     length;
+        double* ro;
+        double* rovx;
+        double* rovy;
+        double* roe;
+        double* p;
+        double* vx;
+        double* vy;
+        double* hstag;
+    };
+
     struct lod_mesh {
         int length;
         cell2d* cells;

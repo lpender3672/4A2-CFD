@@ -25,6 +25,9 @@ void setGlobalVisWidget(VisWidget* widget) {
 
     QObject::connect(globalVisWidget, &VisWidget::newLodMesh,
                     globalVisWidget, &VisWidget::outputLodMesh, Qt::BlockingQueuedConnection);
+
+    QObject::connect(globalVisWidget, &VisWidget::newCfState,
+                    globalVisWidget, &VisWidget::outputCfState, Qt::BlockingQueuedConnection);
 }
 
 void setGlobalConvWidget(ConvWidget* widget) {
@@ -69,6 +72,12 @@ void emit_grid_vector_signal(t_grid *g, int length) {
             */
         }
         emit globalVisWidget->newGridVector(gridVector);
+    }
+}
+
+void emit_cf_state(cf_state_c s) {
+    if (globalVisWidget) {
+        emit globalVisWidget->newCfState(s);
     }
 }
 

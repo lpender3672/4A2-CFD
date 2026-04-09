@@ -2,12 +2,10 @@
 #define VISWIDGET_H
 
 #include <QWidget>
-#include <QtCharts/QChartView>
-#include <QtCharts/QLineSeries>
-#include <QtCharts/QChart>
 #include <QVBoxLayout>
 #include <QGraphicsLayout>
 #include <QTabWidget>
+#include <vector>
 
 #include "qcustomplot.h"
 #include "../types.h"
@@ -28,10 +26,6 @@ public:
     QMeshPlot(QCPAxis *keyAxis, QCPAxis *valueAxis)
         : QCPAbstractPlottable(keyAxis, valueAxis)
     {
-
-        int gridSize = 53 * 37;
-        polygons.reserve(gridSize);
-        colors.reserve(gridSize);
     }
 
     void addPolygon(const QPolygonF &polygon, const QColor &color)
@@ -127,6 +121,8 @@ public:
 
     void outputLodMesh(const lod_mesh &mesh);
 
+    void outputCfState(const cf_state_c &state);
+
 signals:
     void newGrid(const t_grid &message);
 
@@ -134,13 +130,14 @@ signals:
 
     void newLodMesh(const lod_mesh &message);
 
+    void newCfState(const cf_state_c &message);
+
 private:
     //StringList tabNames;
     QStringList tabNames;
 
-    QVBoxLayout *mainLayout; // No error should occur here now
+    QVBoxLayout *mainLayout;
     QTabWidget *tabWidget;
-    QChartView *chartView1;
 
     QVector<QCustomPlot*> customPlots;
     QVector<QCPColorScale*> colorScales;
@@ -156,22 +153,20 @@ private:
 
     QVector<t_grid> currentGrids;
 
-    void createScatterGraph(QChartView *chartView, QLineSeries *series, QString title, QString xTitle, QString yTitle);
+    // CF solver state
+    QVector<cell2d> currentCells;
+    bool hasCfState = false;
+    std::vector<double> cfRo, cfRovx, cfRovy, cfRoe;
+    std::vector<double> cfP, cfVx, cfVy, cfHstag;
+
     void createMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, QString title, QString xTitle, QString yTitle);
+    void finaliseAxes(QCustomPlot *customPlot, double minX, double maxX, double minY, double maxY);
 
-    void updateBlockMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const QVector<t_grid> &grids,  const QVector<const float *> &mesh_data, t_data_type mesh_data_type);
+    void updateBlockMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const QVector<t_grid> &grids, const QVector<const float *> &mesh_data, t_data_type mesh_data_type);
     void updateLodMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const lod_mesh &mesh);
-
-    // Optional: move file-local helper into class if reuse/testing is desired
-    static bool computeGlobalRanges(const QVector<t_grid> &grids,
-                                    const QVector<const float *> &mesh_datas,
-                                    t_data_type mesh_data_type,
-                                    float &outGlobalMinValue,
-                                    float &outGlobalMaxValue,
-                                    float &outGlobalMinX,
-                                    float &outGlobalMaxX,
-                                    float &outGlobalMinY,
-                                    float &outGlobalMaxY);
+    void updateCfMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const QVector<cell2d> &cells, const std::vector<double> &data, const QString &label);
+    void renderCurrentCfTab(int index);
+    void renderCurrentBlockTab(int index);
 
 private slots:
     void onTabChanged(int index);

@@ -183,6 +183,12 @@
             real(c_double), allocatable :: nearest_cell_poly_distance(:)
       end type helper_lod_mesh
 
+      type, bind(C) :: cf_state_c
+            integer(c_int) :: length
+            type(c_ptr)    :: ro, rovx, rovy, roe
+            type(c_ptr)    :: p, vx, vy, hstag
+      end type cf_state_c
+
       type :: lod_mesh ! final mesh type to be used by solver
             integer(c_int)               :: length = 0
             type(cell2d), allocatable    :: cells(:)
