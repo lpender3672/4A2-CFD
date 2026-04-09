@@ -166,22 +166,41 @@
 
             real(c_double)    :: xmin, xmax, ymin, ymax
             integer(c_int)    :: level
-            integer(c_long_long) :: key
             integer(c_int)    :: id
-      end type cell2d
 
-      type :: lod_mesh
-            integer                   :: length = 0
+            integer(c_int)    :: neigh_offset   ! start index in global neighbour array
+            integer(c_int8_t)    :: neigh_count    ! total number of neighbours (all sides)
+            integer(c_int8_t)    :: side_count(4)  ! how many neighbours per side (xi, xi+1, yi, yi+1)
+
+      end type cell2d
+      
+      type :: helper_lod_mesh ! temporary mesh type used during cell generation
+            integer(c_int)            :: length = 0
             type(cell2d), allocatable :: cells(:)
-            integer(i8), allocatable    :: morton(:)  ! optional raw morton array for C side
+            integer(c_int), allocatable :: nearest_cell_poly_idx(:)
+            real(c_double), allocatable :: nearest_cell_poly_curvature(:)
+            real(c_double), allocatable :: nearest_cell_poly_distance(:)
+      end type helper_lod_mesh
+
+      type :: lod_mesh ! final mesh type to be used by solver
+            integer(c_int)            :: length = 0
+            type(cell2d), allocatable :: cells(:)
+            integer(c_int)          :: wall_count
+            integer(c_int), allocatable :: wall_indices(:)
+            real(c_double), allocatable :: solid_fractions(:)
+            real(c_double), allocatable :: wall_normals(:,:)
+            integer(c_int), allocatable  :: neigh_indices(:)
       end type lod_mesh
 
       type, bind(C) :: lod_mesh_c
             integer(c_int) :: length
             type(c_ptr)    :: cells   ! pointer to array of cell2d
-            type(c_ptr)    :: morton  ! pointer to array of int64 (C_LONG_LONG)
+            integer(c_int)  :: wall_count
+            type(c_ptr) :: wall_indices
+            type(c_ptr) :: solid_fractions
+            type(c_ptr) :: wall_normals
+            type(c_ptr)  :: neigh_indices
       end type lod_mesh_c
-
 
       end module types
 

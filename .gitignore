@@ -3,6 +3,8 @@ case_env/
 postprocessing/__pycache__/
 preprocessing/__pycache__/
 case_env/
+.cache/
+solver/curve_fill_solver/__pycache__/
 
 *.egg-info/
 

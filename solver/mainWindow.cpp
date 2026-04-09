@@ -51,7 +51,7 @@ MainWindow::MainWindow(t_mode app_mode) {
     solveWorker = nullptr;
     solveWorkerThread = nullptr;
     mode = app_mode;
-    path = "cases/bump/input_bump.txt";
+    path = "../cases/bump/input_bump.txt";
     inputWidget->setPath(path);
 
     if (mode == t_mode::CMD) {

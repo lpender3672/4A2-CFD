@@ -138,27 +138,20 @@
             implicit none
             type(lod_mesh), intent(in), target :: lod
             type(lod_mesh_c)               :: mc
-            integer(c_long_long), allocatable, target :: morton(:)
             integer :: i
 
             if (.not.allocated(lod%cells)) return
 
-            ! Build a separate Morton array if the C side wants a raw array too.
-            allocate(morton(lod%length))
-
-            do i = 1, lod%length
-                morton(i) = lod%cells(i)%key
-            end do
-
             mc%length = int(lod%length, c_int)
             mc%cells  = c_loc(lod%cells(1))
-            mc%morton = c_loc(morton)
+            mc%wall_count = int(lod%wall_count, c_int)
+            mc%wall_indices = c_loc(lod%wall_indices(1))
+            mc%solid_fractions = c_loc(lod%solid_fractions(1))
+            mc%wall_normals = c_loc(lod%wall_normals(1,1))
+            mc%neigh_indices = c_loc(lod%neigh_indices(1))
 
             call emit_mesh(mc)
 
-            ! NOTE: morton must stay alive during the C call.
-            ! If C stores the pointer, move 'morton' lifetime outwards or have C copy.
-            deallocate(morton)
         end subroutine lod_mesh_to_qt
     
     end module io_module

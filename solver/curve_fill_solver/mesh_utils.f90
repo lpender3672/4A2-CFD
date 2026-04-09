@@ -1,90 +1,98 @@
 module mesh_utils
   use iso_fortran_env, only: real64
   use types
+  use general_utils
   implicit none
   private
-  public :: rotate_points, naca4_airfoil, transform_airfoil
-  public :: curvature_at_nearest_point
-  public :: gaussian_kernel_2d, smooth2d
+  public :: lod_from_xy, interp_from_cell
+  public :: naca4_airfoil, transform_airfoil
+  public :: nearest_idx, curvature_at_idx, dist_xy_to_xy
   public :: calc_lod
-
-  real(8), parameter :: PI = 3.1415926535897932384626433832795D0
-  real(8), parameter :: EPS = 1.0D-16
 
 contains
 
-  pure function clamp(x, a, b) result(y)
-    real(8), intent(in) :: x, a, b
-    real(8) :: y
-    y = max(a, min(b, x))
-  end function clamp
+  integer function lod_from_xy(x, y, n, m, ILOD) result(lod)
+      implicit none
+      real(8), intent(in) :: x, y        ! coordinates in full-resolution domain [0, m), [0, n)
+      integer, intent(in) :: n, m        ! fine domain size (for normalization)
+      integer, intent(in) :: ILOD(:,:)   ! coarse integer LOD map (nL × mL)
+      integer :: nL, mL
+      real(8) :: rx, ry, gx, gy
+      integer :: ix, iy
+      real(8) :: f00, f10, f01, f11, wx, wy, interp
 
-  pure function reflect_index(i, n) result(r)
+      ! size of coarse grid
+      nL = size(ILOD, 1)
+      mL = size(ILOD, 2)
 
-    integer, intent(in) :: i, n
-    integer :: r, t
-    if (n <= 1) then
-      r = 1
-      return
-    end if
-    t = i
-    do
-      if (t < 1) then
-        t = 2 - t
-      else if (t > n) then
-        t = 2*n - t
-      else
-        exit
-      end if
-    end do
-    r = t
-  end function reflect_index
+      ! fractional position in coarse grid
+      gx = x * real(mL - 1,8) / real(m,8)
+      gy = y * real(nL - 1,8) / real(n,8)
 
-  pure subroutine linspace(a, b, n, x)
-    real(8), intent(in) :: a, b
-    integer, intent(in) :: n
-    real(8), intent(out) :: x(n)
-    integer :: i
-    if (n == 1) then
-      x(1) = a
-    else
-      do i = 1, n
-        x(i) = a + (b - a) * real(i - 1,8) / real(n - 1,8)
-      end do
-    end if
-  end subroutine linspace
+      ! integer base indices (0-based)
+      ix = int(floor(gx))
+      iy = int(floor(gy))
 
-  pure subroutine meshgrid_xy(xv, yv, X, Y)
+      ! fractional parts
+      wx = gx - real(ix,8)
+      wy = gy - real(iy,8)
 
-    real(8), intent(in)  :: xv(:), yv(:)
-    real(8), intent(out) :: X(size(yv), size(xv)), Y(size(yv), size(xv))
-    integer :: i, j, n, m
+      ! clamp to valid interior range
+      ix = max(0, min(mL-2, ix))
+      iy = max(0, min(nL-2, iy))
 
-    n = size(yv)
-    m = size(xv)
+      ! get corner values (convert to real for interpolation)
+      f00 = real(ILOD(iy+1, ix+1), 8)
+      f10 = real(ILOD(iy+1, ix+2), 8)
+      f01 = real(ILOD(iy+2, ix+1), 8)
+      f11 = real(ILOD(iy+2, ix+2), 8)
 
-    do i = 1, n
-        do j = 1, m
-        X(i,j) = xv(j)
-        Y(i,j) = yv(i)
-        end do
-    end do
-    end subroutine meshgrid_xy
+      ! bilinear interpolation
+      interp = f00*(1.0-wx)*(1.0-wy) + f10*wx*(1.0-wy) + f01*(1.0-wx)*wy + f11*wx*wy
 
-  subroutine rotate_points(points_in, angle_rad, points_out)
-    ! points_in/out: (N,2)
-    real(8), intent(in)  :: points_in(:, :)
-    real(8), intent(in)  :: angle_rad
-    real(8), intent(out) :: points_out(size(points_in,1), 2)
-    integer :: n
-    real(8) :: c, s
-    n = size(points_in,1)
-    c = cos(angle_rad)
-    s = sin(angle_rad)
-    ! R^T = [[c, s],[-s, c]]
-    points_out(:,1) =  points_in(:,1)*c + points_in(:,2)*s
-    points_out(:,2) = -points_in(:,1)*s + points_in(:,2)*c
-  end subroutine rotate_points
+      ! round back to nearest integer
+      lod = int(nint(interp))
+    end function lod_from_xy
+
+
+    real(8) function interp_from_cell(cell, map) result(phi)
+    implicit none
+    type(cell2d), intent(in) :: cell
+    real(8), intent(in) :: map(:, :)
+    integer :: n, m
+
+    real(8) :: gx, gy
+    real(8) :: wx, wy
+    integer :: ix, iy
+    real(8) :: d00, d10, d01, d11
+
+    n = size(map, 1)
+    m = size(map, 2)
+
+    gx = 0.5d0 * (cell%xmin + cell%xmax)
+    gy = 0.5d0 * (cell%ymin + cell%ymax)
+
+    ix = int(floor(gx))
+    iy = int(floor(gy))
+
+    ix = max(0, min(m-2, ix))
+    iy = max(0, min(n-2, iy))
+
+    wx = gx - real(ix, 8)
+    wy = gy - real(iy, 8)
+
+    d00 = map(iy+1, ix+1)
+    d10 = map(iy+1, ix+2)
+    d01 = map(iy+2, ix+1)
+    d11 = map(iy+2, ix+2)
+
+    phi = d00*(1d0-wx)*(1d0-wy) + &
+          d10*(wx)*(1d0-wy)     + &
+          d01*(1d0-wx)*(wy)     + &
+          d11*(wx)*(wy)
+
+  end function interp_from_cell
+  
 
   subroutine naca4_airfoil(code, n, closed_te, poly)
     character(len=*), intent(in) :: code
@@ -177,135 +185,86 @@ contains
     poly_out(:,2) = poly_out(:,2) + origin(2)
   end subroutine transform_airfoil
 
-  subroutine curvature_at_nearest_point(px, py, poly, dist, curvature)
+  subroutine nearest_idx(px, py, poly, idx_near)
     real(8), intent(in) :: px, py
     real(8), intent(in) :: poly(:, :)        ! (N,2)
-    real(8), intent(out):: dist, curvature
+    integer, intent(out):: idx_near
 
-    integer :: n, i, idx, i_min
-    real(8) :: vx, vy, wx, wy, vv, t, projx, projy, dx, dy, d2, d2_min
-    real(8) :: x_prev, x_curr, x_next, y_prev, y_curr, y_next
-    real(8) :: dx1, dy1, ddx, ddy, denom
+    integer :: n, i
+    real(8) :: dx, dy, d2, d2_min
 
     n = size(poly,1)
-    if (n < 3) then
-      dist = 0.0D0; curvature = 0.0D0
-      return
-    end if
-
     d2_min = 1.0D300
-    i_min = 1
-    t = 0.0D0
+    idx_near = 1
 
-    do i = 1, n-1
-      vx = poly(i+1,1) - poly(i,1)
-      vy = poly(i+1,2) - poly(i,2)
-      wx = px - poly(i,1)
-      wy = py - poly(i,2)
-      vv = vx*vx + vy*vy
-      if (vv <= 0.0D0) vv = EPS
-      ! projection parameter clamped
-      t = (wx*vx + wy*vy) / vv
-      if (t < 0.0D0) t = 0.0D0
-      if (t > 1.0D0) t = 1.0D0
-
-      projx = poly(i,1) + t*vx
-      projy = poly(i,2) + t*vy
-      dx = px - projx
-      dy = py - projy
+    do i = 1, n
+      dx = px - poly(i,1)
+      dy = py - poly(i,2)
       d2 = dx*dx + dy*dy
       if (d2 < d2_min) then
         d2_min = d2
-        i_min = i
+        idx_near = i
       end if
     end do
+  end subroutine nearest_idx
 
-    dist = sqrt(d2_min)
+  subroutine dist_xy_to_xy(ax, ay, bx, by, dist)
+    real(8), intent(in) :: ax, ay, bx, by
+    real(8), intent(out) :: dist
 
-    ! choose closer endpoint of segment i_min
-    if (t < 0.5D0) then
-      idx = i_min
-    else
-      idx = i_min + 1
+    real(8) :: dx, dy, d2
+
+    dx = ax - bx
+    dy = ay - by
+    d2 = dx*dx + dy*dy
+    dist = sqrt(d2)
+  end subroutine dist_xy_to_xy
+  
+  subroutine curvature_at_idx(px, py, poly, idx, dist, curvature)
+    real(8), intent(in)  :: px, py
+    real(8), intent(in)  :: poly(:, :)    ! (N,2)
+    integer, intent(in) :: idx
+    real(8), intent(out) :: dist, curvature
+
+    integer :: n, im1, ip1, cidx
+    real(8) :: dx, dy, d2
+    real(8) :: dx1, dy1, ddx, ddy, denom
+    real(8), parameter :: EPS = 1.0D-12
+
+    n = size(poly,1)
+    if (n < 3) then
+      dist = 0.0D0
+      curvature = 0.0D0
+      return
     end if
-    idx = max(2, min(n-1, idx))
 
-    x_prev = poly(idx-1,1); x_curr = poly(idx,1); x_next = poly(idx+1,1)
-    y_prev = poly(idx-1,2); y_curr = poly(idx,2); y_next = poly(idx+1,2)
+    cidx = max(2, min(n-1, idx))
 
-    dx1 = x_next - x_prev
-    dy1 = y_next - y_prev
-    ddx = x_next - 2.0D0*x_curr + x_prev
-    ddy = y_next - 2.0D0*y_curr + y_prev
+    im1 = cidx-1
+    ip1 = cidx+1
+
+    dx1 = poly(ip1,1) - poly(im1,1)
+    dy1 = poly(ip1,2) - poly(im1,2)
+    ddx = poly(ip1,1) - 2.0D0*poly(cidx,1) + poly(im1,1)
+    ddy = poly(ip1,2) - 2.0D0*poly(cidx,2) + poly(im1,2)
+
     denom = (dx1*dx1 + dy1*dy1)**1.5D0
     if (denom <= 0.0D0) denom = EPS
+
     curvature = abs(dx1*ddy - dy1*ddx) / denom
-  end subroutine curvature_at_nearest_point
+  end subroutine curvature_at_idx
 
-  subroutine gaussian_kernel_2d(size_k, sigma, kernel)
-    integer, intent(in) :: size_k
-    real(8), intent(in) :: sigma
-    real(8), allocatable, intent(out) :: kernel(:,:)  ! (size_k,size_k)
-
-    integer :: i, j, half, idx, jdx
-    real(8) :: s2, val, sumv
-
-    half = size_k/2
-    allocate(kernel(size_k, size_k))
-    s2 = 2.0D0 * sigma*sigma
-    sumv = 0.0D0
-    do i = 1, size_k
-      do j = 1, size_k
-        idx = i - half - 1
-        jdx = j - half - 1
-        val = exp(-(real(idx,8)**2 + real(jdx,8)**2) / s2)
-        kernel(i,j) = val
-        sumv = sumv + val
-      end do
-    end do
-    if (sumv <= 0.0D0) sumv = 1.0D0
-    kernel = kernel / sumv
-  end subroutine gaussian_kernel_2d
-
-  subroutine smooth2d(data, size_k, sigma, out)
-    real(8), intent(in)  :: data(:, :)
-    integer, intent(in)  :: size_k
-    real(8), intent(in)  :: sigma
-    real(8), intent(out) :: out(size(data,1), size(data,2))
-
-    integer :: n, m, i, j, ii, jj, di, dj, half
-    real(8), allocatable :: ker(:,:)
-    real(8) :: acc
-
-    n = size(data,1); m = size(data,2)
-    call gaussian_kernel_2d(size_k, sigma, ker)
-    half = size_k/2
-
-    do i = 1, n
-      do j = 1, m
-        acc = 0.0D0
-        do di = -half, +half
-          do dj = -half, +half
-            ii = reflect_index(i + di, n)
-            jj = reflect_index(j + dj, m)
-            acc = acc + data(ii, jj) * ker(di+half+1, dj+half+1)
-          end do
-        end do
-        out(i,j) = acc
-      end do
-    end do
-  end subroutine smooth2d
-
-  subroutine calc_lod(n, m, foil, max_level, ILOD)
+  subroutine calc_lod(n, m, foil, max_level, DIST, KAPPA, ILOD)
     integer, intent(in) :: n, m, max_level
     real(8), intent(in) :: foil(:, :)              ! (Nf,2) polyline
     integer, intent(out):: ILOD(n, m)
+    real(8), allocatable, intent(out):: DIST(:,:), KAPPA(:, :)
 
     real(8) :: X(n, m), Y(n, m)
-    real(8), allocatable :: xv(:), yv(:), KAPPA(:,:), DIST(:,:), LOD(:,:)
+    real(8), allocatable :: xv(:), yv(:), LOD(:,:)
     real(8), allocatable :: NLOD(:,:)
     real(8) :: min_k_pos, max_dist, min_nlod, max_nlod
-    integer :: i, j
+    integer :: i, j, idx
 
     allocate(xv(m), yv(n))
     if (m > 1) then
@@ -326,7 +285,9 @@ contains
 
     do i = 1, n
       do j = 1, m
-        call curvature_at_nearest_point(X(i,j), Y(i,j), foil, DIST(i,j), KAPPA(i,j))
+        call nearest_idx(X(i,j), Y(i,j), foil, idx)
+        call dist_xy_to_xy(X(i,j), Y(i,j), foil(idx,1), foil(idx,2), DIST(i,j))
+        call curvature_at_idx(X(i,j), Y(i,j), foil, idx, DIST(i,j), KAPPA(i,j))
       end do
     end do
 
