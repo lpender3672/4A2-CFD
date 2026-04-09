@@ -99,11 +99,13 @@ The solver routine is ran in a seperate thread to allow the user to interact wit
 Modifications made to the original code involved binding fortran types to C structs so they could be exchanged between the solver and gui threads to be plotted.
 This also lays some of the groundwork for future parallelisation of the solver, which may be considered in the improvements if time allows.
 
-Modifications were also made to the convergence criteria to stop the solver when the last 100 calculated $d_avg$ were all within 1\% of their mean.
+Modifications were also made to the convergence criteria to stop the solver when the last 100 calculated \texttt{d\_avg} were all within 1\% of their mean.
+This \texttt{d\_avg} is the average density residual (change) across all cells in the mesh for a given iteration.
 This was done to prevent the solver from reaching max iterations when the solution had already converged, making it possible to measure the runtime.
 However, this could cause the solver to stop prematurely if the convergence was slow, and so the tolerance of 1\% may need to be adjusted.
 The original check if the final residual error is within the bounds specified in the inputs is nested within this check.
 This means the solver subroutine will terminate with 4 possible outcomes:
+
 \begin{itemize}
     \item Converged within boundary specified
     \item Converged outside boundary specified
