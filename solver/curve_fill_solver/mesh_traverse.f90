@@ -5,27 +5,55 @@ module mesh_traverse
     implicit none
     contains
 
-    pure function calc_stop_level(dist, curvature) result(level)
-        implicit none
-        real(8), intent(in) :: dist, curvature
-        integer :: level
-        real(8) :: d_thresh, c_thresh
+    ! -----------------------------------------------------------------------
+    ! Decide the coarsest level at which a cell may be a leaf.
+    !
+    !   w_dist  = exp(-dist / dist_ref)            1 at surface, decays outward
+    !   w_kappa = (kappa - kappa_min) / range      0 = flat, 1 = sharpest
+    !
+    !   refinement = alpha*w_dist + (1-alpha)*w_kappa   (alpha ~ 0.7)
+    !   stop_level = round( (1 - refinement) * max_level )
+    !
+    ! A lower stop_level means finer cells (we recurse until level <= stop_level).
+    ! max_level is derived from n,m identically to fine_bits in the callers so it
+    ! does not need to be threaded through the recursion as a parameter.
+    ! -----------------------------------------------------------------------
+    pure function calc_stop_level(dist, kappa, dist_ref, kappa_min, kappa_max, n, m) &
+        result(stop_level)
 
-        ! thresholds (tunable)
-        d_thresh = 5.0_8
-        c_thresh = 0.1_8
+        real(8), intent(in) :: dist, kappa
+        real(8), intent(in) :: dist_ref, kappa_min, kappa_max
+        integer, intent(in) :: n, m
+        integer :: stop_level
 
-        ! simple heuristic: higher level (finer) for smaller distance and higher curvature
-        level = int( max(0.0_8, min(10.0_8, &
-                    10.0_8 - (dist / d_thresh)*5.0_8 - (curvature / c_thresh)*5.0_8)) )
+        real(8), parameter :: ALPHA = 0.7D0, EPS = 1.0D-12
+        real(8) :: w_dist, w_kappa, refinement
+        integer :: max_level
+
+        max_level = ceiling(log(real(max(n,m),8)) / log(2.0_8)) + 1
+
+        w_dist = exp(-dist / max(dist_ref, EPS))
+
+        if (kappa_max > kappa_min + EPS) then
+            w_kappa = (kappa - kappa_min) / (kappa_max - kappa_min)
+        else
+            w_kappa = 0.0D0
+        end if
+        w_kappa = max(0.0D0, min(1.0D0, w_kappa))
+
+        refinement = ALPHA * w_dist + (1.0D0 - ALPHA) * w_kappa
+        stop_level = nint((1.0D0 - refinement) * real(max_level, 8))
+        stop_level = max(0, min(max_level, stop_level))
 
     end function calc_stop_level
 
-    recursive subroutine traverse_ncells(x0, y0, xi, xj, yi, yj, level, n, m, poly, ncells)
+    recursive subroutine traverse_ncells(x0, y0, xi, xj, yi, yj, level, n, m, poly, &
+                                         dist_ref, kappa_min, kappa_max, ncells)
         implicit none
         real(8), intent(in) :: x0, y0, xi, xj, yi, yj
         integer, intent(in) :: level, n, m
-        real(8), intent(in) :: poly(:,:) ! (np,2)
+        real(8), intent(in) :: poly(:,:)
+        real(8), intent(in) :: dist_ref, kappa_min, kappa_max
         integer, intent(inout) :: ncells
 
         real(8) :: rx0, rx1, ry0, ry1
@@ -33,54 +61,56 @@ module mesh_traverse
         integer :: pidx, stop_level
         logical :: inside
 
-        ! Compute region bounding box (fine grid coords)
         rx0 = min(x0, x0 + xi, x0 + yi, x0 + xi + yi)
         rx1 = max(x0, x0 + xi, x0 + yi, x0 + xi + yi)
         ry0 = min(y0, y0 + xj, y0 + yj, y0 + xj + yj)
         ry1 = max(y0, y0 + xj, y0 + yj, y0 + xj + yj)
 
-        ! Skip if outside domain
         if (rx1 <= 0.0_8 .or. real(m,8) <= rx0 .or. &
             ry1 <= 0.0_8 .or. real(n,8) <= ry0)  return
 
-        ! Region center
         px = x0 + 0.5_8*(xi + yi)
         py = y0 + 0.5_8*(xj + yj)
 
-        ! Domain bounds check
         inside = (px >= 0.0_8 .and. px < real(m,8) .and. py >= 0.0_8 .and. py < real(n,8))
         if (.not. inside) return
 
-        ! Lookup LOD index
         call nearest_idx(px, py, poly, pidx)
         call dist_xy_to_xy(px, py, poly(pidx,1), poly(pidx,2), dist)
         call curvature_at_idx(px, py, poly, pidx, dist, curvature)
 
-        stop_level = calc_stop_level(dist, curvature)
+        stop_level = calc_stop_level(dist, curvature, dist_ref, kappa_min, kappa_max, n, m)
 
         if (level <= stop_level) then
             ncells = ncells + 1
             return
         end if
 
-        ! Recurse in Hilbert order (same pattern as Python)
-        call traverse_ncells(x0,                  y0,                  yi/2.0_8,  yj/2.0_8,  xi/2.0_8,  xj/2.0_8,  level-1, n, m, poly, ncells)
+        call traverse_ncells(x0,                      y0,                      &
+            yi/2.0_8, yj/2.0_8, xi/2.0_8, xj/2.0_8, level-1, n, m, poly,     &
+            dist_ref, kappa_min, kappa_max, ncells)
 
-        call traverse_ncells(x0 + xi/2.0_8,       y0 + xj/2.0_8,       xi/2.0_8,  xj/2.0_8,  yi/2.0_8,  yj/2.0_8,  level-1, n, m, poly, ncells)
+        call traverse_ncells(x0 + xi/2.0_8,           y0 + xj/2.0_8,          &
+            xi/2.0_8, xj/2.0_8, yi/2.0_8, yj/2.0_8,  level-1, n, m, poly,    &
+            dist_ref, kappa_min, kappa_max, ncells)
 
         call traverse_ncells(x0 + xi/2.0_8 + yi/2.0_8, y0 + xj/2.0_8 + yj/2.0_8, &
-                            xi/2.0_8, xj/2.0_8, yi/2.0_8, yj/2.0_8, level-1, n, m, poly, ncells)
+            xi/2.0_8, xj/2.0_8, yi/2.0_8, yj/2.0_8,  level-1, n, m, poly,    &
+            dist_ref, kappa_min, kappa_max, ncells)
 
-        call traverse_ncells(x0 + xi/2.0_8 + yi,  y0 + xj/2.0_8 + yj, &
-                            -yi/2.0_8, -yj/2.0_8, -xi/2.0_8, -xj/2.0_8, level-1, n, m, poly, ncells)
+        call traverse_ncells(x0 + xi/2.0_8 + yi,      y0 + xj/2.0_8 + yj,     &
+            -yi/2.0_8, -yj/2.0_8, -xi/2.0_8, -xj/2.0_8, level-1, n, m, poly, &
+            dist_ref, kappa_min, kappa_max, ncells)
 
     end subroutine traverse_ncells
 
-    recursive subroutine traverse_cells(x0, y0, xi, xj, yi, yj, level, n, m, poly, cidx, hmesh)
+    recursive subroutine traverse_cells(x0, y0, xi, xj, yi, yj, level, n, m, poly, &
+                                        dist_ref, kappa_min, kappa_max, cidx, hmesh)
         implicit none
         real(8), intent(in) :: x0, y0, xi, xj, yi, yj
         integer, intent(in) :: level, n, m
-        real(8), intent(in) :: poly(:,:) ! (np,2)
+        real(8), intent(in) :: poly(:,:)
+        real(8), intent(in) :: dist_ref, kappa_min, kappa_max
         integer, intent(inout) :: cidx
         type(helper_lod_mesh), intent(inout) :: hmesh
 
@@ -89,33 +119,27 @@ module mesh_traverse
         integer :: pidx, stop_level
         logical :: inside
 
-        ! Compute region bounding box (fine grid coords)
         rx0 = min(x0, x0 + xi, x0 + yi, x0 + xi + yi)
         rx1 = max(x0, x0 + xi, x0 + yi, x0 + xi + yi)
         ry0 = min(y0, y0 + xj, y0 + yj, y0 + xj + yj)
         ry1 = max(y0, y0 + xj, y0 + yj, y0 + xj + yj)
 
-        ! Skip if outside domain
         if (rx1 <= 0.0_8 .or. real(m,8) <= rx0 .or. &
             ry1 <= 0.0_8 .or. real(n,8) <= ry0)  return
 
-        ! Region center
         px = x0 + 0.5_8*(xi + yi)
         py = y0 + 0.5_8*(xj + yj)
 
-        ! Domain bounds check
         inside = (px >= 0.0_8 .and. px < real(m,8) .and. py >= 0.0_8 .and. py < real(n,8))
         if (.not. inside) return
 
-        ! Lookup LOD index
         call nearest_idx(px, py, poly, pidx)
         call dist_xy_to_xy(px, py, poly(pidx,1), poly(pidx,2), dist)
         call curvature_at_idx(px, py, poly, pidx, dist, curvature)
 
-        stop_level = calc_stop_level(dist, curvature)
+        stop_level = calc_stop_level(dist, curvature, dist_ref, kappa_min, kappa_max, n, m)
 
         if (level <= stop_level) then
-            ! fill cells array her
             hmesh%cells(cidx)%xmin = x0
             hmesh%cells(cidx)%xmax = x0 + xi + yi
             hmesh%cells(cidx)%ymin = y0
@@ -123,23 +147,27 @@ module mesh_traverse
             hmesh%cells(cidx)%level = level
 
             hmesh%nearest_cell_poly_curvature(cidx) = curvature
-            hmesh%nearest_cell_poly_distance(cidx) = dist
-            hmesh%nearest_cell_poly_idx(cidx) = pidx
-            ! etc
+            hmesh%nearest_cell_poly_distance(cidx)  = dist
+            hmesh%nearest_cell_poly_idx(cidx)        = pidx
             cidx = cidx + 1
             return
         end if
 
-        ! Recurse in Hilbert order (same pattern as Python)
-        call traverse_cells(x0,                  y0,                  yi/2.0_8,  yj/2.0_8,  xi/2.0_8,  xj/2.0_8,  level-1, n, m, poly, cidx, hmesh)
+        call traverse_cells(x0,                      y0,                      &
+            yi/2.0_8, yj/2.0_8, xi/2.0_8, xj/2.0_8, level-1, n, m, poly,    &
+            dist_ref, kappa_min, kappa_max, cidx, hmesh)
 
-        call traverse_cells(x0 + xi/2.0_8,       y0 + xj/2.0_8,       xi/2.0_8,  xj/2.0_8,  yi/2.0_8,  yj/2.0_8,  level-1, n, m, poly, cidx, hmesh)
+        call traverse_cells(x0 + xi/2.0_8,           y0 + xj/2.0_8,          &
+            xi/2.0_8, xj/2.0_8, yi/2.0_8, yj/2.0_8,  level-1, n, m, poly,   &
+            dist_ref, kappa_min, kappa_max, cidx, hmesh)
 
         call traverse_cells(x0 + xi/2.0_8 + yi/2.0_8, y0 + xj/2.0_8 + yj/2.0_8, &
-                            xi/2.0_8, xj/2.0_8, yi/2.0_8, yj/2.0_8, level-1, n, m, poly, cidx, hmesh)
+            xi/2.0_8, xj/2.0_8, yi/2.0_8, yj/2.0_8,  level-1, n, m, poly,   &
+            dist_ref, kappa_min, kappa_max, cidx, hmesh)
 
-        call traverse_cells(x0 + xi/2.0_8 + yi,  y0 + xj/2.0_8 + yj, &
-                            -yi/2.0_8, -yj/2.0_8, -xi/2.0_8, -xj/2.0_8, level-1, n, m, poly, cidx, hmesh)
+        call traverse_cells(x0 + xi/2.0_8 + yi,      y0 + xj/2.0_8 + yj,     &
+            -yi/2.0_8, -yj/2.0_8, -xi/2.0_8, -xj/2.0_8, level-1, n, m, poly, &
+            dist_ref, kappa_min, kappa_max, cidx, hmesh)
 
     end subroutine traverse_cells
 
@@ -156,27 +184,29 @@ module mesh_alloc
     subroutine alloc_ncells(n, m, poly, extra_global_levels, hmesh)
         implicit none
         integer, intent(in) :: n, m
-        real(8), intent(in) :: poly(:,:) ! (np,2)
+        real(8), intent(in) :: poly(:,:)
         integer, intent(in), optional :: extra_global_levels
         type(helper_lod_mesh), intent(out) :: hmesh
 
-        integer :: fine_bits, base_bits
+        integer :: fine_bits, base_bits, extra_levels
         real(8) :: Nb
-        integer :: extra_levels
-        integer, parameter :: unit_out = 33
+        real(8) :: dist_max, kappa_min, kappa_max, dist_ref
 
-        ! For now, ignore airfoil_poly (no geometry checks)
         extra_levels = 1
         if (present(extra_global_levels)) extra_levels = extra_global_levels
 
         base_bits = ceiling(log(real(max(n, m),8)) / log(2.0_8))
-        fine_bits = base_bits + extra_levels
-        ! Nb = 2.0_8**fine_bits
-        Nb = real(max(n,m), 8)
+        fine_bits  = base_bits + extra_levels
+        Nb         = real(max(n,m), 8)
+
+        call poly_stats(poly, n, m, dist_max, kappa_min, kappa_max)
+        dist_ref = dist_max * 0.25D0
+
+        print *, 'poly_stats: dist_max=', dist_max, ' kappa=[', kappa_min, ',', kappa_max, ']'
 
         hmesh%length = 0
-        
-        call traverse_ncells(0.0_8, 0.0_8, Nb, 0.0_8, 0.0_8, Nb, fine_bits, n, m, poly, hmesh%length)
+        call traverse_ncells(0.0_8, 0.0_8, Nb, 0.0_8, 0.0_8, Nb, fine_bits, n, m, poly, &
+                              dist_ref, kappa_min, kappa_max, hmesh%length)
 
         allocate(hmesh%cells(hmesh%length))
         allocate(hmesh%nearest_cell_poly_idx(hmesh%length))
@@ -186,17 +216,11 @@ module mesh_alloc
     end subroutine alloc_ncells
 
     subroutine alloc_nindex(n, m, cells, nindex)
-
         implicit none
         integer, intent(in) :: n, m
         type(cell2d), intent(inout) :: cells(:)
         integer, intent(out) :: nindex
-
-        ! traverse neighbouring cells incrementing nindex
-
-        ! this will fill up neigh_index of all neighbours
-        ! then theres two arrays of length ncells neigh_start and neigh_count
-
+        nindex = 0
     end subroutine alloc_nindex
 
 end module mesh_alloc
@@ -212,29 +236,31 @@ module mesh_build
     subroutine build_cells(n, m, poly, extra_global_levels, hmesh)
         implicit none
         integer, intent(in) :: n, m
-        real(8), intent(in) :: poly(:,:) ! (np,2)
+        real(8), intent(in) :: poly(:,:)
         integer, intent(in), optional :: extra_global_levels
         type(helper_lod_mesh), intent(inout) :: hmesh
 
-        integer :: fine_bits, base_bits
+        integer :: fine_bits, base_bits, extra_levels
         real(8) :: Nb
+        real(8) :: dist_max, kappa_min, kappa_max, dist_ref
         real(8) :: tempxmin, tempxmax, tempymin, tempymax
-        integer :: extra_levels
         integer :: cidx, i
-        
+
         extra_levels = 1
         if (present(extra_global_levels)) extra_levels = extra_global_levels
 
         base_bits = ceiling(log(real(max(n, m),8)) / log(2.0_8))
-        fine_bits = base_bits + extra_levels
-        ! Nb = 2.0_8**fine_bits
-        Nb = real(max(n,m), 8)
+        fine_bits  = base_bits + extra_levels
+        Nb         = real(max(n,m), 8)
+
+        call poly_stats(poly, n, m, dist_max, kappa_min, kappa_max)
+        dist_ref = dist_max * 0.25D0
 
         cidx = 1
-        
-        call traverse_cells(0.0_8, 0.0_8, Nb, 0.0_8, 0.0_8, Nb, fine_bits, n, m, poly, cidx, hmesh)
+        call traverse_cells(0.0_8, 0.0_8, Nb, 0.0_8, 0.0_8, Nb, fine_bits, n, m, poly, &
+                             dist_ref, kappa_min, kappa_max, cidx, hmesh)
 
-        ! fix min and max
+        ! fix min/max signs (Hilbert rotations can invert axes)
         do i = 1, hmesh%length
             tempxmin = min(hmesh%cells(i)%xmin, hmesh%cells(i)%xmax)
             tempxmax = max(hmesh%cells(i)%xmin, hmesh%cells(i)%xmax)

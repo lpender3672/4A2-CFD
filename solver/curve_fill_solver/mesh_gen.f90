@@ -33,148 +33,172 @@ module mesh_gen
         character(len=*), intent(in) :: naca_code
         real(8), intent(in) :: chord, aoa
 
-        type(helper_lod_mesh) :: hmesh ! helper mesh
-        type(lod_mesh), intent(out) :: fmesh ! final mesh
+        type(helper_lod_mesh) :: hmesh
+        type(lod_mesh), intent(out) :: fmesh
 
-        integer :: ILOD(n,m)
-        integer :: ncells, max_level, i, j, unit
-        real(8), allocatable :: foil(:,:), foil_t(:,:), DIST(:,:), KAPPA(:,:)
+        real(8), allocatable :: foil(:,:), foil_t(:,:)
 
-
-        ! Build an airfoil in domain units as you like:
         call naca4_airfoil("2412", 400, .true., foil)
         allocate(foil_t(size(foil,1),2))
         call transform_airfoil(foil, chord, aoa, origin=[real(n*0.5, 8), real(m*0.5, 8)], poly_out=foil_t)
 
         print *, 'Airfoil generated with ', size(foil_t,1), ' points.'
 
-        ! Generate airfoil geometry
-
-        max_level = 4
-        ! Build LOD map based on airfoil geometry and NACA code
-        ! also gives distance and curvature maps for walls
-        ! call calc_lod(n, m, foil_t, max_level, DIST, KAPPA, ILOD)
-
-        ! Calculate full mesh
         call alloc_ncells(n, m, foil_t, 1, hmesh)
         call build_cells(n, m, foil_t, 1, hmesh)
 
         print *, 'Full mesh cells allocated: ', hmesh%length
         call write_mesh_csv(hmesh, 'mesh.csv')
 
-        ! now function to reduce mesh
-        call build_walls(hmesh, foil_t, fmesh)
+        call build_ghost_cells(hmesh, foil_t, fmesh)
 
-        print *, 'Reduced mesh cells allocated: ', fmesh%length
-        print *, 'Allocated wall cells: ', fmesh%wall_count
+        print *, 'Mesh cells: ', fmesh%length, '  ghost cells: ', fmesh%ghost_count
 
-        ! now build indicies
         call build_indicies(fmesh)
 
         print *, 'Total neighbour count ', size(fmesh%neigh_indices)
-        
+
         call print_first_five_neighbors(fmesh)
 
     end subroutine generate_cmesh
 
-    subroutine build_walls(hmesh, poly, fmesh)
-        type(helper_lod_mesh), intent(in) :: hmesh
+    ! ------------------------------------------------------------------
+    ! Populate fmesh from hmesh:
+    !   - copy all cells, mark each as solid (centre inside poly) or fluid
+    !   - identify ghost cells: fluid cells whose centre is within one
+    !     cell-diagonal of the airfoil surface
+    !   - for each ghost cell store the outward wall normal and the
+    !     mirror-point coordinates used by the solver to set the BC state
+    ! ------------------------------------------------------------------
+    subroutine build_ghost_cells(hmesh, poly, fmesh)
+        type(helper_lod_mesh), intent(in)  :: hmesh
+        real(8),               intent(in)  :: poly(:,:)
+        type(lod_mesh),        intent(out) :: fmesh
 
-        ! precomputed distance and curvature fields used for lod decision
-        real(8), intent(in) :: poly(:,:)
+        integer :: i, gcnt
+        real(8) :: cx, cy, cell_diag, nx, ny, qx, qy, dn
 
-        type(lod_mesh), intent(out) :: fmesh
-        real(8) :: phis(hmesh%length)
-
-        ! thresholds to decide whether to use linear or curved intersection
-        real(8) :: distance_threshold, curvature_threshold
-        real(8) :: line_point(2), line_dir(2)
-        integer :: i, cidx, widx
-
-        real(8) :: EPS
-        EPS = 1.0d-15
-
-        curvature_threshold = sum(hmesh%nearest_cell_poly_curvature) / &
-                                size(hmesh%nearest_cell_poly_curvature) ! idk
-
-        phis = 0.0d0
-
-        fmesh%length = 0
-        fmesh%wall_count = 0
-
-        do i=1, hmesh%length
-            ! if we're not within a cell size, skip
-            distance_threshold = max(hmesh%cells(i)%xmax - hmesh%cells(i)%xmin, &
-                                     hmesh%cells(i)%ymax - hmesh%cells(i)%ymin)
-
-            if (hmesh%nearest_cell_poly_distance(i) > distance_threshold) then
-                fmesh%length = fmesh%length + 1
-                cycle
-            end if
-
-            ! if curvature below arbitrary threshold
-            if (hmesh%nearest_cell_poly_curvature(i) < curvature_threshold) then
-                ! simple straight line intersection
-                call line_cell_phi(hmesh%cells(i), line_point, line_dir, phis(i))
-            else
-                ! complex curve intersection
-                call poly_cell_phi(hmesh%cells(i), poly, phis(i))
-            end if
-
-            if (phis(i) + EPS < 1.0D0) then
-                fmesh%length = fmesh%length + 1
-                if (phis(i) > EPS) then
-                    fmesh%wall_count = fmesh%wall_count + 1
-                end if
-            end if
-        end do
-
+        fmesh%length = hmesh%length
         allocate(fmesh%cells(fmesh%length))
-        allocate(fmesh%wall_indices(fmesh%length))
-        allocate(fmesh%solid_fractions(fmesh%wall_count))
-        allocate(fmesh%wall_normals(fmesh%wall_count, 2))
+        fmesh%cells = hmesh%cells
 
-        fmesh%wall_indices = 0
-        cidx = 0
-        widx = 0
+        ! --- mark solid / fluid -------------------------------------------
+        do i = 1, fmesh%length
+            cx = 0.5D0*(fmesh%cells(i)%xmin + fmesh%cells(i)%xmax)
+            cy = 0.5D0*(fmesh%cells(i)%ymin + fmesh%cells(i)%ymax)
+            if (point_in_polygon(cx, cy, poly)) then
+                fmesh%cells(i)%is_solid = 1
+            else
+                fmesh%cells(i)%is_solid = 0
+            end if
+        end do
 
-        ! loop through phis and get length of reduced cells
-        do i = 1, hmesh%length
-            if (phis(i) + EPS < 1.0D0) then
-                cidx = cidx + 1
-                fmesh%cells(cidx) = hmesh%cells(i)
-                if (phis(i) > EPS) then
-                    widx = widx + 1
-                    fmesh%wall_indices(cidx) = widx
-                    fmesh%solid_fractions(widx) = phis(i)
-                    fmesh%wall_normals(widx, :) = 0 ! TODO
+        ! --- count ghost cells --------------------------------------------
+        ! A fluid cell is a ghost cell when its centre is closer to the
+        ! airfoil than the cell diagonal (i.e. the surface cuts through
+        ! the cell neighbourhood).
+        gcnt = 0
+        do i = 1, fmesh%length
+            if (fmesh%cells(i)%is_solid == 1) cycle
+            cell_diag = sqrt((fmesh%cells(i)%xmax - fmesh%cells(i)%xmin)**2 + &
+                             (fmesh%cells(i)%ymax - fmesh%cells(i)%ymin)**2)
+            if (hmesh%nearest_cell_poly_distance(i) < cell_diag) gcnt = gcnt + 1
+        end do
+
+        fmesh%ghost_count = gcnt
+        allocate(fmesh%ghost_indices(gcnt))
+        allocate(fmesh%ghost_normals(gcnt, 2))
+        allocate(fmesh%ghost_mirror (gcnt, 2))
+
+        ! --- fill ghost cell data -----------------------------------------
+        gcnt = 0
+        do i = 1, fmesh%length
+            if (fmesh%cells(i)%is_solid == 1) cycle
+            cell_diag = sqrt((fmesh%cells(i)%xmax - fmesh%cells(i)%xmin)**2 + &
+                             (fmesh%cells(i)%ymax - fmesh%cells(i)%ymin)**2)
+            if (hmesh%nearest_cell_poly_distance(i) >= cell_diag) cycle
+
+            gcnt = gcnt + 1
+            cx = 0.5D0*(fmesh%cells(i)%xmin + fmesh%cells(i)%xmax)
+            cy = 0.5D0*(fmesh%cells(i)%ymin + fmesh%cells(i)%ymax)
+
+            call nearest_edge_normal(cx, cy, poly, qx, qy, nx, ny)
+
+            ! signed normal distance from wall (positive into fluid)
+            dn = (cx - qx)*nx + (cy - qy)*ny
+
+            fmesh%ghost_indices(gcnt)   = i
+            fmesh%ghost_normals(gcnt,1) = nx
+            fmesh%ghost_normals(gcnt,2) = ny
+            fmesh%ghost_mirror (gcnt,1) = cx - 2.0D0*dn*nx
+            fmesh%ghost_mirror (gcnt,2) = cy - 2.0D0*dn*ny
+        end do
+
+    end subroutine build_ghost_cells
+
+    ! ------------------------------------------------------------------
+    ! Ray-casting point-in-polygon test.
+    ! ------------------------------------------------------------------
+    logical function point_in_polygon(px, py, poly)
+        real(8), intent(in) :: px, py, poly(:,:)
+        integer :: i, j, n
+        n = size(poly, 1)
+        point_in_polygon = .false.
+        j = n
+        do i = 1, n
+            if (((poly(i,2) > py) .neqv. (poly(j,2) > py)) .and. &
+                (px < (poly(j,1)-poly(i,1))*(py-poly(i,2)) / &
+                      (poly(j,2)-poly(i,2)) + poly(i,1))) then
+                point_in_polygon = .not. point_in_polygon
+            end if
+            j = i
+        end do
+    end function point_in_polygon
+
+    ! ------------------------------------------------------------------
+    ! Find the closest point (qx,qy) on the polygon edges to (px,py),
+    ! and return the outward unit normal (nx,ny) at that edge.
+    ! "Outward" = pointing toward (px,py), i.e. into the fluid.
+    ! ------------------------------------------------------------------
+    subroutine nearest_edge_normal(px, py, poly, qx, qy, nx, ny)
+        real(8), intent(in)  :: px, py, poly(:,:)
+        real(8), intent(out) :: qx, qy, nx, ny
+
+        integer :: i, j, n
+        real(8) :: dx, dy, len2, t, ex, ey, d2, best_d2, inv_len
+
+        n = size(poly, 1)
+        best_d2 = 1.0D300
+        qx = poly(1,1);  qy = poly(1,2)
+        nx = 0.0D0;      ny = 1.0D0
+
+        do i = 1, n
+            j = mod(i, n) + 1
+            dx = poly(j,1) - poly(i,1)
+            dy = poly(j,2) - poly(i,2)
+            len2 = dx*dx + dy*dy
+            if (len2 < 1.0D-24) cycle
+
+            t  = ((px - poly(i,1))*dx + (py - poly(i,2))*dy) / len2
+            t  = max(0.0D0, min(1.0D0, t))
+            ex = poly(i,1) + t*dx
+            ey = poly(i,2) + t*dy
+            d2 = (px-ex)**2 + (py-ey)**2
+
+            if (d2 < best_d2) then
+                best_d2 = d2
+                qx = ex;  qy = ey
+                inv_len = 1.0D0 / sqrt(len2)
+                ! Two candidate outward normals perpendicular to edge tangent.
+                ! Pick the one with a positive dot product toward (px,py).
+                if ((-dy*inv_len)*(px-qx) + (dx*inv_len)*(py-qy) > 0.0D0) then
+                    nx = -dy*inv_len;  ny =  dx*inv_len
+                else
+                    nx =  dy*inv_len;  ny = -dx*inv_len
                 end if
             end if
         end do
-        ! allocate cells
-        ! fill reduced_mesh
-        ! calculate normals as well, maybe with phi or maybe after
 
-    end subroutine
+    end subroutine nearest_edge_normal
 
-    subroutine line_cell_phi(cel, line_point, line_dir, phi)
-        type(cell2d), intent(in) :: cel
-        real(8), intent(in) :: line_point(2), line_dir(2)
-        real(8), intent(out) :: phi
-
-        !TODO
-
-        phi = 0.0d0
-    end subroutine line_cell_phi
-
-    subroutine poly_cell_phi(cel, poly, phi)
-        type(cell2d), intent(in) :: cel
-        real(8), intent(in) :: poly(:,:)
-        real(8), intent(out) :: phi
-
-        !TODO
-
-        phi = 0.0d0
-    end subroutine poly_cell_phi
-    
 end module mesh_gen

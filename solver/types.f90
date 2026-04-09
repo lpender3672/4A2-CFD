@@ -167,10 +167,11 @@
             real(c_double)    :: xmin, xmax, ymin, ymax
             integer(c_int)    :: level
             integer(c_int)    :: id
+            integer(c_int)    :: is_solid       ! 1 = cell centre inside airfoil, 0 = fluid
 
             integer(c_int)    :: neigh_offset   ! start index in global neighbour array
-            integer(c_int8_t)    :: neigh_count    ! total number of neighbours (all sides)
-            integer(c_int8_t)    :: side_count(4)  ! how many neighbours per side (xi, xi+1, yi, yi+1)
+            integer(c_int8_t) :: neigh_count    ! total number of neighbours (all sides)
+            integer(c_int8_t) :: side_count(4)  ! how many neighbours per side (xi, xi+1, yi, yi+1)
 
       end type cell2d
       
@@ -183,23 +184,23 @@
       end type helper_lod_mesh
 
       type :: lod_mesh ! final mesh type to be used by solver
-            integer(c_int)            :: length = 0
-            type(cell2d), allocatable :: cells(:)
-            integer(c_int)          :: wall_count
-            integer(c_int), allocatable :: wall_indices(:)
-            real(c_double), allocatable :: solid_fractions(:)
-            real(c_double), allocatable :: wall_normals(:,:)
+            integer(c_int)               :: length = 0
+            type(cell2d), allocatable    :: cells(:)
+            integer(c_int)               :: ghost_count = 0
+            integer(c_int), allocatable  :: ghost_indices(:)   ! cell index of each ghost cell
+            real(c_double), allocatable  :: ghost_normals(:,:) ! (ghost_count,2) outward wall normals
+            real(c_double), allocatable  :: ghost_mirror(:,:)  ! (ghost_count,2) mirror point coords
             integer(c_int), allocatable  :: neigh_indices(:)
       end type lod_mesh
 
       type, bind(C) :: lod_mesh_c
             integer(c_int) :: length
-            type(c_ptr)    :: cells   ! pointer to array of cell2d
-            integer(c_int)  :: wall_count
-            type(c_ptr) :: wall_indices
-            type(c_ptr) :: solid_fractions
-            type(c_ptr) :: wall_normals
-            type(c_ptr)  :: neigh_indices
+            type(c_ptr)    :: cells
+            integer(c_int) :: ghost_count
+            type(c_ptr)    :: ghost_indices
+            type(c_ptr)    :: ghost_normals
+            type(c_ptr)    :: ghost_mirror
+            type(c_ptr)    :: neigh_indices
       end type lod_mesh_c
 
       end module types

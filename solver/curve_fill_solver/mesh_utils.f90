@@ -4,95 +4,11 @@ module mesh_utils
   use general_utils
   implicit none
   private
-  public :: lod_from_xy, interp_from_cell
   public :: naca4_airfoil, transform_airfoil
   public :: nearest_idx, curvature_at_idx, dist_xy_to_xy
-  public :: calc_lod
+  public :: poly_stats
 
 contains
-
-  integer function lod_from_xy(x, y, n, m, ILOD) result(lod)
-      implicit none
-      real(8), intent(in) :: x, y        ! coordinates in full-resolution domain [0, m), [0, n)
-      integer, intent(in) :: n, m        ! fine domain size (for normalization)
-      integer, intent(in) :: ILOD(:,:)   ! coarse integer LOD map (nL × mL)
-      integer :: nL, mL
-      real(8) :: rx, ry, gx, gy
-      integer :: ix, iy
-      real(8) :: f00, f10, f01, f11, wx, wy, interp
-
-      ! size of coarse grid
-      nL = size(ILOD, 1)
-      mL = size(ILOD, 2)
-
-      ! fractional position in coarse grid
-      gx = x * real(mL - 1,8) / real(m,8)
-      gy = y * real(nL - 1,8) / real(n,8)
-
-      ! integer base indices (0-based)
-      ix = int(floor(gx))
-      iy = int(floor(gy))
-
-      ! fractional parts
-      wx = gx - real(ix,8)
-      wy = gy - real(iy,8)
-
-      ! clamp to valid interior range
-      ix = max(0, min(mL-2, ix))
-      iy = max(0, min(nL-2, iy))
-
-      ! get corner values (convert to real for interpolation)
-      f00 = real(ILOD(iy+1, ix+1), 8)
-      f10 = real(ILOD(iy+1, ix+2), 8)
-      f01 = real(ILOD(iy+2, ix+1), 8)
-      f11 = real(ILOD(iy+2, ix+2), 8)
-
-      ! bilinear interpolation
-      interp = f00*(1.0-wx)*(1.0-wy) + f10*wx*(1.0-wy) + f01*(1.0-wx)*wy + f11*wx*wy
-
-      ! round back to nearest integer
-      lod = int(nint(interp))
-    end function lod_from_xy
-
-
-    real(8) function interp_from_cell(cell, map) result(phi)
-    implicit none
-    type(cell2d), intent(in) :: cell
-    real(8), intent(in) :: map(:, :)
-    integer :: n, m
-
-    real(8) :: gx, gy
-    real(8) :: wx, wy
-    integer :: ix, iy
-    real(8) :: d00, d10, d01, d11
-
-    n = size(map, 1)
-    m = size(map, 2)
-
-    gx = 0.5d0 * (cell%xmin + cell%xmax)
-    gy = 0.5d0 * (cell%ymin + cell%ymax)
-
-    ix = int(floor(gx))
-    iy = int(floor(gy))
-
-    ix = max(0, min(m-2, ix))
-    iy = max(0, min(n-2, iy))
-
-    wx = gx - real(ix, 8)
-    wy = gy - real(iy, 8)
-
-    d00 = map(iy+1, ix+1)
-    d10 = map(iy+1, ix+2)
-    d01 = map(iy+2, ix+1)
-    d11 = map(iy+2, ix+2)
-
-    phi = d00*(1d0-wx)*(1d0-wy) + &
-          d10*(wx)*(1d0-wy)     + &
-          d01*(1d0-wx)*(wy)     + &
-          d11*(wx)*(wy)
-
-  end function interp_from_cell
-  
 
   subroutine naca4_airfoil(code, n, closed_te, poly)
     character(len=*), intent(in) :: code
@@ -254,81 +170,47 @@ contains
     curvature = abs(dx1*ddy - dy1*ddx) / denom
   end subroutine curvature_at_idx
 
-  subroutine calc_lod(n, m, foil, max_level, DIST, KAPPA, ILOD)
-    integer, intent(in) :: n, m, max_level
-    real(8), intent(in) :: foil(:, :)              ! (Nf,2) polyline
-    integer, intent(out):: ILOD(n, m)
-    real(8), allocatable, intent(out):: DIST(:,:), KAPPA(:, :)
+  ! Compute curvature and distance extremes from the poly and domain bounds.
+  ! Called once before traversal so calc_stop_level can normalise properly.
+  !
+  !   kappa_min / kappa_max  — curvature range over all interior poly vertices
+  !   dist_max               — distance from the farthest domain corner to the poly
+  !
+  subroutine poly_stats(poly, n, m, dist_max, kappa_min, kappa_max)
+    real(8), intent(in)  :: poly(:,:)   ! (np, 2)
+    integer, intent(in)  :: n, m
+    real(8), intent(out) :: dist_max, kappa_min, kappa_max
 
-    real(8) :: X(n, m), Y(n, m)
-    real(8), allocatable :: xv(:), yv(:), LOD(:,:)
-    real(8), allocatable :: NLOD(:,:)
-    real(8) :: min_k_pos, max_dist, min_nlod, max_nlod
-    integer :: i, j, idx
+    integer :: i, np, pidx
+    real(8) :: d, kappa, kappa_dummy, dist_dummy
+    real(8) :: corners(4, 2)
 
-    allocate(xv(m), yv(n))
-    if (m > 1) then
-      call linspace(0.0D0, real(m,8), m, xv)
-    else
-      xv(1) = 0.0D0
-    end if
-    if (n > 1) then
-      call linspace(0.0D0, real(n,8), n, yv)
-    else
-      yv(1) = 0.0D0
-    end if
+    np = size(poly, 1)
 
-    call meshgrid_xy(xv, yv, X, Y)
+    ! --- curvature range from interior poly vertices ----------------------
+    kappa_min =  1.0D300
+    kappa_max = -1.0D300
+    do i = 2, np - 1
+      call curvature_at_idx(poly(i,1), poly(i,2), poly, i, dist_dummy, kappa)
+      kappa_min = min(kappa_min, kappa)
+      kappa_max = max(kappa_max, kappa)
+    end do
+    if (kappa_min ==  1.0D300) kappa_min = 0.0D0
+    if (kappa_max == -1.0D300) kappa_max = 0.0D0
 
-    allocate(KAPPA(n,m), DIST(n,m), LOD(n,m))
-    KAPPA = 0.0D0; DIST = 0.0D0; LOD = 0.0D0
+    ! --- dist_max from the four domain corners ----------------------------
+    corners(1,:) = [0.0D0,    0.0D0   ]
+    corners(2,:) = [real(m,8),0.0D0   ]
+    corners(3,:) = [0.0D0,    real(n,8)]
+    corners(4,:) = [real(m,8),real(n,8)]
 
-    do i = 1, n
-      do j = 1, m
-        call nearest_idx(X(i,j), Y(i,j), foil, idx)
-        call dist_xy_to_xy(X(i,j), Y(i,j), foil(idx,1), foil(idx,2), DIST(i,j))
-        call curvature_at_idx(X(i,j), Y(i,j), foil, idx, DIST(i,j), KAPPA(i,j))
-      end do
+    dist_max = 0.0D0
+    do i = 1, 4
+      call nearest_idx(corners(i,1), corners(i,2), poly, pidx)
+      call dist_xy_to_xy(corners(i,1), corners(i,2), poly(pidx,1), poly(pidx,2), d)
+      dist_max = max(dist_max, d)
     end do
 
-    ! LKAPPA = log(KAPPA / min(KAPPA[KAPPA>0]))
-    min_k_pos = 1.0D300
-    do i = 1, n
-      do j = 1, m
-        if (KAPPA(i,j) > 0.0D0) min_k_pos = min(min_k_pos, KAPPA(i,j))
-      end do
-    end do
-    if (min_k_pos == 1.0D300) min_k_pos = max(1.0D0, maxval(KAPPA))  ! fallback
-    if (min_k_pos <= 0.0D0) min_k_pos = 1.0D0
-
-    ! IDIST = 1 - DIST/max(DIST)
-    max_dist = max(maxval(DIST), EPS)
-
-    do i = 1, n
-      do j = 1, m
-        LOD(i,j) = ( 1.0D0 - DIST(i,j)/max_dist ) * log( max(KAPPA(i,j)/min_k_pos, EPS) )
-      end do
-    end do
-
-    ! Smooth: size=101, sigma=10
-    allocate(NLOD(n,m))
-    call smooth2d(LOD, 101, 10.0D0, NLOD)
-
-    min_nlod = minval(NLOD)
-    max_nlod = maxval(NLOD)
-    if (max_nlod - min_nlod <= EPS) then
-      NLOD = 0.0D0
-    else
-      NLOD = (NLOD - min_nlod) / (max_nlod - min_nlod) * real(max_level,8)
-    end if
-
-    ! ILOD = max_level - round( clip(NLOD, 0, max_level) )
-    do i = 1, n
-      do j = 1, m
-        NLOD(i,j) = clamp(NLOD(i,j), 0.0D0, real(max_level,8))
-        ILOD(i,j) = max_level - nint(NLOD(i,j))
-      end do
-    end do
-  end subroutine calc_lod
+  end subroutine poly_stats
 
 end module mesh_utils

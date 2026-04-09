@@ -92,11 +92,11 @@ extern "C" {
     struct lod_mesh {
         int length;
         cell2d* cells;
-        int wall_count;
-        int* wall_indices;
-        double* solid_fractions;
-        double* wall_normals;
-        int* neigh_indices;
+        int ghost_count;
+        int*    ghost_indices;   // cell index of each ghost cell
+        double* ghost_normals;   // (ghost_count * 2) outward wall normals
+        double* ghost_mirror;    // (ghost_count * 2) mirror point coords
+        int*    neigh_indices;
     };
 }
 
