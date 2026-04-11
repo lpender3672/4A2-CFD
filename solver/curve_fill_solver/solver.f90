@@ -78,15 +78,18 @@ module cf_solver_module
     tstag = real(bcs%tstag, 8)
     alpha = real(bcs%alpha, 8) * acos(-1.0D0) / 180.0D0   ! deg → rad
 
-    ! Isentropic relations: assume inlet Mach from bconds%rfin (used as Ma)
-    Ma  = real(bcs%rfin, 8)
+    ! Derive freestream Mach from p_out/pstag isentropically,
+    ! matching the block solver convention (rfin is a relaxation factor, not Ma)
+    p0  = real(bcs%p_out, 8)
+    Ma  = sqrt(2.0D0/(gam-1.0D0) * ((pstag/p0)**((gam-1.0D0)/gam) - 1.0D0))
     T0  = tstag / (1.0D0 + 0.5D0*(gam-1.0D0)*Ma**2)
-    p0  = pstag * (T0/tstag)**(gam/(gam-1.0D0))
     ro0 = p0 / (rgas * T0)
     c0  = sqrt(gam * p0 / ro0)
     u0  = Ma * c0 * cos(alpha)
     v0  = Ma * c0 * sin(alpha)
     roe0 = p0/(gam-1.0D0) + 0.5D0*ro0*(u0**2 + v0**2)
+
+    print '(A,F6.4,A,F8.1,A,F8.1)', ' CF freestream: Ma=', Ma, '  p0=', p0, '  T0=', T0
 
     st%ro   = ro0
     st%rovx = ro0 * u0
@@ -113,10 +116,19 @@ module cf_solver_module
     integer :: i
     real(8) :: gam, pi
 
+    real(8), parameter :: RO_MIN = 1.0D-6   ! positivity floor
+    real(8), parameter :: P_MIN  = 1.0D0    ! 1 Pa floor
+
     gam = real(av%gam, 8)
     do i = 1, st%ncells
       if (mesh%cells(i)%is_solid == 1) cycle
-      st%p(i)     = pressure(st%ro(i), st%rovx(i), st%rovy(i), st%roe(i), gam)
+      ! Positivity: clamp density and recompute if needed
+      if (st%ro(i) < RO_MIN) st%ro(i) = RO_MIN
+      st%p(i) = pressure(st%ro(i), st%rovx(i), st%rovy(i), st%roe(i), gam)
+      if (st%p(i) < P_MIN) then
+        st%p(i)   = P_MIN
+        st%roe(i) = P_MIN/(gam-1.0D0) + 0.5D0*(st%rovx(i)**2 + st%rovy(i)**2)/st%ro(i)
+      end if
       st%vx(i)    = st%rovx(i) / st%ro(i)
       st%vy(i)    = st%rovy(i) / st%ro(i)
       st%hstag(i) = (st%roe(i) + st%p(i)) / st%ro(i)
@@ -193,7 +205,7 @@ module cf_solver_module
     real(8) :: gam, cfl, dx, dy, lam_x, lam_y, p_i, c_i
 
     gam = real(av%gam, 8)
-    cfl = real(av%cfl, 8)
+    cfl = min(real(av%cfl, 8), 0.4D0)   ! Lax-Friedrichs 2D stability limit
     dt_global = 1.0D300
 
     do i = 1, st%ncells
@@ -202,7 +214,6 @@ module cf_solver_module
       c_i  = sqrt(max(gam*p_i/st%ro(i), 0.0D0))
       dx   = mesh%cells(i)%xmax - mesh%cells(i)%xmin
       dy   = mesh%cells(i)%ymax - mesh%cells(i)%ymin
-      ! max wave speed in each axis direction
       lam_x = abs(st%vx(i)) + c_i
       lam_y = abs(st%vy(i)) + c_i
       st%dt(i) = cfl / max(lam_x/dx + lam_y/dy, 1.0D-30)
@@ -221,16 +232,15 @@ module cf_solver_module
   ! After accumulating, conserved vars are updated:
   !   Q_new = Q_old - dt/area * sum(F * face_len)
   ! -----------------------------------------------------------------------
-  subroutine euler_step(mesh, av, st, dt)
+  subroutine euler_step(mesh, av, st)
     type(lod_mesh),  intent(in)    :: mesh
     type(t_appvars), intent(in)    :: av
     type(cf_state),  intent(inout) :: st
-    real(8),         intent(in)    :: dt
 
     integer :: i, k, j, offset
     real(8) :: gam, nx, ny, face_len
     real(8) :: f_ro, f_rovx, f_rovy, f_roe
-    real(8) :: dtA_i, dtA_j
+    real(8) :: dtA_i
 
     gam = real(av%gam, 8)
 
@@ -247,6 +257,8 @@ module cf_solver_module
       do k = 0, mesh%cells(i)%neigh_count - 1
         j = mesh%neigh_indices(offset + k)
 
+        ! Skip solid neighbours entirely — ghost BC handles wall condition
+        if (mesh%cells(j)%is_solid == 1) cycle
         ! Only process each pair once: skip if j already handled its side
         if (j < i) cycle
 
@@ -264,19 +276,17 @@ module cf_solver_module
         st%drovy(i) = st%drovy(i) - f_rovy * face_len
         st%droe (i) = st%droe (i) - f_roe  * face_len
 
-        if (mesh%cells(j)%is_solid == 0) then
-          st%dro  (j) = st%dro  (j) + f_ro   * face_len
-          st%drovx(j) = st%drovx(j) + f_rovx * face_len
-          st%drovy(j) = st%drovy(j) + f_rovy * face_len
-          st%droe (j) = st%droe (j) + f_roe  * face_len
-        end if
+        st%dro  (j) = st%dro  (j) + f_ro   * face_len
+        st%drovx(j) = st%drovx(j) + f_rovx * face_len
+        st%drovy(j) = st%drovy(j) + f_rovy * face_len
+        st%droe (j) = st%droe (j) + f_roe  * face_len
       end do
     end do
 
-    ! Apply increments
+    ! Apply increments with per-cell local timestep
     do i = 1, st%ncells
       if (mesh%cells(i)%is_solid == 1) cycle
-      dtA_i = dt / st%area(i)
+      dtA_i = st%dt(i) / st%area(i)
       st%ro  (i) = st%ro  (i) + dtA_i * st%dro  (i)
       st%rovx(i) = st%rovx(i) + dtA_i * st%drovx(i)
       st%rovy(i) = st%rovy(i) + dtA_i * st%drovy(i)
@@ -286,10 +296,17 @@ module cf_solver_module
   end subroutine euler_step
 
   ! -----------------------------------------------------------------------
-  ! Farfield BC: overwrite domain-boundary cells with freestream state.
-  ! A cell is on the domain boundary if it has fewer than 4 sides occupied
-  ! (i.e. side_count sums to less than 4 expected neighbours — crude but
-  ! sufficient until a proper inlet/outlet treatment is added).
+  ! Farfield BC — matches the block solver's validated approach:
+  !
+  ! INLET (open sides on upstream half of domain):
+  !   Relax boundary density toward rostag via rfin, then derive all other
+  !   quantities isentropically from stagnation conditions — exactly as
+  !   apply_bconds does in the block solver.
+  !   ro is capped at 0.9999*rostag to prevent transient crashes.
+  !
+  ! OUTLET (open sides on downstream half):
+  !   Fix static pressure to p_out only; density and momentum extrapolated
+  !   from interior (1 characteristic enters from outside for subsonic flow).
   ! -----------------------------------------------------------------------
   subroutine apply_farfield_bc(mesh, av, bcs, st)
     type(lod_mesh),  intent(in)    :: mesh
@@ -298,23 +315,17 @@ module cf_solver_module
     type(cf_state),  intent(inout) :: st
 
     integer :: i, total_sides
-    real(8) :: gam, rgas, pstag, tstag, alpha, Ma
-    real(8) :: ro0, p0, T0, c0, u0, v0, roe0
+    real(8) :: gam, cp, pstag, tstag, alpha, rfin, rostag, p_out
+    real(8) :: ro_i, Tstatic, Vinlet, cx
 
-    gam   = real(av%gam,    8)
-    rgas  = real(av%rgas,   8)
-    pstag = real(bcs%pstag, 8)
-    tstag = real(bcs%tstag, 8)
-    alpha = real(bcs%alpha, 8) * acos(-1.0D0) / 180.0D0
-    Ma    = real(bcs%rfin,  8)
-
-    T0   = tstag / (1.0D0 + 0.5D0*(gam-1.0D0)*Ma**2)
-    p0   = pstag * (T0/tstag)**(gam/(gam-1.0D0))
-    ro0  = p0 / (rgas * T0)
-    c0   = sqrt(gam * p0 / ro0)
-    u0   = Ma * c0 * cos(alpha)
-    v0   = Ma * c0 * sin(alpha)
-    roe0 = p0/(gam-1.0D0) + 0.5D0*ro0*(u0**2 + v0**2)
+    gam    = real(av%gam,    8)
+    cp     = real(av%cp,     8)
+    pstag  = real(bcs%pstag, 8)
+    tstag  = real(bcs%tstag, 8)
+    alpha  = real(bcs%alpha, 8) * acos(-1.0D0) / 180.0D0
+    rfin   = real(bcs%rfin,  8)
+    rostag = real(bcs%rostag,8)
+    p_out  = real(bcs%p_out, 8)
 
     do i = 1, st%ncells
       if (mesh%cells(i)%is_solid == 1) cycle
@@ -322,12 +333,28 @@ module cf_solver_module
                     int(mesh%cells(i)%side_count(2)) + &
                     int(mesh%cells(i)%side_count(3)) + &
                     int(mesh%cells(i)%side_count(4))
-      ! Cells with open sides sit on the domain boundary
-      if (total_sides < 4) then
-        st%ro  (i) = ro0
-        st%rovx(i) = ro0 * u0
-        st%rovy(i) = ro0 * v0
-        st%roe (i) = roe0
+      if (total_sides >= 4) cycle
+
+      cx = 0.5D0*(mesh%cells(i)%xmin + mesh%cells(i)%xmax)
+
+      if (cx <= 1.5D0) then
+        ! --- Inlet: stagnation-condition driven, same as block solver ---
+        ! Relax boundary density toward interior value (filtered by rfin)
+        ro_i = rfin * st%ro(i) + (1.0D0 - rfin) * st%ro(i)  ! = st%ro(i) first step
+        ro_i = min(ro_i, 0.9999D0 * rostag)
+
+        Tstatic = tstag * (ro_i / rostag)**(gam - 1.0D0)
+        Vinlet  = sqrt(max(2.0D0 * cp * (tstag - Tstatic), 0.0D0))
+
+        st%ro  (i) = ro_i
+        st%rovx(i) = ro_i * Vinlet * cos(alpha)
+        st%rovy(i) = ro_i * Vinlet * sin(alpha)
+        st%roe (i) = ro_i * (cp/gam * Tstatic + 0.5D0 * Vinlet**2)
+        ! p = pstag*(ro/rostag)^gam — consistent with isentropic inlet
+      else
+        ! --- Outlet: fix static pressure only ---
+        st%roe(i) = p_out/(gam-1.0D0) + &
+                    0.5D0*(st%rovx(i)**2 + st%rovy(i)**2) / max(st%ro(i), 1.0D-6)
       end if
     end do
   end subroutine apply_farfield_bc
@@ -386,7 +413,7 @@ subroutine curve_fill_solver(av_c, bcs_c, g_c) bind(C, name="curve_fill_solver")
   call grid_from_c   (g_c, g_dummy)
   call bconds_from_c (bcs_c, bcs, g_dummy)
 
-  call generate_cmesh(1000, 1000, "2412", real(2,8), real(6.0,8), mesh)
+  call generate_cmesh(1000, 1000, "2412", 1.0D0, real(6.0,8), 3.0D0, 3.0D0, mesh)
   call lod_mesh_to_qt(mesh)
 
   call init_state   (mesh, av, bcs, st)
@@ -396,17 +423,22 @@ subroutine curve_fill_solver(av_c, bcs_c, g_c) bind(C, name="curve_fill_solver")
 
   do step = 1, av%nsteps
 
+    ! BCs must be applied before flux step so boundary cells are
+    ! correct when euler_step reads them as neighbours
+    call apply_farfield_bc(mesh, av, bcs, st)
     call apply_ghost_bc   (mesh, st)
     call set_secondary    (mesh, av, st)
     call compute_dt       (mesh, av, st, dt)
-    call euler_step       (mesh, av, st, dt)
-    call apply_farfield_bc(mesh, av, bcs, st)
+    call euler_step       (mesh, av, st)
+
+    if (step == 1) &
+      print '(A,ES10.3)', ' dt step 1 = ', dt
 
     if (mod(step, 100) == 0) then
       d_max = maxval(abs(st%dro))
       d_avg = sum   (abs(st%dro)) / real(st%ncells, 8)
-      print '(A,I6,A,ES10.3,A,ES10.3)', &
-        ' step ', step, '  dro_max=', d_max, '  dro_avg=', d_avg
+      print '(A,I6,A,ES10.3,A,ES10.3,A,ES10.3)', &
+        ' step ', step, '  dro_max=', d_max, '  dro_avg=', d_avg, '  dt=', dt
       call cf_state_to_qt(st)
     end if
 

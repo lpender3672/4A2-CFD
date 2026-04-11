@@ -27,22 +27,36 @@ module mesh_gen
         close(unit)
     end subroutine write_mesh_csv
 
-    subroutine generate_cmesh(n, m, naca_code, chord, aoa, fmesh)
+    ! domain_x, domain_y: physical domain size in metres
+    ! chord: airfoil chord in metres
+    ! Quarter-chord placed at domain centre
+    subroutine generate_cmesh(n, m, naca_code, chord, aoa, domain_x, domain_y, fmesh)
         implicit none
         integer, intent(in) :: n, m
         character(len=*), intent(in) :: naca_code
-        real(8), intent(in) :: chord, aoa
+        real(8), intent(in) :: chord, aoa, domain_x, domain_y
 
         type(helper_lod_mesh) :: hmesh
         type(lod_mesh), intent(out) :: fmesh
 
         real(8), allocatable :: foil(:,:), foil_t(:,:)
+        real(8) :: sx, sy
+        integer :: i
 
-        call naca4_airfoil("2412", 400, .true., foil)
+        ! Airfoil is first built in integer grid space [0,n]x[0,m]
+        ! chord_grid = chord * n / domain_x  (convert metres -> grid units)
+        real(8) :: chord_grid, origin_x, origin_y
+        chord_grid = chord * real(n, 8) / domain_x
+        origin_x   = real(n, 8) * 0.5D0 - chord_grid * 0.25D0
+        origin_y   = real(m, 8) * 0.5D0
+
+        call naca4_airfoil("2412", 400, foil)
         allocate(foil_t(size(foil,1),2))
-        call transform_airfoil(foil, chord, aoa, origin=[real(n*0.5, 8), real(m*0.5, 8)], poly_out=foil_t)
+        call transform_airfoil(foil, chord_grid, aoa, origin=[origin_x, origin_y], poly_out=foil_t)
 
         print *, 'Airfoil generated with ', size(foil_t,1), ' points.'
+        print '(A,F8.4,A,F8.4,A,F8.4)', ' chord_grid=', chord_grid, &
+              '  origin=(', origin_x, ',', origin_y, ')'
 
         call alloc_ncells(n, m, foil_t, 1, hmesh)
         call build_cells(n, m, foil_t, 1, hmesh)
@@ -52,11 +66,37 @@ module mesh_gen
 
         call build_ghost_cells(hmesh, foil_t, fmesh)
 
+        fmesh%poly_count = int(size(foil_t, 1), c_int)
+        allocate(fmesh%poly_x(fmesh%poly_count))
+        allocate(fmesh%poly_y(fmesh%poly_count))
+        fmesh%poly_x = foil_t(:,1)
+        fmesh%poly_y = foil_t(:,2)
+
         print *, 'Mesh cells: ', fmesh%length, '  ghost cells: ', fmesh%ghost_count
 
         call build_indicies(fmesh)
 
         print *, 'Total neighbour count ', size(fmesh%neigh_indices)
+
+        ! Scale all coordinates from grid units to physical metres
+        sx = domain_x / real(n, 8)
+        sy = domain_y / real(m, 8)
+        do i = 1, fmesh%length
+            fmesh%cells(i)%xmin = fmesh%cells(i)%xmin * sx
+            fmesh%cells(i)%xmax = fmesh%cells(i)%xmax * sx
+            fmesh%cells(i)%ymin = fmesh%cells(i)%ymin * sy
+            fmesh%cells(i)%ymax = fmesh%cells(i)%ymax * sy
+        end do
+        do i = 1, fmesh%ghost_count
+            fmesh%ghost_mirror(i,1) = fmesh%ghost_mirror(i,1) * sx
+            fmesh%ghost_mirror(i,2) = fmesh%ghost_mirror(i,2) * sy
+            ! normals are unit vectors — no scaling needed
+        end do
+        fmesh%poly_x = fmesh%poly_x * sx
+        fmesh%poly_y = fmesh%poly_y * sy
+
+        print '(A,F6.3,A,F6.3,A,F6.3)', ' Physical domain: ', domain_x, 'm x ', &
+              domain_y, 'm  chord=', chord, 'm'
 
         call print_first_five_neighbors(fmesh)
 

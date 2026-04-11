@@ -179,6 +179,27 @@ void VisWidget::finaliseAxes(QCustomPlot *customPlot, double minX, double maxX, 
     customPlot->replot();
 }
 
+void VisWidget::drawPolyOverlay(QCustomPlot *customPlot)
+{
+    if (currentPolyX.isEmpty()) return;
+
+    // Close the polygon by appending the first point
+    QVector<double> t(currentPolyX.size() + 1);
+    QVector<double> px(currentPolyX.size() + 1);
+    QVector<double> py(currentPolyY.size() + 1);
+    for (int i = 0; i < currentPolyX.size(); ++i) {
+        t[i] = i; px[i] = currentPolyX[i]; py[i] = currentPolyY[i];
+    }
+    t.back()  = currentPolyX.size();
+    px.back() = currentPolyX[0];
+    py.back() = currentPolyY[0];
+
+    auto *curve = new QCPCurve(customPlot->xAxis, customPlot->yAxis);
+    curve->setData(t, px, py);
+    curve->setPen(QPen(Qt::white, 1.5));
+    curve->setScatterStyle(QCPScatterStyle::ssNone);
+}
+
 void VisWidget::updateBlockMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const QVector<t_grid> &grids, const QVector<const float *> &mesh_datas, t_data_type mesh_data_type)
 {
     if (grids.isEmpty() || mesh_datas.size() != grids.size()) return;
@@ -240,6 +261,7 @@ void VisWidget::updateBlockMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshP
 
     colorScale->axis()->setRange(minVal, maxVal);
     colorScale->axis()->setLabel(tabNames[tabWidget->currentIndex()]);
+    drawPolyOverlay(customPlot);
     finaliseAxes(customPlot, minX, maxX, minY, maxY);
 }
 
@@ -316,13 +338,13 @@ void VisWidget::updateLodMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlo
     }
     // -----------------------------------------------------------------------
 
-    // Configure color scale (use "Level" as the label)
     if (colorScale) {
         colorScale->axis()->setRange(minLevel, maxLevel);
         colorScale->axis()->setLabel("Level");
     }
 
-    // Set axis ranges and aspect ratio
+    drawPolyOverlay(customPlot);
+
     customPlot->setInteractions(QCP::iRangeZoom | QCP::iRangeDrag);
     customPlot->axisRect()->setRangeZoom(Qt::Horizontal | Qt::Vertical);
     customPlot->axisRect()->setRangeDrag(Qt::Horizontal | Qt::Vertical);
@@ -355,6 +377,13 @@ void VisWidget::outputLodMesh(const lod_mesh &mesh)
     currentCells.resize(mesh.length);
     for (int i = 0; i < mesh.length; ++i)
         currentCells[i] = mesh.cells[i];
+
+    currentPolyX.resize(mesh.poly_count);
+    currentPolyY.resize(mesh.poly_count);
+    for (int i = 0; i < mesh.poly_count; ++i) {
+        currentPolyX[i] = mesh.poly_x[i];
+        currentPolyY[i] = mesh.poly_y[i];
+    }
 
     resetAxis = true;
     updateLodMeshGraph(customPlots[0], meshPlots[0], colorScales[0], mesh);
@@ -428,6 +457,7 @@ void VisWidget::updateCfMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot
 
     colorScale->axis()->setRange(minVal, maxVal);
     colorScale->axis()->setLabel(label);
+    drawPolyOverlay(customPlot);
     finaliseAxes(customPlot, globalMinX, globalMaxX, globalMinY, globalMaxY);
 }
 

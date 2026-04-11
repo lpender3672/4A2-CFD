@@ -155,12 +155,15 @@ private:
 
     // CF solver state
     QVector<cell2d> currentCells;
+    QVector<double> currentPolyX;
+    QVector<double> currentPolyY;
     bool hasCfState = false;
     std::vector<double> cfRo, cfRovx, cfRovy, cfRoe;
     std::vector<double> cfP, cfVx, cfVy, cfHstag;
 
     void createMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, QString title, QString xTitle, QString yTitle);
     void finaliseAxes(QCustomPlot *customPlot, double minX, double maxX, double minY, double maxY);
+    void drawPolyOverlay(QCustomPlot *customPlot);
 
     void updateBlockMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const QVector<t_grid> &grids, const QVector<const float *> &mesh_data, t_data_type mesh_data_type);
     void updateLodMeshGraph(QCustomPlot *&customPlot, QMeshPlot *&meshPlot, QCPColorScale *&colorScale, const lod_mesh &mesh);

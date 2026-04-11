@@ -34,8 +34,8 @@ module mesh_traverse
 
         w_dist = exp(-dist / max(dist_ref, EPS))
 
-        if (kappa_max > kappa_min + EPS) then
-            w_kappa = (kappa - kappa_min) / (kappa_max - kappa_min)
+        if (kappa_max > kappa_min * (1.0D0 + EPS) .and. kappa > kappa_min) then
+            w_kappa = log(kappa / kappa_min) / log(kappa_max / kappa_min)
         else
             w_kappa = 0.0D0
         end if

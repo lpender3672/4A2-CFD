@@ -75,9 +75,11 @@
       end type t_bconds
 
       type, bind(C) :: t_bconds_c
-            real(C_FLOAT) :: pstag, tstag, alpha, rfin, rostag, p_out
-            type(C_PTR) :: p, ro
-            integer(C_INT) :: n_in, n_out
+            real(C_FLOAT)    :: pstag, tstag, alpha, rfin, rostag
+            real(C_FLOAT)    :: padding_  ! compiler aligns float* to 8 bytes
+            type(C_PTR)      :: p, ro
+            real(C_FLOAT)    :: p_out
+            integer(C_INT)   :: n_in, n_out
             
       end type t_bconds_c
 
@@ -197,6 +199,9 @@
             real(c_double), allocatable  :: ghost_normals(:,:) ! (ghost_count,2) outward wall normals
             real(c_double), allocatable  :: ghost_mirror(:,:)  ! (ghost_count,2) mirror point coords
             integer(c_int), allocatable  :: neigh_indices(:)
+            integer(c_int)               :: poly_count = 0
+            real(c_double), allocatable  :: poly_x(:)          ! polygon vertex x coords
+            real(c_double), allocatable  :: poly_y(:)          ! polygon vertex y coords
       end type lod_mesh
 
       type, bind(C) :: lod_mesh_c
@@ -207,6 +212,9 @@
             type(c_ptr)    :: ghost_normals
             type(c_ptr)    :: ghost_mirror
             type(c_ptr)    :: neigh_indices
+            integer(c_int) :: poly_count
+            type(c_ptr)    :: poly_x
+            type(c_ptr)    :: poly_y
       end type lod_mesh_c
 
       end module types

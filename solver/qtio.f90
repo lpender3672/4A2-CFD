@@ -139,8 +139,6 @@
             implicit none
             type(lod_mesh), intent(in), target :: lod
             type(lod_mesh_c)               :: mc
-            integer :: i
-
             if (.not.allocated(lod%cells)) return
 
             mc%length      = int(lod%length, c_int)
@@ -150,6 +148,9 @@
             mc%ghost_normals = c_loc(lod%ghost_normals(1,1))
             mc%ghost_mirror  = c_loc(lod%ghost_mirror(1,1))
             mc%neigh_indices = c_loc(lod%neigh_indices(1))
+            mc%poly_count  = int(lod%poly_count, c_int)
+            mc%poly_x      = c_loc(lod%poly_x(1))
+            mc%poly_y      = c_loc(lod%poly_y(1))
 
             call emit_mesh(mc)
 

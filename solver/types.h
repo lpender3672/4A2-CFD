@@ -109,6 +109,9 @@ extern "C" {
         double* ghost_normals;   // (ghost_count * 2) outward wall normals
         double* ghost_mirror;    // (ghost_count * 2) mirror point coords
         int*    neigh_indices;
+        int     poly_count;
+        double* poly_x;
+        double* poly_y;
     };
 }
 

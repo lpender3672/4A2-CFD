@@ -8,26 +8,32 @@ module mesh_utils
   public :: nearest_idx, curvature_at_idx, dist_xy_to_xy
   public :: poly_stats
 
+  integer, parameter, public :: CURVATURE_STENCIL_W = 20   ! stencil half-width for curvature_at_idx
+
 contains
 
-  subroutine naca4_airfoil(code, n, closed_te, poly)
+  ! Produces a sharp trailing-edge NACA 4-digit airfoil polygon.
+  ! Output: poly(2*n-1, 2) — upper surface (LE→TE, indices 1..n) followed
+  ! by lower surface (TE-1→LE, indices n+1..2n-1).  The TE at index n is
+  ! the exact cusp (yt=0), shared between surfaces so there is no
+  ! degenerate zero-length edge.
+  subroutine naca4_airfoil(code, n, poly)
     character(len=*), intent(in) :: code
     integer, intent(in) :: n
-    logical, intent(in) :: closed_te
-    real(8), allocatable, intent(out) :: poly(:,:)  ! (2*n, 2)
+    real(8), allocatable, intent(out) :: poly(:,:)
 
     integer :: i
-    real(8) :: m, p, t, k5
+    real(8) :: m_cam, p_cam, t
     real(8), allocatable :: beta(:), x(:), yc(:), dyc_dx(:), yt(:)
     real(8), allocatable :: theta(:), xu(:), yu(:), xl(:), yl(:)
 
-    if (len_trim(code) /= 4) stop "naca4_airfoil: code must have length 4"
+    if (len_trim(code) /= 4) stop "naca4_airfoil: code must be 4 digits"
     if (.not. all([(lge(code(i:i),'0') .and. lle(code(i:i),'9'), i=1,4)])) &
          stop "naca4_airfoil: code must be numeric"
 
-    m = real(iachar(code(1:1)) - iachar('0'),8) / 100.0D0
-    p = real(iachar(code(2:2)) - iachar('0'),8) / 10.0D0
-    t = real( (iachar(code(3:3)) - iachar('0'))*10 + (iachar(code(4:4)) - iachar('0')), 8 ) / 100.0D0
+    m_cam = real(iachar(code(1:1)) - iachar('0'), 8) / 100.0D0
+    p_cam = real(iachar(code(2:2)) - iachar('0'), 8) / 10.0D0
+    t     = real((iachar(code(3:3))-iachar('0'))*10 + (iachar(code(4:4))-iachar('0')), 8) / 100.0D0
 
     allocate(beta(n), x(n), yc(n), dyc_dx(n), yt(n), theta(n), xu(n), yu(n), xl(n), yl(n))
     call linspace(0.0D0, PI, n, beta)
@@ -35,50 +41,37 @@ contains
       x(i) = 0.5D0 * (1.0D0 - cos(beta(i)))
     end do
 
-    if (closed_te) then
-      k5 = -0.1015D0
-    else
-      k5 = -0.1036D0
-    end if
-
+    ! Sharp TE: k5 = -0.1036 gives yt=0 exactly at x=1
     do i = 1, n
-      ! clip x to [0,1] implicitly since construction yields that range
-      yt(i) = 5.0D0 * t * ( 0.2969D0*sqrt(max(0.0D0, x(i))) - 0.1260D0*x(i) &
-                 - 0.3516D0*x(i)**2 + 0.2843D0*x(i)**3 + k5*x(i)**4 )
+      yt(i) = 5.0D0*t * (0.2969D0*sqrt(max(x(i),0.0D0)) - 0.1260D0*x(i) &
+                        - 0.3516D0*x(i)**2 + 0.2843D0*x(i)**3 - 0.1036D0*x(i)**4)
     end do
 
-    yc     = 0.0D0
-    dyc_dx = 0.0D0
-    if (m > 0.0D0 .and. p > 0.0D0) then
+    yc = 0.0D0;  dyc_dx = 0.0D0
+    if (m_cam > 0.0D0 .and. p_cam > 0.0D0) then
       do i = 1, n
-        if (x(i) < p) then
-          yc(i)     = m/(p**2)       * (2.0D0*p*x(i) - x(i)**2)
-          dyc_dx(i) = 2.0D0*m/(p**2) * (p - x(i))
+        if (x(i) < p_cam) then
+          yc(i)     = m_cam/p_cam**2      * (2.0D0*p_cam*x(i) - x(i)**2)
+          dyc_dx(i) = 2.0D0*m_cam/p_cam**2 * (p_cam - x(i))
         else
-          yc(i)     = m/((1.0D0-p)**2) * ((1.0D0 - 2.0D0*p) + 2.0D0*p*x(i) - x(i)**2)
-          dyc_dx(i) = 2.0D0*m/((1.0D0-p)**2) * (p - x(i))
+          yc(i)     = m_cam/(1.0D0-p_cam)**2 * ((1.0D0-2.0D0*p_cam) + 2.0D0*p_cam*x(i) - x(i)**2)
+          dyc_dx(i) = 2.0D0*m_cam/(1.0D0-p_cam)**2 * (p_cam - x(i))
         end if
       end do
     end if
 
     do i = 1, n
       theta(i) = atan(dyc_dx(i))
-      xu(i) = x(i) - yt(i) * sin(theta(i))
-      yu(i) = yc(i) + yt(i) * cos(theta(i))
-      xl(i) = x(i) + yt(i) * sin(theta(i))
-      yl(i) = yc(i) - yt(i) * cos(theta(i))
+      xu(i) = x(i) - yt(i)*sin(theta(i));  yu(i) = yc(i) + yt(i)*cos(theta(i))
+      xl(i) = x(i) + yt(i)*sin(theta(i));  yl(i) = yc(i) - yt(i)*cos(theta(i))
     end do
 
-    allocate(poly(2*n, 2))
-    ! upper: 1..n in order
-    do i = 1, n
-      poly(i,1) = xu(i)
-      poly(i,2) = yu(i)
+    allocate(poly(2*n - 1, 2))
+    do i = 1, n         ! upper: LE → TE
+      poly(i,   1) = xu(i);  poly(i,   2) = yu(i)
     end do
-    ! lower reversed: n..1
-    do i = 1, n
-      poly(n+i,1) = xl(n - i + 1)
-      poly(n+i,2) = yl(n - i + 1)
+    do i = 1, n - 1     ! lower: TE-1 → LE
+      poly(n+i, 1) = xl(n-i);  poly(n+i, 2) = yl(n-i)
     end do
   end subroutine naca4_airfoil
 
@@ -154,10 +147,10 @@ contains
       return
     end if
 
-    cidx = max(2, min(n-1, idx))
+    cidx = max(1+CURVATURE_STENCIL_W, min(n-CURVATURE_STENCIL_W, idx))
 
-    im1 = cidx-1
-    ip1 = cidx+1
+    im1 = cidx - CURVATURE_STENCIL_W
+    ip1 = cidx + CURVATURE_STENCIL_W
 
     dx1 = poly(ip1,1) - poly(im1,1)
     dy1 = poly(ip1,2) - poly(im1,2)
@@ -181,22 +174,30 @@ contains
     integer, intent(in)  :: n, m
     real(8), intent(out) :: dist_max, kappa_min, kappa_max
 
-    integer :: i, np, pidx
+    integer :: i, np, pidx, te_idx
     real(8) :: d, kappa, kappa_dummy, dist_dummy
     real(8) :: corners(4, 2)
 
     np = size(poly, 1)
 
     ! --- curvature range from interior poly vertices ----------------------
+    ! Skip the TE cusp (max-x point) — it is a geometric discontinuity,
+    ! not a smooth curvature feature, and would inflate kappa_max to ~4000+
+    ! causing all other curvatures to normalise to zero.
+    ! Use maxloc to find TE dynamically (not grid dim n which is unrelated).
+    te_idx = maxloc(poly(:,1), 1)
+
     kappa_min =  1.0D300
     kappa_max = -1.0D300
     do i = 2, np - 1
+      if (abs(i - te_idx) <= CURVATURE_STENCIL_W) cycle   ! skip TE cusp and its stencil neighbours
       call curvature_at_idx(poly(i,1), poly(i,2), poly, i, dist_dummy, kappa)
       kappa_min = min(kappa_min, kappa)
       kappa_max = max(kappa_max, kappa)
     end do
     if (kappa_min ==  1.0D300) kappa_min = 0.0D0
     if (kappa_max == -1.0D300) kappa_max = 0.0D0
+    kappa_min = max(kappa_min, 1.0D-10)   ! floor for safe log in calc_stop_level
 
     ! --- dist_max from the four domain corners ----------------------------
     corners(1,:) = [0.0D0,    0.0D0   ]
