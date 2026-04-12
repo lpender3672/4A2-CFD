@@ -1,105 +1,113 @@
-## 4A2 - Computational Fluid Dynamics
-Example and complete code for the IIB module
+# 4A2 - Computational Fluid Dynamics
 
-## Getting started
-This directory contains all Fortran source files of the skeleton code.
-"solver.f90" is the main program, each of the other .f90 files contains one
-subroutine. It also contains the Python files for creating the test cases and
-analysing the output of the solver.
+IIB Engineering module — Euler equation solver for compressible inviscid flow on structured block meshes, with a Qt GUI, Python parameter sweep tooling, and an ongoing AMR extension using a Hilbert space-filling curve.
 
-## Example Fortran program  
-This repository also contains an example program to calculate the advection of a
-scalar variable "phi". Study all of the lines in "advection.f90" to familiarise
-yourself with Fortran. The comments contain instructions for compiling and
-executing this program. The output can then be plotted with the Python script
-"plot\_advection.py". If you want to refresh your Python knowledge this is also
-a good script to study line by line, there are only 11 of them.
+## Project structure
 
-## Completing the Euler solver
-You need supply the correct lines in the .f90 files where indicated by "INSERT" 
-to complete a workable program. The detailed instructions on how to do this are
-given in the module handout available on moodle. The lecture notes and guides to
-programming Fortran may also be useful.
-
-## Compiling your Fortran program
-The compilation of the code is managed by "makefile". Type 
 ```
-make
-```
-the operating system will compile all the .f90 files into .o files and link the
-.o files into an executable "solver.x". 
-
-"make" is a unix bash system command which uses the information in "makefile" to
-manage the compilation of executables.
- 
-There are many benefits of using a makefile. One is that the system only
-re-compiles the newly updated .f90 files compared to their compiled .o versions.
-That is, if a .f90 file is older than its .o file, the system will do nothing.
-This is extremely efficient when dealing with large quantities of code. You may 
-like to have a look at the makefile as you'll need to make a couple of changes 
-later.
-
-To force a recompile all files, delete all .o files with
-```
-make clean
+solver/
+  block_mesh_solver/     Structured block mesh Euler solver (coursework)
+  curve_fill_solver/     AMR solver on Hilbert curve (extension, in progress)
+  gui/                   Qt visualisation widgets
+  types.f90 / types.h    Shared Fortran/C interop types
+  qtio.f90               Fortran → Qt signal bridge
+cases/                   Test case input files (bend, bump, naca0012, naca2412, ...)
+preprocessing/           Python scripts for geometry and case generation
+postprocessing/          Python scripts for plotting Cp, Mach, convergence
+report/                  Interim and final reports with figures
 ```
 
-## Creating a test case
-The Python script "generate\_cases.py" can be used to create many different
-geometries to model using your CFD solver. For the basic version of the code the
-"bend" and "bump" cases form a good starting point. Move to the directory for 
-your cases alongside your code directory and then execute the Python script.
-```
-cd ~/4A2/Cases
-python ../Code/generate_case.py bend
-```
-it will show you a plot of the geometry and generate two input files
-"geom\_bend.txt" and "input\_bend.txt"
+## Building
 
-## Running your code
-Move to the directory with your input files in a terminal tab and execute the
-solver. To run the code, type
-```
-../Code/solver.x < input_bend.txt
-```
-it will begin solving and print the status of the calculation in your terminal.
-If you want to run the solver in the background and save this status to a log
-file you should run
-```
-../Code/solver.x < input_bend.txt > log_bend.txt &
+Requires gfortran (MinGW64), Qt 6, CMake ≥ 3.16.
+
+```bash
+mkdir build && cd build
+cmake .. -G "MinGW Makefiles"
+cmake --build . -j8
 ```
 
-## Maintaining your code
-If you haven't already, now is a very good time to learn a version control 
-system. "Git" is the single most popular method and the university hosted
-[Gitlab](https://gitlab.developers.cam.ac.uk/) has many different 
-[tutorials](https://docs.gitlab.com/ee/tutorials/learn_git.html) for beginners 
-and experienced users.
+After a `types.f90` change, stale `.mod` files can cause spurious errors — do a full clean rebuild:
 
-Alternatively there are some commands written into the makefile. Using
-``` 
-make save
+```bash
+rm -rf build && mkdir build && cd build
+cmake .. -G "MinGW Makefiles" && cmake --build . -j8
 ```
-will save your source files into a single compressed file "SaveSrc.tar.gz"
-which is easy to transfer to other locations. To partially reverse the process 
-type
-```
-make extract
-```
-Which restores the original files to a new directory "SaveSrc".
 
-## Analysing your solutions
-Four Python scripts are provided to analyse the output of your CFD solver.
-"plot\_coord.py" will be the first you can use to plot the mesh created in
-Fortran. You can run it on the bend test case with:
-```
-python ../Code/plot_coord.py bend"
-```
-Other test cases can be plotted by changing the casename after the script is
-called. "plot\_guess.py" is the next that you can use to visualise the initial
-guess, it is called in a similar way. Later "plot\_conv.py" can be used to show 
-the convergence history, while "plot\_contours.py" shows the solution after a
-successful run. This script has some blank sections for you to complete before
-it will work.
+## Block mesh solver
 
+Solves the 2D Euler equations on structured curvilinear block meshes using a finite volume time-marching method with Lax-Friedrichs flux.
 
+### Improvements over the skeleton code
+
+**Runge-Kutta (RK4)** — intermediate timesteps with linearly increasing step sizes (3/8-rule variant). More stable at high CFL; more computationally expensive per iteration.
+
+**Deferred correction** — artificial viscosity is gradually reduced as the solution converges. A correction variable `corr` slowly approaches `fcorr × (prop - prop_average)`, cancelling out smoothing at steady state. Improves final accuracy for a given `sfac`.
+
+**Residual averaging** — primary flow variables are smoothed each iteration:
+```
+dcell = (1 - sfac_res) × dcell + sfac_res × dcell_avg
+```
+Stabilises the solver at higher CFL numbers, allowing faster convergence.
+
+**Spatially varying (local) timestep** — each cell uses its own stable timestep `Δt = l_min / (a + v)`, updated every 10 iterations. Significantly reduces iteration count to steady state on non-uniform meshes.
+
+**Convergence detection** — solver stops when the last 100 values of `d_avg` (sampled every 50 iterations) are all within a factor of `d_var` of their mean, avoiding unnecessary iterations after convergence. Four outcomes: converged within bounds, converged outside bounds, diverged, or max iterations reached.
+
+**Figure of merit** — `FM = log10(1 / (d_avg × T))`: accuracy per unit runtime. Used to identify optimal parameter combinations.
+
+### GUI
+
+Qt application with solver inputs, a live convergence graph, and interactive flow-field visualisation tabs (Cp, Mach, density, etc.). Zoom and pan state is preserved between tab switches and frame updates.
+
+### Python parameter sweep worker
+
+A thread-pool worker (`case_env/`) runs the solver across a parameter grid in parallel (8 threads). Each worker creates its own case directory, runs the solver, and writes results to a shared CSV in a thread-safe way. Used to generate the effort-vs-accuracy plots.
+
+### Test cases
+
+| Case | Description |
+|------|-------------|
+| `bend` | 90° channel bend |
+| `bump` | Subsonic bump in a channel |
+| `naca0012` | Symmetric aerofoil at various angles of attack |
+| `naca2412` | Cambered aerofoil — Cl/Cd vs α sweep |
+| `turbine_c` | Turbine cascade, coarse mesh topology |
+| `turbine_h` | Turbine cascade, fine mesh topology |
+| `tube` | 1D Sod shock tube |
+| `waves` | Acoustic wave propagation |
+
+Default solver parameters used in the report:
+
+| Case | cfl | sfac | sfac_res | fcorr | ni | nj |
+|------|-----|------|----------|-------|----|----|
+| bend | 0.20 | 0.80 | 0.50 | 0.90 | 53 | 37 |
+| bump | 0.80 | 0.80 | 0.50 | 0.90 | 53 | 37 |
+| naca0012 | 0.20 | 0.60 | 0.50 | 0.60 | — | — |
+| naca2412 | 0.05 | 0.60 | 0.50 | 0.60 | — | — |
+| turbine_c | 0.10 | 0.60 | 0.50 | 0.80 | — | — |
+| turbine_h | 0.10 | 0.80 | 0.00 | 0.90 | — | — |
+
+### Key results
+
+- A figure of merit `FM = log10(1 / (d_avg × T))` is defined to quantify solver efficiency (accuracy per unit runtime) and used to compare parameter combinations.
+- Lift coefficient scales linearly with angle of attack for NACA0012 and NACA2412, but the gradient is ~4× lower than the inviscid 2π. This is likely caused by the far-field boundary being fixed to horizontal freestream regardless of angle of attack, on a domain only 2.5 chord lengths tall.
+- Optimal mesh size for the bump case is around ni = 200, giving FM ≈ 4.5 beyond which floating point precision limits further accuracy gains.
+- Turbine Cp distributions match experimental data well on both coarse and fine mesh topologies.
+
+## Curve-fill AMR solver (extension, in progress)
+
+A separate research extension implementing an unstructured adaptive mesh on a 2D Hilbert space-filling curve quad-tree. Work ongoing — not part of the submitted coursework.
+
+Cells are refined near the airfoil surface based on a weighted combination of wall distance and surface curvature:
+
+- `w_dist = exp(-dist / dist_ref)` — exponential decay from surface
+- `w_kappa = log(κ / κ_min) / log(κ_max / κ_min)` — log-normalised curvature (handles ~2000:1 LE-to-mid-chord ratio)
+- `refinement = 0.7 × w_dist + 0.3 × w_kappa`
+
+Ghost cells enforce flow-tangency at solid walls via a mirror-point immersed boundary method. The Euler solver uses Lax-Friedrichs flux with per-cell local timestepping and CFL ≤ 0.4.
+
+| | |
+|---|---|
+| ![Hilbert mesh levels](levels.png) | ![Bump case pressure](bump.png) |
+| AMR mesh coloured by refinement level | Pressure field on bump case |
