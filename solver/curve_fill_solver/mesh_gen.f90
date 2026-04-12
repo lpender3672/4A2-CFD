@@ -3,6 +3,7 @@ module mesh_gen
     use mesh_utils
     use mesh_alloc
     use mesh_build
+    use mesh_build_v2
     use neighbouring
     ! use iso_fortran_env, only: real64
 
@@ -30,6 +31,66 @@ module mesh_gen
     ! domain_x, domain_y: physical domain size in metres
     ! chord: airfoil chord in metres
     ! Quarter-chord placed at domain centre
+    subroutine generate_hmesh(n, m, poly, extra_global_levels, hmesh)
+        implicit none
+        integer, intent(in)           :: n, m
+        real(8), intent(in)           :: poly(:,:)
+        integer, intent(in), optional :: extra_global_levels
+        type(helper_lod_mesh), intent(out) :: hmesh
+
+        integer :: fine_bits, base_bits, extra_levels, capacity, i
+        real(8) :: Nb, dist_max, kappa_min, kappa_max, dist_ref
+        real(8) :: tmin, tmax
+        type(cell2d), allocatable :: tmp_cells(:)
+        integer,      allocatable :: tmp_idx(:)
+        real(8),      allocatable :: tmp_dist(:), tmp_curv(:)
+
+        extra_levels = 1
+        if (present(extra_global_levels)) extra_levels = extra_global_levels
+
+        base_bits = ceiling(log(real(max(n,m),8)) / log(2.0_8))
+        fine_bits  = base_bits + extra_levels
+        Nb         = real(max(n,m), 8)
+
+        call poly_stats(poly, n, m, dist_max, kappa_min, kappa_max)
+        dist_ref = dist_max * 0.25D0
+
+        print *, 'poly_stats: dist_max=', dist_max, ' kappa=[', kappa_min, ',', kappa_max, ']'
+
+        capacity     = 65536
+        hmesh%length = 0
+        allocate(hmesh%cells(capacity))
+        allocate(hmesh%nearest_cell_poly_idx(capacity))
+        allocate(hmesh%nearest_cell_poly_distance(capacity))
+        allocate(hmesh%nearest_cell_poly_curvature(capacity))
+
+        call traverse_build(0.0_8, 0.0_8, Nb, 0.0_8, 0.0_8, Nb, fine_bits, n, m, poly, &
+                            dist_ref, kappa_min, kappa_max, hmesh, capacity)
+
+        ! trim to exact size
+        allocate(tmp_cells(hmesh%length), tmp_idx(hmesh%length), &
+                 tmp_dist(hmesh%length),  tmp_curv(hmesh%length))
+        tmp_cells = hmesh%cells                    (1:hmesh%length)
+        tmp_idx   = hmesh%nearest_cell_poly_idx    (1:hmesh%length)
+        tmp_dist  = hmesh%nearest_cell_poly_distance(1:hmesh%length)
+        tmp_curv  = hmesh%nearest_cell_poly_curvature(1:hmesh%length)
+        call move_alloc(tmp_cells, hmesh%cells)
+        call move_alloc(tmp_idx,   hmesh%nearest_cell_poly_idx)
+        call move_alloc(tmp_dist,  hmesh%nearest_cell_poly_distance)
+        call move_alloc(tmp_curv,  hmesh%nearest_cell_poly_curvature)
+
+        ! fix min/max signs (Hilbert rotations can invert axes)
+        do i = 1, hmesh%length
+            tmin = min(hmesh%cells(i)%xmin, hmesh%cells(i)%xmax)
+            tmax = max(hmesh%cells(i)%xmin, hmesh%cells(i)%xmax)
+            hmesh%cells(i)%xmin = tmin;  hmesh%cells(i)%xmax = tmax
+            tmin = min(hmesh%cells(i)%ymin, hmesh%cells(i)%ymax)
+            tmax = max(hmesh%cells(i)%ymin, hmesh%cells(i)%ymax)
+            hmesh%cells(i)%ymin = tmin;  hmesh%cells(i)%ymax = tmax
+        end do
+
+    end subroutine generate_hmesh
+
     subroutine generate_cmesh(n, m, naca_code, chord, aoa, domain_x, domain_y, fmesh)
         implicit none
         integer, intent(in) :: n, m
@@ -58,8 +119,11 @@ module mesh_gen
         print '(A,F8.4,A,F8.4,A,F8.4)', ' chord_grid=', chord_grid, &
               '  origin=(', origin_x, ',', origin_y, ')'
 
-        call alloc_ncells(n, m, foil_t, 1, hmesh)
-        call build_cells(n, m, foil_t, 1, hmesh)
+        ! Old version did two traversals. One to count cells and allocate, then another to fill.
+        ! New version does both in one traversal by dynamically growing the cell array as needed.
+        ! call alloc_ncells(n, m, foil_t, 1, hmesh)
+        ! call build_cells(n, m, foil_t, 1, hmesh)
+        call generate_hmesh(n, m, foil_t, 1, hmesh)
 
         print *, 'Full mesh cells allocated: ', hmesh%length
         call write_mesh_csv(hmesh, 'mesh.csv')

@@ -276,3 +276,101 @@ module mesh_build
     end subroutine build_cells
 
 end module mesh_build
+
+! =============================================================================
+! Single-pass mesh builder: dynamic buffer, one traversal, MOVE_ALLOC on trim.
+! Equivalent to alloc_ncells + build_cells but visits the recursion tree once.
+! =============================================================================
+module mesh_build_v2
+    use types
+    use mesh_utils
+    use mesh_traverse
+    implicit none
+
+    contains
+
+    recursive subroutine traverse_build(x0, y0, xi, xj, yi, yj, level, n, m, poly, &
+                                        dist_ref, kappa_min, kappa_max, hmesh, capacity)
+        implicit none
+        real(8), intent(in)    :: x0, y0, xi, xj, yi, yj
+        integer, intent(in)    :: level, n, m
+        real(8), intent(in)    :: poly(:,:)
+        real(8), intent(in)    :: dist_ref, kappa_min, kappa_max
+        type(helper_lod_mesh), intent(inout) :: hmesh
+        integer,               intent(inout) :: capacity
+
+        real(8) :: rx0, rx1, ry0, ry1, px, py, dist, curvature
+        integer :: pidx, stop_level, new_cap, k
+        logical :: inside
+        type(cell2d), allocatable         :: tmp_cells(:)
+        integer,      allocatable         :: tmp_idx(:)
+        real(8),      allocatable         :: tmp_dist(:), tmp_curv(:)
+
+        rx0 = min(x0, x0+xi, x0+yi, x0+xi+yi)
+        rx1 = max(x0, x0+xi, x0+yi, x0+xi+yi)
+        ry0 = min(y0, y0+xj, y0+yj, y0+xj+yj)
+        ry1 = max(y0, y0+xj, y0+yj, y0+xj+yj)
+
+        if (rx1 <= 0.0_8 .or. real(m,8) <= rx0 .or. &
+            ry1 <= 0.0_8 .or. real(n,8) <= ry0) return
+
+        px = x0 + 0.5_8*(xi + yi)
+        py = y0 + 0.5_8*(xj + yj)
+
+        inside = (px >= 0.0_8 .and. px < real(m,8) .and. py >= 0.0_8 .and. py < real(n,8))
+        if (.not. inside) return
+
+        call nearest_idx(px, py, poly, pidx)
+        call dist_xy_to_xy(px, py, poly(pidx,1), poly(pidx,2), dist)
+        call curvature_at_idx(px, py, poly, pidx, dist, curvature)
+
+        stop_level = calc_stop_level(dist, curvature, dist_ref, kappa_min, kappa_max, n, m)
+
+        if (level <= stop_level) then
+            ! grow buffer if needed (double capacity)
+            if (hmesh%length == capacity) then
+                new_cap = capacity * 2
+                allocate(tmp_cells(new_cap), tmp_idx(new_cap), tmp_dist(new_cap), tmp_curv(new_cap))
+                tmp_cells(1:capacity) = hmesh%cells(1:capacity)
+                tmp_idx  (1:capacity) = hmesh%nearest_cell_poly_idx(1:capacity)
+                tmp_dist (1:capacity) = hmesh%nearest_cell_poly_distance(1:capacity)
+                tmp_curv (1:capacity) = hmesh%nearest_cell_poly_curvature(1:capacity)
+                call move_alloc(tmp_cells, hmesh%cells)
+                call move_alloc(tmp_idx,   hmesh%nearest_cell_poly_idx)
+                call move_alloc(tmp_dist,  hmesh%nearest_cell_poly_distance)
+                call move_alloc(tmp_curv,  hmesh%nearest_cell_poly_curvature)
+                capacity = new_cap
+            end if
+
+            hmesh%length = hmesh%length + 1
+            k = hmesh%length
+            hmesh%cells(k)%xmin  = x0
+            hmesh%cells(k)%xmax  = x0 + xi + yi
+            hmesh%cells(k)%ymin  = y0
+            hmesh%cells(k)%ymax  = y0 + xj + yj
+            hmesh%cells(k)%level = level
+            hmesh%nearest_cell_poly_curvature(k) = curvature
+            hmesh%nearest_cell_poly_distance(k)  = dist
+            hmesh%nearest_cell_poly_idx(k)       = pidx
+            return
+        end if
+
+        call traverse_build(x0,                       y0,                       &
+            yi/2.0_8, yj/2.0_8, xi/2.0_8, xj/2.0_8,  level-1, n, m, poly,     &
+            dist_ref, kappa_min, kappa_max, hmesh, capacity)
+
+        call traverse_build(x0 + xi/2.0_8,            y0 + xj/2.0_8,           &
+            xi/2.0_8, xj/2.0_8, yi/2.0_8, yj/2.0_8,   level-1, n, m, poly,    &
+            dist_ref, kappa_min, kappa_max, hmesh, capacity)
+
+        call traverse_build(x0 + xi/2.0_8 + yi/2.0_8, y0 + xj/2.0_8 + yj/2.0_8, &
+            xi/2.0_8, xj/2.0_8, yi/2.0_8, yj/2.0_8,   level-1, n, m, poly,    &
+            dist_ref, kappa_min, kappa_max, hmesh, capacity)
+
+        call traverse_build(x0 + xi/2.0_8 + yi,       y0 + xj/2.0_8 + yj,      &
+            -yi/2.0_8, -yj/2.0_8, -xi/2.0_8, -xj/2.0_8, level-1, n, m, poly,  &
+            dist_ref, kappa_min, kappa_max, hmesh, capacity)
+
+    end subroutine traverse_build
+
+end module mesh_build_v2
