@@ -36,6 +36,10 @@ module cf_solver_module
     ! per-cell geometry (computed once from mesh)
     real(8), allocatable :: area(:)
     real(8), allocatable :: dt(:)
+    ! cached freestream conserved state (used by Dirichlet far-field BC)
+    real(8) :: ro_fs, rovx_fs, rovy_fs, roe_fs, p_fs
+    ! velocity cap used by positivity floor in set_secondary
+    real(8) :: v_max
   end type cf_state
 
   contains
@@ -91,6 +95,17 @@ module cf_solver_module
 
     print '(A,F6.4,A,F8.1,A,F8.1)', ' CF freestream: Ma=', Ma, '  p0=', p0, '  T0=', T0
 
+    ! Cache freestream state for Dirichlet far-field BC
+    st%ro_fs   = ro0
+    st%rovx_fs = ro0 * u0
+    st%rovy_fs = ro0 * v0
+    st%roe_fs  = roe0
+    st%p_fs    = p0
+    ! Velocity cap = 5x freestream max wave speed.  Generous enough not to
+    ! clip valid transonic features but small enough that a near-vacuum cell
+    ! (after a positivity floor hit) cannot drive lambda → infinity.
+    st%v_max   = 5.0D0 * (sqrt(u0**2 + v0**2) + c0)
+
     st%ro   = ro0
     st%rovx = ro0 * u0
     st%rovy = ro0 * v0
@@ -114,7 +129,7 @@ module cf_solver_module
     type(cf_state),  intent(inout) :: st
 
     integer :: i
-    real(8) :: gam, pi
+    real(8) :: gam, v_mag, scale
 
     real(8), parameter :: RO_MIN = 1.0D-6   ! positivity floor
     real(8), parameter :: P_MIN  = 1.0D0    ! 1 Pa floor
@@ -122,15 +137,33 @@ module cf_solver_module
     gam = real(av%gam, 8)
     do i = 1, st%ncells
       if (mesh%cells(i)%is_solid == 1) cycle
-      ! Positivity: clamp density and recompute if needed
+
+      ! Density floor.
       if (st%ro(i) < RO_MIN) st%ro(i) = RO_MIN
+
+      ! Velocity floor.  When ro is clamped to RO_MIN the raw |v|=rovx/ro
+      ! can explode, which then drives c=sqrt(gam*p/ro) and the LF wave
+      ! speed lambda to absurd values, propagating instability through
+      ! flux dissipation.  Rescale momentum so |v| <= v_max.
+      st%vx(i) = st%rovx(i) / st%ro(i)
+      st%vy(i) = st%rovy(i) / st%ro(i)
+      v_mag    = sqrt(st%vx(i)**2 + st%vy(i)**2)
+      if (v_mag > st%v_max) then
+        scale     = st%v_max / v_mag
+        st%vx(i)  = st%vx(i)  * scale
+        st%vy(i)  = st%vy(i)  * scale
+        st%rovx(i) = st%ro(i) * st%vx(i)
+        st%rovy(i) = st%ro(i) * st%vy(i)
+      end if
+
+      ! Pressure floor.  rovx/rovy are already capped, so the kinetic
+      ! energy term cannot blow up roe here.
       st%p(i) = pressure(st%ro(i), st%rovx(i), st%rovy(i), st%roe(i), gam)
       if (st%p(i) < P_MIN) then
         st%p(i)   = P_MIN
         st%roe(i) = P_MIN/(gam-1.0D0) + 0.5D0*(st%rovx(i)**2 + st%rovy(i)**2)/st%ro(i)
       end if
-      st%vx(i)    = st%rovx(i) / st%ro(i)
-      st%vy(i)    = st%rovy(i) / st%ro(i)
+
       st%hstag(i) = (st%roe(i) + st%p(i)) / st%ro(i)
     end do
   end subroutine set_secondary
@@ -224,13 +257,19 @@ module cf_solver_module
   ! -----------------------------------------------------------------------
   ! One explicit Euler flux step.
   !
-  ! For each fluid cell i, loop over its neighbours j via neigh_indices.
-  ! The face flux (Lax-Friedrichs) is scaled by face_len and added to the
-  ! increment of i; by Newton's 3rd law the same flux with opposite sign
-  ! goes to j.  We skip j-side accumulation for solid cells.
+  ! Three face cases per fluid cell i:
+  !   - Wall face (j is solid): flux is purely (0, p_i*nx, p_i*ny, 0) —
+  !     the inviscid slip-wall pressure force.  Computed each time the wall
+  !     face is encountered (no pair de-duplication, since j is solid and
+  !     never iterates over its own neighbours).
+  !   - Fluid-fluid face (j fluid, j > i): Lax-Friedrichs flux added to i,
+  !     equal-and-opposite to j (pair de-duplicated via j > i guard).
   !
-  ! After accumulating, conserved vars are updated:
-  !   Q_new = Q_old - dt/area * sum(F * face_len)
+  ! After accumulating, conserved vars are updated with per-cell local dt:
+  !   Q_new = Q_old + dt_i/area_i * dro
+  ! Local time-stepping converges to the same steady state as global dt
+  ! (residuals → 0 cancels the dt scaling) but lets coarse cells advance
+  ! at their own larger dt — a big speed-up on AMR meshes.
   ! -----------------------------------------------------------------------
   subroutine euler_step(mesh, av, st)
     type(lod_mesh),  intent(in)    :: mesh
@@ -240,7 +279,7 @@ module cf_solver_module
     integer :: i, k, j, offset
     real(8) :: gam, nx, ny, face_len
     real(8) :: f_ro, f_rovx, f_rovy, f_roe
-    real(8) :: dtA_i
+    real(8) :: dtA_i, p_i
 
     gam = real(av%gam, 8)
 
@@ -257,9 +296,19 @@ module cf_solver_module
       do k = 0, mesh%cells(i)%neigh_count - 1
         j = mesh%neigh_indices(offset + k)
 
-        ! Skip solid neighbours entirely — ghost BC handles wall condition
-        if (mesh%cells(j)%is_solid == 1) cycle
-        ! Only process each pair once: skip if j already handled its side
+        if (mesh%cells(j)%is_solid == 1) then
+          ! Wall face — apply slip-wall pressure flux to cell i only.
+          ! nx,ny points from i (fluid) toward j (solid), so pressure force
+          ! on the fluid is in the -n direction.
+          call face_geometry(mesh%cells(i), mesh%cells(j), face_len, nx, ny)
+          p_i = st%p(i)
+          st%drovx(i) = st%drovx(i) - p_i * nx * face_len
+          st%drovy(i) = st%drovy(i) - p_i * ny * face_len
+          ! No mass or energy flux through a slip wall (u·n = 0).
+          cycle
+        end if
+
+        ! Only process each fluid-fluid pair once
         if (j < i) cycle
 
         call face_geometry(mesh%cells(i), mesh%cells(j), face_len, nx, ny)
@@ -296,17 +345,17 @@ module cf_solver_module
   end subroutine euler_step
 
   ! -----------------------------------------------------------------------
-  ! Farfield BC — matches the block solver's validated approach:
+  ! Far-field BC.  Boundary cells are detected geometrically by a missing
+  ! side (side_count(s) == 0).
   !
-  ! INLET (open sides on upstream half of domain):
-  !   Relax boundary density toward rostag via rfin, then derive all other
-  !   quantities isentropically from stagnation conditions — exactly as
-  !   apply_bconds does in the block solver.
-  !   ro is capped at 0.9999*rostag to prevent transient crashes.
-  !
-  ! OUTLET (open sides on downstream half):
-  !   Fix static pressure to p_out only; density and momentum extrapolated
-  !   from interior (1 characteristic enters from outside for subsonic flow).
+  ! Every boundary cell is forced to the freestream Dirichlet state.  Mixing
+  ! Dirichlet on three sides with a fix-p/extrapolate outlet on the fourth
+  ! creates a stuck discontinuity at whichever face the BC type changes —
+  ! that's the residual hot spot we kept chasing from corner to corner.
+  ! With p_out ≈ p_freestream (true for this case to within 0.1%), forcing
+  ! the right edge to freestream too is essentially the correct outlet
+  ! state and removes the discontinuity entirely.  Trade-off: any wake
+  ! reaching the right edge reflects rather than exits cleanly.
   ! -----------------------------------------------------------------------
   subroutine apply_farfield_bc(mesh, av, bcs, st)
     type(lod_mesh),  intent(in)    :: mesh
@@ -314,48 +363,22 @@ module cf_solver_module
     type(t_bconds),  intent(in)    :: bcs
     type(cf_state),  intent(inout) :: st
 
-    integer :: i, total_sides
-    real(8) :: gam, cp, pstag, tstag, alpha, rfin, rostag, p_out
-    real(8) :: ro_i, Tstatic, Vinlet, cx
-
-    gam    = real(av%gam,    8)
-    cp     = real(av%cp,     8)
-    pstag  = real(bcs%pstag, 8)
-    tstag  = real(bcs%tstag, 8)
-    alpha  = real(bcs%alpha, 8) * acos(-1.0D0) / 180.0D0
-    rfin   = real(bcs%rfin,  8)
-    rostag = real(bcs%rostag,8)
-    p_out  = real(bcs%p_out, 8)
+    integer :: i
+    logical :: on_boundary
 
     do i = 1, st%ncells
       if (mesh%cells(i)%is_solid == 1) cycle
-      total_sides = int(mesh%cells(i)%side_count(1)) + &
-                    int(mesh%cells(i)%side_count(2)) + &
-                    int(mesh%cells(i)%side_count(3)) + &
-                    int(mesh%cells(i)%side_count(4))
-      if (total_sides >= 4) cycle
 
-      cx = 0.5D0*(mesh%cells(i)%xmin + mesh%cells(i)%xmax)
+      on_boundary = (mesh%cells(i)%side_count(1) == 0) .or. &
+                    (mesh%cells(i)%side_count(2) == 0) .or. &
+                    (mesh%cells(i)%side_count(3) == 0) .or. &
+                    (mesh%cells(i)%side_count(4) == 0)
+      if (.not. on_boundary) cycle
 
-      if (cx <= 1.5D0) then
-        ! --- Inlet: stagnation-condition driven, same as block solver ---
-        ! Relax boundary density toward interior value (filtered by rfin)
-        ro_i = rfin * st%ro(i) + (1.0D0 - rfin) * st%ro(i)  ! = st%ro(i) first step
-        ro_i = min(ro_i, 0.9999D0 * rostag)
-
-        Tstatic = tstag * (ro_i / rostag)**(gam - 1.0D0)
-        Vinlet  = sqrt(max(2.0D0 * cp * (tstag - Tstatic), 0.0D0))
-
-        st%ro  (i) = ro_i
-        st%rovx(i) = ro_i * Vinlet * cos(alpha)
-        st%rovy(i) = ro_i * Vinlet * sin(alpha)
-        st%roe (i) = ro_i * (cp/gam * Tstatic + 0.5D0 * Vinlet**2)
-        ! p = pstag*(ro/rostag)^gam — consistent with isentropic inlet
-      else
-        ! --- Outlet: fix static pressure only ---
-        st%roe(i) = p_out/(gam-1.0D0) + &
-                    0.5D0*(st%rovx(i)**2 + st%rovy(i)**2) / max(st%ro(i), 1.0D-6)
-      end if
+      st%ro  (i) = st%ro_fs
+      st%rovx(i) = st%rovx_fs
+      st%rovy(i) = st%rovy_fs
+      st%roe (i) = st%roe_fs
     end do
   end subroutine apply_farfield_bc
 
@@ -406,6 +429,10 @@ subroutine curve_fill_solver(av_c, bcs_c, g_c) bind(C, name="curve_fill_solver")
   type(cf_state)  :: st
   real(8)         :: dt, d_max, d_avg
   integer         :: step
+  ! Locals for the interior-only residual diagnostic (every 100 steps)
+  integer         :: ii, i_max_int, n_int
+  real(8)         :: d_int_sum, abs_dro
+  logical         :: is_bnd
 
   print *, 'entered curve_fill_solver'
 
@@ -424,9 +451,10 @@ subroutine curve_fill_solver(av_c, bcs_c, g_c) bind(C, name="curve_fill_solver")
   do step = 1, av%nsteps
 
     ! BCs must be applied before flux step so boundary cells are
-    ! correct when euler_step reads them as neighbours
+    ! correct when euler_step reads them as neighbours.
+    ! Wall BC is handled directly in euler_step (slip-wall pressure flux),
+    ! so the old image-method apply_ghost_bc is disabled.
     call apply_farfield_bc(mesh, av, bcs, st)
-    call apply_ghost_bc   (mesh, st)
     call set_secondary    (mesh, av, st)
     call compute_dt       (mesh, av, st, dt)
     call euler_step       (mesh, av, st)
@@ -435,10 +463,35 @@ subroutine curve_fill_solver(av_c, bcs_c, g_c) bind(C, name="curve_fill_solver")
       print '(A,ES10.3)', ' dt step 1 = ', dt
 
     if (mod(step, 100) == 0) then
-      d_max = maxval(abs(st%dro))
-      d_avg = sum   (abs(st%dro)) / real(st%ncells, 8)
-      print '(A,I6,A,ES10.3,A,ES10.3,A,ES10.3)', &
-        ' step ', step, '  dro_max=', d_max, '  dro_avg=', d_avg, '  dt=', dt
+      ! Interior-only residual: skip boundary cells (where Dirichlet BC
+      ! re-imposes freestream every step, so dro is the freestream flux,
+      ! not a convergence indicator).
+      d_max     = 0.0D0
+      d_int_sum = 0.0D0
+      n_int     = 0
+      i_max_int = 1
+      do ii = 1, st%ncells
+        if (mesh%cells(ii)%is_solid == 1) cycle
+        is_bnd = (mesh%cells(ii)%side_count(1) == 0) .or. &
+                 (mesh%cells(ii)%side_count(2) == 0) .or. &
+                 (mesh%cells(ii)%side_count(3) == 0) .or. &
+                 (mesh%cells(ii)%side_count(4) == 0)
+        if (is_bnd) cycle
+        n_int   = n_int + 1
+        abs_dro = abs(st%dro(ii))
+        d_int_sum = d_int_sum + abs_dro
+        if (abs_dro > d_max) then
+          d_max     = abs_dro
+          i_max_int = ii
+        end if
+      end do
+      d_avg = d_int_sum / real(max(n_int, 1), 8)
+      print '(A,I6,A,ES10.3,A,ES10.3,A,ES10.3,A,I6,A,F6.3,A,F6.3,A)', &
+        ' step ', step, '  int_dro_max=', d_max, &
+        '  int_dro_avg=', d_avg, '  dt=', dt, &
+        '  imax=', i_max_int, '  @(', &
+        0.5D0*(mesh%cells(i_max_int)%xmin + mesh%cells(i_max_int)%xmax), ',', &
+        0.5D0*(mesh%cells(i_max_int)%ymin + mesh%cells(i_max_int)%ymax), ')'
       call cf_state_to_qt(st)
     end if
 

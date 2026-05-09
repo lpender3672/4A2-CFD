@@ -8,6 +8,11 @@ extern "C" {
 
 SolveWorker::SolveWorker() {
     solverFunc = nullptr;
+    // Zero-init the C-compat structs so ni/nj/etc. don't carry stack garbage
+    // when the worker is stack-allocated (e.g. headless CMD mode).
+    std::memset(&av,  0, sizeof(av));
+    std::memset(&bcs, 0, sizeof(bcs));
+    std::memset(&g,   0, sizeof(g));
 }
 
 SolveWorker::~SolveWorker() {
