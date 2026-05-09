@@ -4,6 +4,8 @@
 #include <QWidget>
 #include <QGridLayout>
 #include <QFileDialog>
+#include <QCloseEvent>
+#include <QApplication>
 
 #include <iostream>
 
@@ -71,10 +73,29 @@ MainWindow::MainWindow(t_mode app_mode) {
     console->outputMessage("Selected path: " + path);
 }
 
+// Wait for the worker thread to finish without deadlocking on
+// BlockingQueuedConnection signals from Fortran (those signals need the
+// main thread's event loop, so we keep pumping events while we wait).
+static void waitForWorker(QThread *thread) {
+    if (!thread) return;
+    set_stopit_flag();
+    while (thread->isRunning()) {
+        QApplication::processEvents(QEventLoop::AllEvents, 50);
+        thread->wait(50);
+    }
+}
+
+void MainWindow::closeEvent(QCloseEvent *event) {
+    if (solveWorkerThread && solveWorkerThread->isRunning()) {
+        if (console) console->outputMessage("Window closing — stopping solver…");
+        waitForWorker(solveWorkerThread);
+    }
+    QWidget::closeEvent(event);
+}
+
 MainWindow::~MainWindow() {
     if (solveWorkerThread && solveWorkerThread->isRunning()) {
-        solveWorkerThread->quit();
-        solveWorkerThread->wait();
+        waitForWorker(solveWorkerThread);
     }
 
     delete solveWorker;

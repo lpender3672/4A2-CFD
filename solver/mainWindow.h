@@ -31,6 +31,9 @@ public slots:
 
     void onPathChanged(const QString &newPath);
 
+protected:
+    void closeEvent(class QCloseEvent *event) override;
+
 private:
     SolveWorker *solveWorker;
     QThread *solveWorkerThread;

@@ -415,6 +415,7 @@ subroutine curve_fill_solver(av_c, bcs_c, g_c) bind(C, name="curve_fill_solver")
   use conversion
   use mesh_gen
   use io_module
+  use solver_flags, only: stopit
   use cf_solver_module
   implicit none
 
@@ -436,6 +437,9 @@ subroutine curve_fill_solver(av_c, bcs_c, g_c) bind(C, name="curve_fill_solver")
 
   print *, 'entered curve_fill_solver'
 
+  ! Reset the global stop flag (set_stopit_flag from C raises this)
+  stopit = 0
+
   call appvars_from_c(av_c, av)
   call grid_from_c   (g_c, g_dummy)
   call bconds_from_c (bcs_c, bcs, g_dummy)
@@ -449,6 +453,13 @@ subroutine curve_fill_solver(av_c, bcs_c, g_c) bind(C, name="curve_fill_solver")
   print *, 'Starting Euler iterations, nsteps=', av%nsteps
 
   do step = 1, av%nsteps
+
+    ! Honour external stop request (window-close or stop button).  Same
+    ! mechanism the block-mesh solver uses.
+    if (stopit /= 0) then
+      print *, 'curve_fill_solver: stop requested at step ', step
+      exit
+    end if
 
     ! BCs must be applied before flux step so boundary cells are
     ! correct when euler_step reads them as neighbours.
