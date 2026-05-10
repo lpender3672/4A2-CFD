@@ -8,15 +8,30 @@ module mesh_traverse
     ! -----------------------------------------------------------------------
     ! Decide the coarsest level at which a cell may be a leaf.
     !
-    !   w_dist  = exp(-dist / dist_ref)            1 at surface, decays outward
-    !   w_kappa = (kappa - kappa_min) / range      0 = flat, 1 = sharpest
+    ! Logarithmic-distance refinement:
     !
-    !   refinement = alpha*w_dist + (1-alpha)*w_kappa   (alpha ~ 0.7)
-    !   stop_level = round( (1 - refinement) * max_level )
+    !   stop_level = floor( log2(d / D_MIN) )   (clamped to [0, max_level])
     !
-    ! A lower stop_level means finer cells (we recurse until level <= stop_level).
-    ! max_level is derived from n,m identically to fine_bits in the callers so it
-    ! does not need to be threaded through the recursion as a parameter.
+    ! Why this, instead of the older exponential blend?  Because log2 is
+    ! Lipschitz with gradient 1 / (d · ln 2), the change in stop_level over
+    ! one cell-width is bounded above by 1.  That bound is exactly what is
+    ! needed for 2:1 AMR balance: adjacent cells can differ by at most one
+    ! refinement level by construction — no post-pass split needed.
+    !
+    ! Geometrically: a level-L cell sits at d ≈ 2^L · D_MIN; level (L+2)
+    ! sits at ≥ 2^(L+2) · D_MIN.  Their combined half-widths are only
+    ! O(2^L · finest_size), which is much less than the 3 · 2^L · D_MIN
+    ! gap, so a 4:1 jump is geometrically impossible.
+    !
+    ! Curvature term: dropped.  Near the wall (d small) stop_level is
+    ! already 0 from the distance alone, so the leading edge keeps its
+    ! resolution; far-field curvature boosts that previously upset the
+    ! balance are gone.
+    !
+    ! D_MIN is in grid units (n,m space).  finest cell size is base/2^max_level
+    ! = max(n,m)/2^max_level ≈ 0.5 grid units, so D_MIN = 1.0 forces the
+    ! finest level for any cell whose centre is within ~half the cell of the
+    ! wall — i.e. for every cell that actually straddles the surface.
     ! -----------------------------------------------------------------------
     pure function calc_stop_level(dist, kappa, dist_ref, kappa_min, kappa_max, n, m) &
         result(stop_level)
@@ -26,23 +41,19 @@ module mesh_traverse
         integer, intent(in) :: n, m
         integer :: stop_level
 
-        real(8), parameter :: ALPHA = 0.7D0, EPS = 1.0D-12
-        real(8) :: w_dist, w_kappa, refinement
+        real(8), parameter :: D_MIN = 1.0D0
         integer :: max_level
+        real(8) :: d_eff
+        real(8) :: unused
+
+        ! kappa-related parameters retained in the signature so callers do
+        ! not need to change; suppress unused-arg warnings.
+        unused = kappa + dist_ref + kappa_min + kappa_max
 
         max_level = ceiling(log(real(max(n,m),8)) / log(2.0_8)) + 1
 
-        w_dist = exp(-dist / max(dist_ref, EPS))
-
-        if (kappa_max > kappa_min * (1.0D0 + EPS) .and. kappa > kappa_min) then
-            w_kappa = log(kappa / kappa_min) / log(kappa_max / kappa_min)
-        else
-            w_kappa = 0.0D0
-        end if
-        w_kappa = max(0.0D0, min(1.0D0, w_kappa))
-
-        refinement = ALPHA * w_dist + (1.0D0 - ALPHA) * w_kappa
-        stop_level = nint((1.0D0 - refinement) * real(max_level, 8))
+        d_eff = max(dist, D_MIN)
+        stop_level = floor(log(d_eff / D_MIN) / log(2.0_8))
         stop_level = max(0, min(max_level, stop_level))
 
     end function calc_stop_level

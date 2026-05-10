@@ -163,6 +163,7 @@ module mesh_gen
               domain_y, 'm  chord=', chord, 'm'
 
         call print_first_five_neighbors(fmesh)
+        call mesh_quality_report(fmesh, 'mesh_quality.csv')
 
     end subroutine generate_cmesh
 
