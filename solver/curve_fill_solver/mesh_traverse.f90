@@ -3,7 +3,69 @@ module mesh_traverse
     use general_utils
     use mesh_utils
     implicit none
+
+    ! ---------------------------------------------------------------------
+    ! Curvature anchors: extra refinement sources at high-curvature points
+    ! along the polygon.  Each anchor contributes its own log-distance term
+    ! to the stop_level via min(); since min of Lipschitz functions is
+    ! Lipschitz, the 2:1 balance invariant is preserved.
+    ! ---------------------------------------------------------------------
+    real(8), allocatable, save :: anchor_x(:), anchor_y(:)
+
+    ! D_MIN for anchors.  Each factor of 2 over WALL_DMIN extends the
+    ! finest-cell zone by one refinement level outward from the anchor.
+    !   anchor_dmin = WALL_DMIN  → no extra refinement
+    !   anchor_dmin = 2·WALL_DMIN → +1 level (cells half-size out to 2·WALL_DMIN)
+    !   anchor_dmin = 4·WALL_DMIN → +2 levels, etc.
+    real(8),              save :: anchor_dmin = 2.0D0
+
+    ! Stop-level constants (kept module-scope so they're tunable from one place)
+    real(8), parameter :: WALL_DMIN = 1.0D0             ! grid units
+    real(8), parameter :: ANCHOR_KAPPA_FRAC = 0.10D0    ! select vertices with κ > frac · κ_max
+
     contains
+
+    ! Build curvature anchors from the polygon.  Vertices with curvature above
+    ! ANCHOR_KAPPA_FRAC · kappa_max are kept; each one becomes a fine-mesh
+    ! source with its own anchor_dmin.  For NACA-style airfoils this picks
+    ! out the leading edge cleanly.
+    subroutine setup_curvature_anchors(poly, kappa_max)
+        real(8), intent(in) :: poly(:,:)
+        real(8), intent(in) :: kappa_max
+
+        integer :: i, np, te_idx, count
+        real(8) :: kappa_i, kappa_thresh, dist_dummy
+
+        np = size(poly, 1)
+        te_idx = maxloc(poly(:,1), 1)
+        kappa_thresh = ANCHOR_KAPPA_FRAC * kappa_max
+
+        if (allocated(anchor_x)) deallocate(anchor_x)
+        if (allocated(anchor_y)) deallocate(anchor_y)
+
+        ! Two-pass: count first, then allocate exact size and fill
+        count = 0
+        do i = 2, np - 1
+            if (abs(i - te_idx) <= CURVATURE_STENCIL_W) cycle
+            call curvature_at_idx(poly(i,1), poly(i,2), poly, i, dist_dummy, kappa_i)
+            if (kappa_i > kappa_thresh) count = count + 1
+        end do
+
+        allocate(anchor_x(count), anchor_y(count))
+        count = 0
+        do i = 2, np - 1
+            if (abs(i - te_idx) <= CURVATURE_STENCIL_W) cycle
+            call curvature_at_idx(poly(i,1), poly(i,2), poly, i, dist_dummy, kappa_i)
+            if (kappa_i > kappa_thresh) then
+                count = count + 1
+                anchor_x(count) = poly(i, 1)
+                anchor_y(count) = poly(i, 2)
+            end if
+        end do
+
+        print '(A,I5,A,F8.5,A,F6.3,A)', '  curvature anchors: ', count, &
+            '  (κ_threshold=', kappa_thresh, ', D_MIN_anchor=', anchor_dmin, ')'
+    end subroutine setup_curvature_anchors
 
     ! -----------------------------------------------------------------------
     ! Decide the coarsest level at which a cell may be a leaf.
@@ -23,39 +85,43 @@ module mesh_traverse
     ! O(2^L · finest_size), which is much less than the 3 · 2^L · D_MIN
     ! gap, so a 4:1 jump is geometrically impossible.
     !
-    ! Curvature term: dropped.  Near the wall (d small) stop_level is
-    ! already 0 from the distance alone, so the leading edge keeps its
-    ! resolution; far-field curvature boosts that previously upset the
-    ! balance are gone.
+    ! Curvature: handled by separate anchor sources (see anchor_x/y above).
+    ! Each anchor contributes its own log-distance term and the final
+    ! stop_level is the min over wall + all anchors.  min of Lipschitz
+    ! functions is Lipschitz, so 2:1 balance is preserved.
     !
     ! D_MIN is in grid units (n,m space).  finest cell size is base/2^max_level
     ! = max(n,m)/2^max_level ≈ 0.5 grid units, so D_MIN = 1.0 forces the
     ! finest level for any cell whose centre is within ~half the cell of the
     ! wall — i.e. for every cell that actually straddles the surface.
     ! -----------------------------------------------------------------------
-    pure function calc_stop_level(dist, kappa, dist_ref, kappa_min, kappa_max, n, m) &
-        result(stop_level)
-
-        real(8), intent(in) :: dist, kappa
-        real(8), intent(in) :: dist_ref, kappa_min, kappa_max
+    function calc_stop_level(dist, px, py, n, m) result(stop_level)
+        real(8), intent(in) :: dist, px, py
         integer, intent(in) :: n, m
         integer :: stop_level
 
-        real(8), parameter :: D_MIN = 1.0D0
-        integer :: max_level
-        real(8) :: d_eff
-        real(8) :: unused
+        integer :: max_level, i, sl_a
+        real(8) :: d_eff, d_a, ln2
 
-        ! kappa-related parameters retained in the signature so callers do
-        ! not need to change; suppress unused-arg warnings.
-        unused = kappa + dist_ref + kappa_min + kappa_max
+        ln2 = log(2.0_8)
+        max_level = ceiling(log(real(max(n,m),8)) / ln2) + 1
 
-        max_level = ceiling(log(real(max(n,m),8)) / log(2.0_8)) + 1
+        ! Wall log-distance term (Lipschitz → 2:1 balanced for the wall).
+        d_eff = max(dist, WALL_DMIN)
+        stop_level = floor(log(d_eff / WALL_DMIN) / ln2)
 
-        d_eff = max(dist, D_MIN)
-        stop_level = floor(log(d_eff / D_MIN) / log(2.0_8))
+        ! Curvature anchors.  min over Lipschitz contributions is Lipschitz,
+        ! so the resulting field still satisfies the 2:1 invariant.
+        if (allocated(anchor_x)) then
+            do i = 1, size(anchor_x)
+                d_a = sqrt((px - anchor_x(i))**2 + (py - anchor_y(i))**2)
+                d_a = max(d_a, anchor_dmin)
+                sl_a = floor(log(d_a / anchor_dmin) / ln2)
+                if (sl_a < stop_level) stop_level = sl_a
+            end do
+        end if
+
         stop_level = max(0, min(max_level, stop_level))
-
     end function calc_stop_level
 
     recursive subroutine traverse_ncells(x0, y0, xi, xj, yi, yj, level, n, m, poly, &
@@ -90,7 +156,7 @@ module mesh_traverse
         call dist_xy_to_xy(px, py, poly(pidx,1), poly(pidx,2), dist)
         call curvature_at_idx(px, py, poly, pidx, dist, curvature)
 
-        stop_level = calc_stop_level(dist, curvature, dist_ref, kappa_min, kappa_max, n, m)
+        stop_level = calc_stop_level(dist, px, py, n, m)
 
         if (level <= stop_level) then
             ncells = ncells + 1
@@ -148,7 +214,7 @@ module mesh_traverse
         call dist_xy_to_xy(px, py, poly(pidx,1), poly(pidx,2), dist)
         call curvature_at_idx(px, py, poly, pidx, dist, curvature)
 
-        stop_level = calc_stop_level(dist, curvature, dist_ref, kappa_min, kappa_max, n, m)
+        stop_level = calc_stop_level(dist, px, py, n, m)
 
         if (level <= stop_level) then
             hmesh%cells(cidx)%xmin = x0
@@ -335,7 +401,7 @@ module mesh_build_v2
         call dist_xy_to_xy(px, py, poly(pidx,1), poly(pidx,2), dist)
         call curvature_at_idx(px, py, poly, pidx, dist, curvature)
 
-        stop_level = calc_stop_level(dist, curvature, dist_ref, kappa_min, kappa_max, n, m)
+        stop_level = calc_stop_level(dist, px, py, n, m)
 
         if (level <= stop_level) then
             ! grow buffer if needed (double capacity)

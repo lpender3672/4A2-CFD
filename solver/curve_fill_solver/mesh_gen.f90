@@ -57,6 +57,9 @@ module mesh_gen
 
         print *, 'poly_stats: dist_max=', dist_max, ' kappa=[', kappa_min, ',', kappa_max, ']'
 
+        ! Register curvature anchors before traversal (consumed by calc_stop_level).
+        call setup_curvature_anchors(poly, kappa_max)
+
         capacity     = 65536
         hmesh%length = 0
         allocate(hmesh%cells(capacity))
