@@ -50,6 +50,6 @@ jobs:
         with:
           name: solver-binaries
           path: |
-            build/solver/solverApp.exe
-            build/advection/advectionApp.exe
-          if-no-files-found: warn
+            build/**/solverApp.exe
+            build/**/advectionApp.exe
+          if-no-files-found: error
