@@ -1,0 +1,55 @@
+name: Build Solver and Advection
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # MinGW64 toolchain + Qt6 + Fortran. Use the mingw-w64 CMake/Ninja
+      # packages (not the plain msys ones) so CMake selects the MinGW
+      # toolchain and native Windows paths.
+      - name: Set up MSYS2 environment
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            base-devel
+            git
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-gcc-fortran
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-qt6-base
+            mingw-w64-x86_64-qt6-tools
+            mingw-w64-x86_64-qt6-charts
+            mingw-w64-x86_64-qt6-svg
+
+      - name: Configure CMake
+        run: >-
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build all targets
+        run: cmake --build build --parallel
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: solver-binaries
+          path: |
+            build/**/solverApp.exe
+            build/**/advectionApp.exe
+          if-no-files-found: error

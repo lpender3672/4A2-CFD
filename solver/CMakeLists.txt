@@ -16,12 +16,15 @@ endif()
 target_link_libraries(solverApp PRIVATE Qt6::Core Qt6::Widgets Qt6::Charts Qt6::PrintSupport)
 
 if(WIN32)
-    set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} /O2")
-    # Only add the /STACK linker flag for MSVC targets. MinGW's ld doesn't accept /STACK.
+    # Optimisation and linker flags differ between MSVC and MinGW. MinGW's
+    # gfortran/ld reject the MSVC-style "/O2" and "/STACK" flags (gfortran
+    # treats "/O2" as a linker input file), so gate them on the compiler.
     if (MSVC)
+        set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} /O2")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:100485760") # 10 MB stack
     else()
-        message(VERBOSE "Not MSVC: skipping /STACK linker flag")
+        set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} -O2")
+        message(VERBOSE "Not MSVC: using -O2 and skipping /STACK linker flag")
     endif()
 
     find_program(WINDEPLOYQT_EXECUTABLE windeployqt
